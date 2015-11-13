@@ -1,5 +1,2 @@
-include ':c8oControls'
 include ':c8oSDKAndroid'
-include ':sample02'
-include ':bigFileTransferSample'
 include ':c8oSDKTester'
