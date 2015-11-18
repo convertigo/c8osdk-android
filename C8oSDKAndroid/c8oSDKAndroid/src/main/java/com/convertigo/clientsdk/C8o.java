@@ -327,54 +327,54 @@ public class C8o extends C8oBase {
 	
 	//*** TAG Convertigo call ***//
 
-    public C8oPromise<Document> callXml(String requestable, Object... params) {
-        if (params.length % 2 != 0) {
+    public C8oPromise<Document> callXml(String requestable, Object... parameters) {
+        if (parameters.length % 2 != 0) {
             throw new InvalidParameterException("TODO");
         }
-        List<NameValuePair> parameters = new ArrayList<NameValuePair>(params.length / 2);
+        List<NameValuePair> parameterList = new ArrayList<NameValuePair>(parameters.length / 2);
 
-        for (int i = 0; i < params.length; i+=2) {
-            parameters.add(new ObjectNameValuePair("" + params[i], params[i+1]));
+        for (int i = 0; i < parameters.length; i+=2) {
+            parameterList.add(new ObjectNameValuePair("" + parameters[i], parameters[i + 1]));
         }
 
         final C8oPromise<Document> promise = new C8oPromise<Document>(this);
 
-        call(requestable, parameters, new C8oXMLResponseListener() {
+        call(requestable, parameterList, new C8oXMLResponseListener() {
             @Override
             public void onXMLResponse(List<NameValuePair> requestParameters, Document response) {
-                promise.onResult(response);
+                promise.onResponse(response);
             }
         }, new C8oExceptionListener() {
             @Override
             public void onException(List<NameValuePair> requestParameters, Exception exception) {
-                promise.onThrowable(exception);
+                promise.onFailure(exception);
             }
         });
 
         return promise;
     }
 
-	public C8oPromise<JSONObject> callJson(String requestable, Object... params) {
-		if (params.length % 2 != 0) {
+	public C8oPromise<JSONObject> callJson(String requestable, Object... parameters) {
+		if (parameters.length % 2 != 0) {
 			throw new InvalidParameterException("TODO");
 		}
-		List<NameValuePair> parameters = new ArrayList<NameValuePair>(params.length / 2);
+		List<NameValuePair> parameterList = new ArrayList<NameValuePair>(parameters.length / 2);
 
-		for (int i = 0; i < params.length; i+=2) {
-			parameters.add(new ObjectNameValuePair("" + params[i], params[i+1]));
+		for (int i = 0; i < parameters.length; i+=2) {
+			parameterList.add(new ObjectNameValuePair("" + parameters[i], parameters[i + 1]));
 		}
 
 		final C8oPromise<JSONObject> promise = new C8oPromise<JSONObject>(this);
 
-		call(requestable, parameters, new C8oJSONResponseListener() {
+		call(requestable, parameterList, new C8oJSONResponseListener() {
 			@Override
 			public void onJSONResponse(List<NameValuePair> requestParameters, JSONObject response) {
-				promise.onResult(response);
+				promise.onResponse(response);
 			}
 		}, new C8oExceptionListener() {
 			@Override
 			public void onException(List<NameValuePair> requestParameters, Exception exception) {
-				promise.onThrowable(exception);
+				promise.onFailure(exception);
 			}
 		});
 
