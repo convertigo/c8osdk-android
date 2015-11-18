@@ -26,6 +26,8 @@ package com.convertigo.clientsdk;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.security.InvalidParameterException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -45,6 +47,8 @@ import org.w3c.dom.Document;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.webkit.URLUtil;
 
@@ -77,7 +81,7 @@ import com.couchbase.lite.QueryEnumerator;
  * An instance of C8o is connected to only one Convertigo and can't change it.<br/>
  * To use it, you have to first initialize the C8o instance with the Convertigo endpoint , then use call methods with Convertigo variables as parameter.<br/>
  */
-public class C8o {
+public class C8o extends C8oBase {
 	
 	// Log :
 	// - VERBOSE (v) : methods parameters,
@@ -149,8 +153,8 @@ public class C8o {
 	 */
 	private DocumentBuilder documentBuilder;
 	private String deviceUUId;
-	private C8oSettings c8oSettings;
 	private Context context;
+	private Handler mainLooperHandler;
 	public C8oLogger c8oLogger;
 	
 	//*** FullSync ***//
@@ -161,7 +165,7 @@ public class C8o {
 	private FullSyncInterface fullSyncInterface;
 	
 	//*** TAG Constructor ***//
-	
+
 	/**
 	 * Initializes a new instance of the C8o class without specifying a C8oExceptionListener.
 	 *
@@ -182,9 +186,53 @@ public class C8o {
 	 *
 	 * @throws C8oException
 	 */
-	public C8o(Context context, String endpoint, C8oSettings c8oSettings) throws C8oException {
-		this(context, endpoint, c8oSettings, null);
-	}
+    public C8o(Context context, String endpoint, C8oSettings c8oSettings) throws C8oException {
+        // Checks the URL validity
+        if (!URLUtil.isValidUrl(endpoint)) {
+            throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidURL(endpoint));
+        }
+
+        // Checks the endpoint validity
+        Matcher matches = RE_ENDPOINT.matcher(endpoint);
+        if (!matches.find()) {
+            throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidEndpoint(endpoint));
+        }
+
+        this.context = context;
+        this.endpoint = endpoint;
+
+		mainLooperHandler = new Handler(Looper.getMainLooper());
+
+        copy(c8oSettings);
+
+        this.c8oLogger = new C8oLogger(this.defaultC8oExceptionListener, this);
+
+        this.c8oLogger.logMethodCall("C8o", endpoint, c8oSettings, defaultC8oExceptionListener);
+
+        this.endpointGroups = new String[4];
+        for (int i = 0; i < this.endpointGroups.length; i++) {
+            this.endpointGroups[i] = matches.group(i);
+        }
+        try {
+            this.documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            throw new C8oException(C8oExceptionMessage.initDocumentBuilder(), e);
+        }
+        this.deviceUUId = Settings.Secure.getString(context.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+
+        try {
+            this.httpInterface = new HttpInterface(this, endpoint, c8oSettings);
+        } catch (C8oException e) {
+            throw new C8oException(C8oExceptionMessage.httpInterfaceInstance(), e);
+        }
+        try {
+            this.fullSyncInterface = new FullSyncInterface(context, this, this.endpointGroups[1], c8oSettings);
+        } catch (C8oException e) {
+            throw new C8oException(C8oExceptionMessage.fullSyncInterfaceInstance(), e);
+        }
+
+        this.c8oLogger.setRemoteLogParameters(httpInterface, c8oSettings.isLogRemote(), this.endpointGroups[1], this.deviceUUId);
+    }
 	
 	/**
 	 * Construct a C8o instance specifying a C8oExceptionListener.
@@ -216,8 +264,7 @@ public class C8o {
 		this.context = context;
 		this.endpoint = endpoint;
 		this.defaultC8oExceptionListener = defaultC8oExceptionListener;
-		this.c8oSettings = c8oSettings;
-		this.c8oLogger = new C8oLogger(this.defaultC8oExceptionListener, this.c8oSettings);
+		this.c8oLogger = new C8oLogger(this.defaultC8oExceptionListener, this);
 		
 		this.c8oLogger.logMethodCall("C8o", endpoint, c8oSettings, defaultC8oExceptionListener);
 		
@@ -243,7 +290,7 @@ public class C8o {
 			throw new C8oException(C8oExceptionMessage.fullSyncInterfaceInstance(), e);
 		}
 		
-		this.c8oLogger.setRemoteLogParameters(httpInterface, c8oSettings.isLogRemote, this.endpointGroups[1], this.deviceUUId);
+		this.c8oLogger.setRemoteLogParameters(httpInterface, c8oSettings.isLogRemote(), this.endpointGroups[1], this.deviceUUId);
 	}
 	
 	//*** toString ***//
@@ -279,7 +326,61 @@ public class C8o {
 	}
 	
 	//*** TAG Convertigo call ***//
-	
+
+    public C8oPromise<Document> callXml(String requestable, Object... params) {
+        if (params.length % 2 != 0) {
+            throw new InvalidParameterException("TODO");
+        }
+        List<NameValuePair> parameters = new ArrayList<NameValuePair>(params.length / 2);
+
+        for (int i = 0; i < params.length; i+=2) {
+            parameters.add(new ObjectNameValuePair("" + params[i], params[i+1]));
+        }
+
+        final C8oPromise<Document> promise = new C8oPromise<Document>(this);
+
+        call(requestable, parameters, new C8oXMLResponseListener() {
+            @Override
+            public void onXMLResponse(List<NameValuePair> requestParameters, Document response) {
+                promise.onResult(response);
+            }
+        }, new C8oExceptionListener() {
+            @Override
+            public void onException(List<NameValuePair> requestParameters, Exception exception) {
+                promise.onThrowable(exception);
+            }
+        });
+
+        return promise;
+    }
+
+	public C8oPromise<JSONObject> callJson(String requestable, Object... params) {
+		if (params.length % 2 != 0) {
+			throw new InvalidParameterException("TODO");
+		}
+		List<NameValuePair> parameters = new ArrayList<NameValuePair>(params.length / 2);
+
+		for (int i = 0; i < params.length; i+=2) {
+			parameters.add(new ObjectNameValuePair("" + params[i], params[i+1]));
+		}
+
+		final C8oPromise<JSONObject> promise = new C8oPromise<JSONObject>(this);
+
+		call(requestable, parameters, new C8oJSONResponseListener() {
+			@Override
+			public void onJSONResponse(List<NameValuePair> requestParameters, JSONObject response) {
+				promise.onResult(response);
+			}
+		}, new C8oExceptionListener() {
+			@Override
+			public void onException(List<NameValuePair> requestParameters, Exception exception) {
+				promise.onThrowable(exception);
+			}
+		});
+
+		return promise;
+	}
+
 	/**
 	 * Makes a c8o call with c8o requestable in parameters ('__project' and ('__sequence' or ('__connector' and '__transaction'))).<br/>
 	 * And without specified the C8oExceptionListener, thereby the C8oExceptionListener of the C8o class will be used.<br/>
@@ -482,7 +583,15 @@ public class C8o {
 			throw new C8oException(C8oExceptionMessage.overrideDocument(), e);
 		}
 	}
-	
+
+	public void runUI(Runnable code) {
+		if (Looper.myLooper() == Looper.getMainLooper()) {
+			code.run();
+		} else {
+			mainLooperHandler.post(code);
+		}
+	}
+
 	//*** TAG Getter / Setter ***//
 	
 	/**
@@ -521,10 +630,6 @@ public class C8o {
 		return this.deviceUUId;
 	}
 
-	public C8oSettings getC8oSettings() {
-		return this.c8oSettings;
-	}
-	
 	//*** TAG Private Classes ***//
 	
 	// Informations on AsyncTask :
@@ -824,7 +929,6 @@ public class C8o {
 				C8o.handleCallException(this.c8oExceptionListener, this.parameters, e);
 			}
 		}
-		
 	}
 	
 }

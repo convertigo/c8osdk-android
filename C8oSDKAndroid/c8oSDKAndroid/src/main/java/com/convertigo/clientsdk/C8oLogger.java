@@ -97,9 +97,9 @@ public class C8oLogger {
 	private HttpInterface httpInterface;
 	private String deviceUuid;
 	
-	public C8oLogger(C8oExceptionListener defaultC8oExceptionListener, C8oSettings c8oSettings) {
+	public C8oLogger(C8oExceptionListener defaultC8oExceptionListener, C8oBase c8oSettings) {
 		this.defaultC8oExceptionListener = defaultC8oExceptionListener;
-		this.handleExceptionsOnLog = c8oSettings.handleExceptionsOnLog;
+		this.handleExceptionsOnLog = c8oSettings.isHandleExceptionsOnLog();
 		
 		// Remote log
 		this.isLogRemote = false;

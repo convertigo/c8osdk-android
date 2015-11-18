@@ -119,11 +119,11 @@ public class HttpInterface {
 
 	public HttpInterface(C8o c8o, String endpoint, C8oSettings c8oSettings) throws C8oException {
 		this.c8o = c8o;
-		this.useEncryption = c8oSettings.useEncryption;
+		this.useEncryption = c8oSettings.isUseEncryption();
 		
 		// Create a HttpParams to set the connection timeout
 		HttpParams httpParams = new BasicHttpParams();
-		HttpConnectionParams.setConnectionTimeout(httpParams, c8oSettings.timeout);
+		HttpConnectionParams.setConnectionTimeout(httpParams, c8oSettings.getTimeout());
 		// HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);
 		// HttpProtocolParams.setContentCharset(httpParams, HTTP.UTF_8);
 		
@@ -146,14 +146,14 @@ public class HttpInterface {
 
 			// Get the client key store file
 			KeyStore keyStore = null;
-			if (c8oSettings.keyStoreInputStream != null && c8oSettings.keyStorePassword != null) {
+			if (c8oSettings.getKeyStoreInputStream() != null && c8oSettings.getKeyStorePassword() != null) {
 				try {
 					keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 				} catch (KeyStoreException e) {
 					throw new C8oException(C8oExceptionMessage.clientKeyStore(), e);
 				}
 				try {
-					keyStore.load(c8oSettings.keyStoreInputStream, c8oSettings.keyStorePassword.toCharArray());
+					keyStore.load(c8oSettings.getKeyStoreInputStream(), c8oSettings.getKeyStorePassword().toCharArray());
 				} catch (NoSuchAlgorithmException e) {
 					throw new C8oException(C8oExceptionMessage.clientKeyStore(), e);
 				} catch (CertificateException e) {
@@ -164,14 +164,14 @@ public class HttpInterface {
 			}
 			// Get the server key store file
 			KeyStore trustStore = null;
-			if (c8oSettings.trustStoreInputStream != null && c8oSettings.trustStorePassword != null) {
+			if (c8oSettings.getTrustStoreInputStream() != null && c8oSettings.getTrustStorePassword() != null) {
 				try {
 					trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
 				} catch (KeyStoreException e) {
 					throw new C8oException(C8oExceptionMessage.serverKeyStore(), e);
 				}
 				try {
-					trustStore.load(c8oSettings.trustStoreInputStream, c8oSettings.trustStorePassword.toCharArray());
+					trustStore.load(c8oSettings.getTrustStoreInputStream(), c8oSettings.getTrustStorePassword().toCharArray());
 				} catch (NoSuchAlgorithmException e) {
 					throw new C8oException(C8oExceptionMessage.serverKeyStore(), e);
 				} catch (CertificateException e) {
@@ -184,13 +184,13 @@ public class HttpInterface {
 			C8oSslSocketFactory sslSocketFactory;
 			try {
 				if (keyStore == null && trustStore == null) {
-					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.trustAllCertificates, c8oSettings.disableSSL, this.c8o);
+					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.isTrustAllCertificates(), c8oSettings.isDisableSSL(), this.c8o);
 				} else if (keyStore == null) {
-					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.trustAllCertificates, c8oSettings.disableSSL, trustStore, this.c8o);
+					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.isTrustAllCertificates(), c8oSettings.isDisableSSL(), trustStore, this.c8o);
 				} else if (trustStore == null) {
-					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.trustAllCertificates, c8oSettings.disableSSL, keyStore, c8oSettings.keyStorePassword, this.c8o);
+					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.isTrustAllCertificates(), c8oSettings.isDisableSSL(), keyStore, c8oSettings.getKeyStorePassword(), this.c8o);
 				} else {
-					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.trustAllCertificates, c8oSettings.disableSSL, keyStore, c8oSettings.keyStorePassword, trustStore, this.c8o);
+					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.isTrustAllCertificates(), c8oSettings.isDisableSSL(), keyStore, c8oSettings.getKeyStorePassword(), trustStore, this.c8o);
 				}
 			} catch (C8oException e) {
 				throw new C8oException(C8oExceptionMessage.initSslSocketFactory(), e);
@@ -221,7 +221,7 @@ public class HttpInterface {
 	    this.httpContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
 	    
 	    // Set initial cookies
-    	for (NameValuePair cookie : c8oSettings.cookies) {
+    	for (NameValuePair cookie : c8oSettings.getCookies()) {
     		addCookie(cookie.getName(), cookie.getValue());
     	}
 	    

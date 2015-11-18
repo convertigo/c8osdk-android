@@ -25,7 +25,6 @@ package com.convertigo.clientsdk;
 
 import java.io.InputStream;
 import java.util.LinkedList;
-import java.util.List;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
@@ -38,137 +37,72 @@ import org.apache.http.message.BasicNameValuePair;
  *
  * @author julesg
  */
-public class C8oSettings {
-	
-	//*** HTTP ***//
-	
-	/**
-	 * The connection timeout to Convertigo in milliseconds. A value of zero means the timeout is not used.<br/>
-	 * Default is 0.
-	 */
-	public int timeout;
-	/**
-	 * List of initial cookies.<br/>
-	 * Default is null.
-	 */
-	public List<NameValuePair> cookies;
-	
-	
-	//*** Encryption ***//
+public class C8oSettings extends C8oBase {
 
 	/**
-	 * Indicate if c8o calls variables are encrypted or not.<br/>
-	 * Default is false.
-	 */
-	public boolean useEncryption;
-	/**
-	 * Indicate if https calls trust all certificates or not.<br/>
-	 * Default is false.
-	 */
-	public boolean trustAllCertificates;
-	/**
-	 * Indicate if https calls must disable SSL (and use TLS).<br/>
-	 * Default is false.
-	 */
-    public boolean disableSSL;
-	/**
-	 * The input stream of the key store file.<br/>
-	 * Default is null.
-	 */
-	public InputStream keyStoreInputStream;
-	/**
-	 * The key store password.<br/>
-	 * Default is null.
-	 */
-	public String keyStorePassword;
-	/**
-	 * The input stream of the trust store file.<br/>
-	 * Default is null.
-	 */
-	public InputStream trustStoreInputStream;
-	/**
-	 * The trust store password.<br/>
-	 * Default is null.
-	 */
-	public String trustStorePassword;
-	
-	//*** Log ***//
-	
-	/**
-	 * Indicate if logs are sent to the Convertigo server.<br/>
-	 * Default is true.
-	 */
-	public boolean isLogRemote;
-	
-	public boolean handleExceptionsOnLog;
-	
-	//*** FullSync ***//
-	
-	public String defaultFullSyncDatabaseName;
-	private String authenticationCookieValue;
-	
-	//*** Constructor ***//
-	
-	/**
-	 * Construct a C8oSettings instance with default values :<br/>
-	 * - timeout = 0<br/>
-	 * - useEncryption = false<br/>
-	 * - trustAllCertificates = false<br/>
-	 * - disableSSL = false<br/>
-	 * - cookies = null<br/>
-	 * - keystoreInputStream = null<br/>
-	 * - keystorePassword = null<br/>
-	 * - truststoreInputStream = null<br/>
-	 * - truststorePassword = null<br/>
-	 * - logRemote = true
-	 */
-	public C8oSettings() {
-		//*** HTTP ***//
-		this.timeout = 0;
-		this.cookies =  new LinkedList<NameValuePair>();
-		//*** Encryption ***//
-		this.useEncryption = false;
-		this.trustAllCertificates = false;
-		this.disableSSL = false;
-		this.keyStoreInputStream = null;
-		this.keyStorePassword = null;
-		this.trustStoreInputStream = null;
-		this.trustStorePassword = null;
-		//*** Logs ***//
-		this.isLogRemote = true;
-		this.handleExceptionsOnLog = false;
-		//*** FullSync ***//
-		this.authenticationCookieValue = null;
-		this.defaultFullSyncDatabaseName = null;
-	}
-	
-	//*** toString ***//
-	
-	@Override
-	public String toString() {
-		String string = this.getClass().getName() + "[";
-		
-		string += "timeout = " + timeout + ", " +
-				"useEncryption = " + useEncryption + ", " +
-				"trustAllCetificates = " + trustAllCertificates +
-				"disableSSL = " + disableSSL +
-				(cookies != null ? "cookies = " + cookies.toArray() : "") + 
-				"]";
-				
-		return string;
-	}
-	
-	//*** Getter / Setter ***//
-
-	/**
-	 * Set the connection timeout to Convertigo in milliseconds
-	 * A value of zero means the timeout is not used but it's already instantiate like that
-	 *
-	 * @param timeout
-	 * @return this
+	 * Sets the connection timeout to Convertigo in milliseconds. A value of zero means the timeout is not used.<br/>
+	 * Default is <b>0</b>.
+	 * @param timeout The timeout.
+	 * @return The current <b>C8oSettings</b>, for chaining.
 	 */
 	public C8oSettings setTimeout(int timeout) {
 		this.timeout = timeout;
+		return this;
+	}
+
+	/**
+	 * Sets a value indicating whether https calls trust all certificates or not.<br/>
+	 * Default is <b>false</b>.
+	 * @param trustAllCertificates <b>true</b> if https calls trust all certificates; otherwise, <b>false</b>.
+	 * @return The current <b>C8oSettings</b>, for chaining.
+	 */
+	public C8oSettings setTrustAllCertificates(boolean trustAllCertificates) {
+		this.trustAllCertificates = trustAllCertificates;
+		return this;
+	}
+
+	/**
+	 * Add a new cookie to the initial cookies send to the Convertigo server.
+	 * @param name The name of the new cookie.
+	 * @param value The value of the new cookie.
+	 * @return The current <b>C8oSettings</b>, for chaining.
+	 */
+	public C8oSettings addCookie(String name, String value) {
+		if (cookies == null) {
+			cookies = new LinkedList<NameValuePair>();
+		}
+		cookies.add(new BasicNameValuePair(name, value));
+		return this;
+	}
+
+	/**
+	 * Sets a value indicating if logs are sent to the Convertigo server.<br/>
+	 * Default is <b>true</b>.
+	 * @return The current <b>C8oSettings</b>, for chaining.
+	 */
+	public C8oSettings setLogRemote(boolean logRemote) {
+		this.logRemote = logRemote;
+		return this;
+	}
+
+	public C8oSettings setHandleExceptionsOnLog(boolean handleExceptionsOnLog) {
+		this.handleExceptionsOnLog = handleExceptionsOnLog;
+		return this;
+	}
+
+	/**
+	 * Specify the default FullSync database name. Must match a Convertigo Server
+	 * FullSync connector name
+	 *
+	 * @param
+	 */
+	public C8oSettings setDefaultDatabaseName(String defaultDatabaseName) {
+		this.defaultDatabaseName = defaultDatabaseName;
+		return this;
+	}
+
+	public C8oSettings setAuthenticationCookieValue(String authenticationCookieValue) {
+		this.authenticationCookieValue = authenticationCookieValue;
 		return this;
 	}
 
@@ -184,17 +118,6 @@ public class C8oSettings {
 	}
 
 	/**
-	 * Set if https calls trust all certificates or not
-	 *
-	 * @param trustAllCertificates
-	 * @return this
-	 */
-	public C8oSettings setTrustAllCertificates(boolean trustAllCertificates) {
-		this.trustAllCertificates = trustAllCertificates;
-		return this;
-	}
-
-	/**
 	 * Set if https calls must disable SSL (and use TLS)
 	 *
 	 * @param disableSSL
@@ -204,22 +127,10 @@ public class C8oSettings {
 		this.disableSSL = disableSSL;
 		return this;
 	}
-	
-	/**
-	 * Add initial cookie.
-	 *
-	 * @param name
-	 * @param value
-	 * @return this
-	 */
-	public C8oSettings addCookie(String name, String value) {
-		cookies.add(new BasicNameValuePair(name, value));
-		return this;
-	}
-	
+
 	/**
 	 * Set key store input stream file and its password.
-	 * 
+	 *
 	 * @param keyStoreInputStream
 	 * @param keyStorePassword
 	 * @return
@@ -229,10 +140,10 @@ public class C8oSettings {
 		this.keyStorePassword = keyStorePassword;
 		return this;
 	}
-	
+
 	/**
 	 * Set trust store input stream file and its password.
-	 * 
+	 *
 	 * @param trustStoreInputStream
 	 * @param trustStorePassword
 	 * @return
@@ -242,44 +153,4 @@ public class C8oSettings {
 		this.trustStorePassword = trustStorePassword;
 		return this;
 	}
-	
-	/**
-	 * Set if logs are sent to the Convertigo server.
-	 * 
-	 * @param isLogRemote
-	 * @return
-	 */
-	public C8oSettings setIsLogRemote(boolean isLogRemote) {
-		this.isLogRemote = isLogRemote;
-		return this;
-	}
-	
-	/**
-	 * Specify the default FullSync database name. Must match a Convertigo Server 
-	 * FullSync connector name
-	 * 
-	 * @param 
-	 */
-	public C8oSettings setDefaultDatabaseName(String name) {
-		this.defaultFullSyncDatabaseName = name;
-		return this;
-	}
-
-	public String getDefaultDatabaseName() {
-		return this.defaultFullSyncDatabaseName;
-	}
-
-	public String getAuthenticationCookieValue() {
-		return authenticationCookieValue;
-	}
-
-	public void setAuthenticationCookieValue(String authenticationCookieValue) {
-		this.authenticationCookieValue = authenticationCookieValue;
-	}
-
-	public C8oSettings setHandleExceptionsOnLog(boolean handleExceptionsOnLog) {
-		this.handleExceptionsOnLog = handleExceptionsOnLog;
-		return this;
-	}
-	
 }

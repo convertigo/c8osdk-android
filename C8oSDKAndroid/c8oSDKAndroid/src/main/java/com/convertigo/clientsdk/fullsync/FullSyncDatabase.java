@@ -10,7 +10,6 @@ import org.apache.http.NameValuePair;
 import org.apache.http.cookie.Cookie;
 
 import com.convertigo.clientsdk.C8o;
-import com.convertigo.clientsdk.C8oSettings;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oExceptionMessage;
 import com.convertigo.clientsdk.fullsync.FullSyncEnum.FullSyncReplicateDatabaseParameter;
@@ -82,7 +81,7 @@ public class FullSyncDatabase {
      */
     public FullSyncDatabase(C8o c8o, Manager manager, String databaseName, String fullSyncDatabasesUrlStr) throws C8oException {
         this.c8o = c8o;
-    	C8oSettings settings = c8o.getC8oSettings();
+
     	try {
 			this.database = manager.getDatabase(databaseName + FullSyncDatabase.LOCAL_DATABASE_SUFFIX);
 		} catch (CouchbaseLiteException e) {
@@ -103,7 +102,7 @@ public class FullSyncDatabase {
         Replication pushReplication = database.createPushReplication(fullSyncDatabaseUrl);
         
         // ??? Does surely something but do not know what, it is optional so it is still here ???
-        String authenticationCookieValue = settings.getAuthenticationCookieValue();
+        String authenticationCookieValue = c8o.getAuthenticationCookieValue();
         if (authenticationCookieValue != null) {
         	// Create the expiration being tomorrow
         	Calendar calendar = Calendar.getInstance();
