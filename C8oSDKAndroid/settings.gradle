@@ -1,2 +1,1 @@
-include ':c8oSDKAndroid'
-include ':c8oSDKTester'
+include ':c8oSDKAndroid', ':c8oSDKTester'
