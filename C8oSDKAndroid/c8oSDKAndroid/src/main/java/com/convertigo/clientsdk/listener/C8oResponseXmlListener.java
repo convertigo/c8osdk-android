@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, see<http://www.gnu.org/licenses/>.
  *
- * $URL: svn://devus.twinsoft.fr/convertigo/C8oSDK/Android/trunk/C8oSDKAndroid/src/com/convertigo/clientsdk/listener/C8oJSONResponseListener.java $
+ * $URL: svn://devus.twinsoft.fr/convertigo/C8oSDK/Android/trunk/C8oSDKAndroid/src/com/convertigo/clientsdk/listener/C8oXMLResponseListener.java $
  * $Author: julesg $
  * $Revision: 40144 $
  * $Date: 2015-07-09 16:43:47 +0200 (jeu., 09 juil. 2015) $* 
@@ -24,19 +24,20 @@
 package com.convertigo.clientsdk.listener;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.NameValuePair;
-import org.json.JSONObject;
+import org.w3c.dom.Document;
 
 /**
- * Listens c8o call JSON responses.
+ * Listens c8o call XML responses.
  */
-public interface C8oJSONResponseListener extends C8oResponseListener {
+public interface C8oResponseXmlListener extends C8oResponseListener {
 	/**
-	 * Called on c8o call JSON responses.
-	 * 
-	 * @param requestParameters - C8o call parameters
+	 * Called on c8o call XML responses.
+	 *
 	 * @param response - C8o call response
+	 * @param parameters - C8o call parameters
 	 */
-	public void onJSONResponse(List<NameValuePair> requestParameters, JSONObject response);
+	public void onXmlResponse(Document response, Map<String, Object> parameters);
 }

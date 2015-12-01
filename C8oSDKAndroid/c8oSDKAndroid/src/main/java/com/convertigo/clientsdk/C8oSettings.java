@@ -24,6 +24,7 @@
 package com.convertigo.clientsdk;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.LinkedList;
 
 import org.apache.http.NameValuePair;
@@ -69,9 +70,9 @@ public class C8oSettings extends C8oBase {
 	 */
 	public C8oSettings addCookie(String name, String value) {
 		if (cookies == null) {
-			cookies = new LinkedList<NameValuePair>();
+			cookies = new HashMap<String, String>();
 		}
-		cookies.add(new BasicNameValuePair(name, value));
+		cookies.put(name, value);
 		return this;
 	}
 
@@ -85,8 +86,8 @@ public class C8oSettings extends C8oBase {
 		return this;
 	}
 
-	public C8oSettings setHandleExceptionsOnLog(boolean handleExceptionsOnLog) {
-		this.handleExceptionsOnLog = handleExceptionsOnLog;
+	public C8oSettings setLogOnFail(C8oOnFail logOnFail) {
+		this.logOnFail = logOnFail;
 		return this;
 	}
 
@@ -98,6 +99,11 @@ public class C8oSettings extends C8oBase {
 	 */
 	public C8oSettings setDefaultDatabaseName(String defaultDatabaseName) {
 		this.defaultDatabaseName = defaultDatabaseName;
+		return this;
+	}
+
+	public C8oSettings setFullSyncLocalSuffix(String fullSyncLocalSuffix) {
+		this.fullSyncLocalSuffix = fullSyncLocalSuffix;
 		return this;
 	}
 

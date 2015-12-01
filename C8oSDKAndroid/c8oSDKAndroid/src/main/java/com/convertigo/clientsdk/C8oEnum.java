@@ -15,7 +15,7 @@ public class C8oEnum {
 	public enum LocalCachePolicy {
 		PRIORITY_SERVER("priority-server") {
 			@Override
-			boolean isAvailable(Context context) {
+			public boolean isAvailable(Context context) {
 				ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
 				if (connectivityManager.getActiveNetworkInfo() != null && connectivityManager.getActiveNetworkInfo().getState() == NetworkInfo.State.CONNECTED) {
 					return false;
@@ -25,7 +25,7 @@ public class C8oEnum {
 		},
 		PRIORITY_LOCAL("priority-local") {
 			@Override
-			boolean isAvailable(Context context) {
+			public boolean isAvailable(Context context) {
 				return true;
 			}
 		};
@@ -36,7 +36,7 @@ public class C8oEnum {
 			this.value = value;
 		}
 		
-		abstract boolean isAvailable(Context context);
+		abstract public boolean isAvailable(Context context);
 		
 		static LocalCachePolicy getLocalCachePolicy(String value) {
 			LocalCachePolicy[] localCachePolicyValues = LocalCachePolicy.values();

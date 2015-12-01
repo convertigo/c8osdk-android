@@ -1,4 +1,4 @@
-package com.convertigo.clientsdk.fullsync;
+package com.convertigo.clientsdk;
 
 import javax.xml.parsers.DocumentBuilder;
 
@@ -7,11 +7,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Element;
 
-import com.convertigo.clientsdk.C8oTranslator;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oExceptionMessage;
-import com.convertigo.clientsdk.fullsync.FullSyncResponse.FullSyncDefaultResponse;
-import com.convertigo.clientsdk.fullsync.FullSyncResponse.FullSyncDocumentOperationResponse;
+import com.convertigo.clientsdk.FullSyncResponse.FullSyncDefaultResponse;
+import com.convertigo.clientsdk.FullSyncResponse.FullSyncDocumentOperationResponse;
 import com.couchbase.lite.Document;
 import com.couchbase.lite.QueryEnumerator;
 import com.couchbase.lite.QueryRow;
@@ -20,7 +19,7 @@ import com.couchbase.lite.replicator.Replication.ChangeEvent;
 /**
  * Provides static functions to translate fullSync responses to JSON or XML.
  */
-public class FullSyncTranslator {
+public class C8oFullSyncTranslator {
 	
 	private static final String FULL_SYNC_RESPONSE_KEY_COUNT = "count";
 	private static final String FULL_SYNC_RESPONSE_KEY_ROWS = "rows";
@@ -76,7 +75,7 @@ public class FullSyncTranslator {
 	 * @param document
 	 * @return
 	 */
-	static JSONObject documentToJSON(Document document) {
+	static JSONObject documentToJson(Document document) {
 		JSONObject json = new JSONObject(document.getProperties());
 		return json;
 	}
@@ -90,7 +89,7 @@ public class FullSyncTranslator {
 	 * @throws C8oException 
 	 */
 	static org.w3c.dom.Document documentToXML(Document document, DocumentBuilder builder) throws C8oException {
-		JSONObject json = documentToJSON(document);
+		JSONObject json = documentToJson(document);
 		try {
 			return fullSyncJsonToXml(json, builder);
 		} catch (C8oException e) {
@@ -101,14 +100,14 @@ public class FullSyncTranslator {
 	//*** TAG FullSyncDocumentOperationResponse ***//
 	//*** DeleteDocument, PostDocument ***//
 	
-	static JSONObject fullSyncDocumentOperationResponseToJSON(FullSyncDocumentOperationResponse fullSyncDocumentOperationResponse) {
+	static JSONObject fullSyncDocumentOperationResponseToJson(FullSyncDocumentOperationResponse fullSyncDocumentOperationResponse) {
 		JSONObject json = new JSONObject(fullSyncDocumentOperationResponse.getProperties());
 		return json;
 	}
 	
 	static org.w3c.dom.Document fullSyncDocumentOperationResponseToXML(FullSyncDocumentOperationResponse fullSyncDocumentOperationResponse, DocumentBuilder builder) throws C8oException {
 		try {
-			return fullSyncJsonToXml(fullSyncDocumentOperationResponseToJSON(fullSyncDocumentOperationResponse), builder);
+			return fullSyncJsonToXml(fullSyncDocumentOperationResponseToJson(fullSyncDocumentOperationResponse), builder);
 		} catch (C8oException e) {
 			throw new C8oException(C8oExceptionMessage.fullSyncJsonToXML(), e);
 		}
@@ -124,7 +123,7 @@ public class FullSyncTranslator {
 	 * @return
 	 * @throws C8oException
 	 */
-	static JSONObject queryEnumeratorToJSON(QueryEnumerator queryEnumerator) throws C8oException {
+	static JSONObject queryEnumeratorToJson(QueryEnumerator queryEnumerator) throws C8oException {
 		JSONObject json = new JSONObject();
 		JSONArray rowsArray = new JSONArray();
 		
@@ -152,10 +151,10 @@ public class FullSyncTranslator {
 	 * @return
 	 * @throws C8oException
 	 */
-	static org.w3c.dom.Document queryEnumeratorToXML(QueryEnumerator queryEnumerator, DocumentBuilder builder) throws C8oException {
+	static org.w3c.dom.Document queryEnumeratorToXml(QueryEnumerator queryEnumerator, DocumentBuilder builder) throws C8oException {
 		JSONObject json;
 		try {
-			json = queryEnumeratorToJSON(queryEnumerator);
+			json = queryEnumeratorToJson(queryEnumerator);
 		} catch (C8oException e) {
 			throw new C8oException(C8oExceptionMessage.queryEnumeratorToJSON(), e);
 		}
@@ -165,14 +164,14 @@ public class FullSyncTranslator {
 	//*** TAG DefaultResponse ***//
 	//*** Sync, ReplicatePull, ReplicatePush, Reset ***//
 	
-	static JSONObject fullSyncDefaultResponseToJSON(FullSyncDefaultResponse fullSyncDefaultResponse) {
+	static JSONObject fullSyncDefaultResponseToJson(FullSyncDefaultResponse fullSyncDefaultResponse) {
 		JSONObject json = new JSONObject(fullSyncDefaultResponse.getProperties());
 		return json;
 	}
 	
-	static org.w3c.dom.Document fullSyncDefaultResponseToXML(FullSyncDefaultResponse fullSyncDefaultResponse, DocumentBuilder builder) throws C8oException {
+	static org.w3c.dom.Document fullSyncDefaultResponseToXml(FullSyncDefaultResponse fullSyncDefaultResponse, DocumentBuilder builder) throws C8oException {
 		try {
-			return fullSyncJsonToXml(fullSyncDefaultResponseToJSON(fullSyncDefaultResponse), builder);
+			return fullSyncJsonToXml(fullSyncDefaultResponseToJson(fullSyncDefaultResponse), builder);
 		} catch (C8oException e) {
 			throw new C8oException(C8oExceptionMessage.fullSyncJsonToXML(), e);
 		}

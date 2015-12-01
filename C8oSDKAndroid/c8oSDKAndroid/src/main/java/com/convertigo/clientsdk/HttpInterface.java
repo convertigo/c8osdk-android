@@ -1,4 +1,4 @@
-package com.convertigo.clientsdk.http;
+package com.convertigo.clientsdk;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -20,8 +20,11 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,12 +57,10 @@ import org.apache.http.protocol.HttpContext;
 import android.annotation.SuppressLint;
 import android.os.AsyncTask;
 
-import com.convertigo.clientsdk.C8o;
-import com.convertigo.clientsdk.C8oSettings;
-import com.convertigo.clientsdk.C8oTranslator;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oExceptionMessage;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
+import com.convertigo.clientsdk.C8oSslSocketFactory;
 
 public class HttpInterface {
 	
@@ -97,10 +98,6 @@ public class HttpInterface {
 	//*** Encryption ***//
 	
 	/**
-	 * Indicates if c8o calls variables are encrypted or not.
-	 */
-	private boolean useEncryption;
-	/**
 	 * Provides the functionality of a cryptographic cipher for encryption and decryption
 	 * Use an array to synchronized on it before initialize a cipher
 	 */
@@ -117,23 +114,22 @@ public class HttpInterface {
 	
 	//*** Constructors ***//
 
-	public HttpInterface(C8o c8o, String endpoint, C8oSettings c8oSettings) throws C8oException {
+	public HttpInterface(C8o c8o) throws C8oException {
 		this.c8o = c8o;
-		this.useEncryption = c8oSettings.isUseEncryption();
 		
 		// Create a HttpParams to set the connection timeout
 		HttpParams httpParams = new BasicHttpParams();
-		HttpConnectionParams.setConnectionTimeout(httpParams, c8oSettings.getTimeout());
+		HttpConnectionParams.setConnectionTimeout(httpParams, c8o.getTimeout());
 		// HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);
 		// HttpProtocolParams.setContentCharset(httpParams, HTTP.UTF_8);
 		
 		// Convert the endpoint to URL
 		URL url = null;
 		try {
-			url = new URL(endpoint);
+			url = new URL(c8o.getEndpoint());
 		} catch (MalformedURLException e) {
 			// Can never happen normally because this is already checked
-			throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidURL(endpoint), e);
+			throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidURL(c8o.getEndpoint()), e);
 		}
 		String protocol = url.getProtocol();
 		
@@ -146,14 +142,14 @@ public class HttpInterface {
 
 			// Get the client key store file
 			KeyStore keyStore = null;
-			if (c8oSettings.getKeyStoreInputStream() != null && c8oSettings.getKeyStorePassword() != null) {
+			if (c8o.getKeyStoreInputStream() != null && c8o.getKeyStorePassword() != null) {
 				try {
 					keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
 				} catch (KeyStoreException e) {
 					throw new C8oException(C8oExceptionMessage.clientKeyStore(), e);
 				}
 				try {
-					keyStore.load(c8oSettings.getKeyStoreInputStream(), c8oSettings.getKeyStorePassword().toCharArray());
+					keyStore.load(c8o.getKeyStoreInputStream(), c8o.getKeyStorePassword().toCharArray());
 				} catch (NoSuchAlgorithmException e) {
 					throw new C8oException(C8oExceptionMessage.clientKeyStore(), e);
 				} catch (CertificateException e) {
@@ -164,14 +160,14 @@ public class HttpInterface {
 			}
 			// Get the server key store file
 			KeyStore trustStore = null;
-			if (c8oSettings.getTrustStoreInputStream() != null && c8oSettings.getTrustStorePassword() != null) {
+			if (c8o.getTrustStoreInputStream() != null && c8o.getTrustStorePassword() != null) {
 				try {
 					trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
 				} catch (KeyStoreException e) {
 					throw new C8oException(C8oExceptionMessage.serverKeyStore(), e);
 				}
 				try {
-					trustStore.load(c8oSettings.getTrustStoreInputStream(), c8oSettings.getTrustStorePassword().toCharArray());
+					trustStore.load(c8o.getTrustStoreInputStream(), c8o.getTrustStorePassword().toCharArray());
 				} catch (NoSuchAlgorithmException e) {
 					throw new C8oException(C8oExceptionMessage.serverKeyStore(), e);
 				} catch (CertificateException e) {
@@ -184,13 +180,13 @@ public class HttpInterface {
 			C8oSslSocketFactory sslSocketFactory;
 			try {
 				if (keyStore == null && trustStore == null) {
-					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.isTrustAllCertificates(), c8oSettings.isDisableSSL(), this.c8o);
+					sslSocketFactory = new C8oSslSocketFactory(c8o.isTrustAllCertificates(), c8o.isDisableSSL(), this.c8o);
 				} else if (keyStore == null) {
-					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.isTrustAllCertificates(), c8oSettings.isDisableSSL(), trustStore, this.c8o);
+					sslSocketFactory = new C8oSslSocketFactory(c8o.isTrustAllCertificates(), c8o.isDisableSSL(), trustStore, this.c8o);
 				} else if (trustStore == null) {
-					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.isTrustAllCertificates(), c8oSettings.isDisableSSL(), keyStore, c8oSettings.getKeyStorePassword(), this.c8o);
+					sslSocketFactory = new C8oSslSocketFactory(c8o.isTrustAllCertificates(), c8o.isDisableSSL(), keyStore, c8o.getKeyStorePassword(), this.c8o);
 				} else {
-					sslSocketFactory = new C8oSslSocketFactory(c8oSettings.isTrustAllCertificates(), c8oSettings.isDisableSSL(), keyStore, c8oSettings.getKeyStorePassword(), trustStore, this.c8o);
+					sslSocketFactory = new C8oSslSocketFactory(c8o.isTrustAllCertificates(), c8o.isDisableSSL(), keyStore, c8o.getKeyStorePassword(), trustStore, this.c8o);
 				}
 			} catch (C8oException e) {
 				throw new C8oException(C8oExceptionMessage.initSslSocketFactory(), e);
@@ -221,12 +217,14 @@ public class HttpInterface {
 	    this.httpContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
 	    
 	    // Set initial cookies
-    	for (NameValuePair cookie : c8oSettings.getCookies()) {
-    		addCookie(cookie.getName(), cookie.getValue());
-    	}
+		if (c8o.getCookies() != null) {
+			for (Entry<String, String> cookie : c8o.getCookies().entrySet()) {
+				addCookie(cookie.getKey(), cookie.getValue());
+			}
+		}
 	    
 	    // If the user want to encode queries string of c8o calls
-	    if (this.useEncryption) {
+	    if (c8o.isUseEncryption()) {
 	    	// Initialize the cipher array in order to synchronized it
 	    	this.cipher = new Cipher[1];
 	    	
@@ -251,7 +249,7 @@ public class HttpInterface {
 					// If doInBackGround didn't work
 					if (result instanceof Exception) {
 						// Handle exception with empty request parameters
-						C8o.handleCallException(HttpInterface.this.c8o.getDefaultC8oExceptionListener(), new ArrayList<NameValuePair>(),  (Exception) result);
+						C8o.handleCallException(null, new HashMap<String, Object>(),  (Exception) result);
 					}
 				}
 	    	};
@@ -261,11 +259,10 @@ public class HttpInterface {
 	    }
 	}
 	
-	public HttpResponse handleC8oCallRequest(String c8oCallUrl, List<NameValuePair> parameters) throws C8oHttpRequestException, C8oException {
-		
-		HttpPost request = new HttpPost(c8oCallUrl);
-		
-		if (this.useEncryption) {
+	public HttpResponse handleC8oCallRequest(String url, Map<String, Object> parameters) throws C8oHttpRequestException, C8oException {
+		HttpPost request = new HttpPost(url);
+
+		if (c8o.isUseEncryption()) {
 			// Initialize the cipher
 			try {
 				this.initCipher();
@@ -274,14 +271,14 @@ public class HttpInterface {
 			}
 			
 			// Get parameters iterator
-			Iterator<NameValuePair> parametersIterator = parameters.iterator();
+			Iterator<Entry<String, Object>> parametersIterator = parameters.entrySet().iterator();
 			
 			// Build a query string with parameters
 			String parametersString = "";
 			while (parametersIterator.hasNext()) {
-				NameValuePair parameter = parametersIterator.next();
+                Entry<String, Object> parameter = parametersIterator.next();
 				try {
-					parametersString = parametersString + "&" + URLEncoder.encode(parameter.getName(), "UTF-8") + "=" + URLEncoder.encode(parameter.getValue(), "UTF-8");
+					parametersString = parametersString + "&" + URLEncoder.encode(parameter.getKey(), "UTF-8") + "=" + URLEncoder.encode("" + parameter.getValue(), "UTF-8");
 				} catch (UnsupportedEncodingException e) {
 					throw new C8oException(C8oExceptionMessage.urlEncode(), e);
 				}
@@ -326,16 +323,20 @@ public class HttpInterface {
 			}
 			
 			// Remove all parameters (clear ?)
-			parameters = new ArrayList<NameValuePair>();
+			parameters = new HashMap<String, Object>();
 			// Add the encoded parameter
-			parameters.add(new BasicNameValuePair(C8o.ENGINE_PARAMETER_ENCODED, encoded.toString()));
+			parameters.put(C8o.ENGINE_PARAMETER_ENCODED, encoded.toString());
 		}
 		
-		this.c8o.c8oLogger.logC8oCall(c8oCallUrl, parameters);
+		c8o.c8oLogger.logC8oCall(url, parameters);
 		
 		// Set parameters of the POST request
 		try {
-			request.setEntity(new UrlEncodedFormEntity(parameters));
+            List<NameValuePair> params = new ArrayList(parameters.size());
+            for (Entry<String, Object> parameter : parameters.entrySet()) {
+                params.add(new BasicNameValuePair(parameter.getKey(), "" + parameter.getValue()));
+            }
+			request.setEntity(new UrlEncodedFormEntity(params));
 		} catch (UnsupportedEncodingException e) {
 			throw new C8oException(C8oExceptionMessage.urlEncode(), e);
 		}
@@ -371,7 +372,7 @@ public class HttpInterface {
 		synchronized(cipher) {
 			if (cipher[0] == null) {
 				// build the URL to get the public key
-				String publicKeyUrl = this.c8o.getEndpointGroup(1) + HttpInterface.RSA_PUBLIC_KEY_PATH;
+				String publicKeyUrl = this.c8o.getEndpointConvertigo() + HttpInterface.RSA_PUBLIC_KEY_PATH;
 				
 				// Build the request with the url
 		    	HttpPost request = new HttpPost(publicKeyUrl);
@@ -454,8 +455,8 @@ public class HttpInterface {
 		CookieStore cookieStore = getCookieStore();
 		if (cookieStore != null) {
 			BasicClientCookie2 cookie = new BasicClientCookie2(name, value);
-			cookie.setDomain(this.c8o.getEndpointGroup(3));
-			cookie.setSecure(this.c8o.getEndpointGroup(2) != null);
+			cookie.setDomain(c8o.getEndpointHost());
+			cookie.setSecure(c8o.getEndpointIsSecure());
 			cookieStore.addCookie(cookie);
 		}
 	}

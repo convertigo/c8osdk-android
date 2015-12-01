@@ -4,6 +4,7 @@ import android.util.Pair;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by nicolasa on 16/11/2015.
@@ -11,7 +12,7 @@ import java.util.List;
 public class C8oPromise<T> implements C8oPromiseSync {
     private C8o c8o;
     private final List<Pair<C8oOnResponse<T>, Boolean>> c8oOnResponses = new LinkedList<Pair<C8oOnResponse<T>, Boolean>>();
-    private Pair<C8oOnFail<T>, Boolean> c8oFail;
+    private Pair<C8oOnFail, Boolean> c8oFail;
     private final Object syncMutex = new Object();
 
     private T lastResponse;
@@ -35,13 +36,13 @@ public class C8oPromise<T> implements C8oPromiseSync {
         return this;
     }
 
-    public C8oPromiseSync<T> fail(C8oOnFail<T> c8oOnFail) {
-        this.c8oFail = new Pair<C8oOnFail<T>, Boolean>(c8oOnFail, false);
+    public C8oPromiseSync<T> fail(C8oOnFail c8oOnFail) {
+        this.c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, false);
         return this;
     }
 
-    public C8oPromiseSync<T> failUI(C8oOnFail<T> c8oOnFail) {
-        this.c8oFail = new Pair<C8oOnFail<T>, Boolean>(c8oOnFail, true);
+    public C8oPromiseSync<T> failUI(C8oOnFail c8oOnFail) {
+        this.c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, true);
         return this;
     }
 
@@ -50,7 +51,7 @@ public class C8oPromise<T> implements C8oPromiseSync {
         synchronized (syncMutex) {
             then(new C8oOnResponse<T>() {
                 @Override
-                public C8oPromise<T> run(C8o c8o, T response) {
+                public C8oPromise<T> run(T response, Map<String, Object> parameters) {
                     synchronized (syncMutex) {
                         lastResponse = response;
                         syncMutex.notify();
@@ -68,7 +69,7 @@ public class C8oPromise<T> implements C8oPromiseSync {
         return lastResponse;
     }
 
-    synchronized void onResponse(final T response) {
+    synchronized void onResponse(final T response, final Map<String, Object> parameters) {
         try {
             if (!c8oOnResponses.isEmpty()) {
                 final Pair<C8oOnResponse<T>, Boolean> handler = c8oOnResponses.remove(0);
@@ -82,7 +83,7 @@ public class C8oPromise<T> implements C8oPromiseSync {
                             public void run() {
                                 synchronized (promise) {
                                     try {
-                                        promise[0] = handler.first.run(c8o, response);
+                                        promise[0] = handler.first.run(response, parameters);
                                     } catch (Throwable t) {
                                         throwable[0] = t;
                                     } finally {
@@ -97,7 +98,7 @@ public class C8oPromise<T> implements C8oPromiseSync {
                         }
                     }
                 } else {
-                    promise[0] = handler.first.run(c8o, response);
+                    promise[0] = handler.first.run(response, parameters);
                 }
 
                 if (promise[0] != null) {
@@ -106,8 +107,8 @@ public class C8oPromise<T> implements C8oPromiseSync {
                     }
                     promise[0].then(new C8oOnResponse<T>() {
                         @Override
-                        public C8oPromise<T> run(C8o c8o, T response) {
-                            onResponse(response);
+                        public C8oPromise<T> run(T response, Map<String, Object> parameters) {
+                            onResponse(response, parameters);
                             return null;
                         }
                     });
@@ -117,11 +118,11 @@ public class C8oPromise<T> implements C8oPromiseSync {
                 lastResponse = response;
             }
         } catch (Throwable throwable) {
-            onFailure(throwable);
+            onFailure(throwable, parameters);
         }
     }
 
-    synchronized void onFailure(final Throwable throwable) {
+    synchronized void onFailure(final Throwable throwable, final Map<String, Object> parameters) {
         lastThrowable = throwable;
 
         if (c8oFail != null) {
@@ -133,7 +134,7 @@ public class C8oPromise<T> implements C8oPromiseSync {
                         public void run() {
                             synchronized (locker) {
                                 try {
-                                    c8oFail.first.run(c8o, throwable);
+                                    c8oFail.first.run(throwable, parameters);
                                 } finally {
                                     locker.notify();
                                 }
@@ -148,7 +149,7 @@ public class C8oPromise<T> implements C8oPromiseSync {
                     }
                 }
             } else {
-                c8oFail.first.run(c8o, throwable);
+                c8oFail.first.run(throwable, parameters);
             }
         }
 

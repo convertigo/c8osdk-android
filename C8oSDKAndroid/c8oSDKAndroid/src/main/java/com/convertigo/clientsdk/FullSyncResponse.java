@@ -1,4 +1,4 @@
-package com.convertigo.clientsdk.fullsync;
+package com.convertigo.clientsdk;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,7 +29,7 @@ public class FullSyncResponse {
 	/**
 	 * Returned by a fullSync operation without return data.
 	 */
-	private class FullSyncAbstractResponse {
+	static private class FullSyncAbstractResponse {
 		public boolean operationStatus;
 		
 		private FullSyncAbstractResponse(boolean operationStatus) {
@@ -46,8 +46,8 @@ public class FullSyncResponse {
 	/**
 	 * Represents a default fullSync response.
 	 */
-	public class FullSyncDefaultResponse extends FullSyncAbstractResponse {
-		private FullSyncDefaultResponse(boolean operationStatus) {
+	static public class FullSyncDefaultResponse extends FullSyncAbstractResponse {
+		public FullSyncDefaultResponse(boolean operationStatus) {
 			super(operationStatus);
 		}
 	}
@@ -55,11 +55,11 @@ public class FullSyncResponse {
 	/**
 	 * Returned by a fullSync document operation without return data.
 	 */
-	public class FullSyncDocumentOperationResponse extends FullSyncAbstractResponse {
+	static public class FullSyncDocumentOperationResponse extends FullSyncAbstractResponse {
 		public String documentId;
 		public String documentRevision;
-		
-		private FullSyncDocumentOperationResponse(String documentId, String documentRevision, boolean operationStatus) {
+
+		public FullSyncDocumentOperationResponse(String documentId, String documentRevision, boolean operationStatus) {
 			super(operationStatus);
 			this.documentId = documentId;
 			this.documentRevision = documentRevision;
@@ -72,29 +72,5 @@ public class FullSyncResponse {
 			properties.put(RESPONSE_KEY_DOCUMENT_REVISION, this.documentRevision);
 			return properties;
 		}
-	}
-	
-	//*** TAG Creator methods ***//
-	
-	/**
-	 * Returns a new instance of FullSyncDefaultResponse.
-	 * 
-	 * @param operationStatus
-	 * @return
-	 */
-	static FullSyncDefaultResponse createFullSyncDefaultResponse(boolean operationStatus) {
-		return fullSyncResponsesInstance.new FullSyncDefaultResponse(operationStatus);
-	}
-	
-	/**
-	 * Returns a new instance of FullSyncDocumentOperationResponse.
-	 * 
-	 * @param documentId
-	 * @param documentRevision
-	 * @param operationStatus
-	 * @return
-	 */
-	static FullSyncDocumentOperationResponse createFullSyncDocumentOperationResponse(String documentId, String documentRevision, boolean operationStatus) {
-		return fullSyncResponsesInstance.new FullSyncDocumentOperationResponse(documentId, documentRevision, operationStatus);
 	}
 }

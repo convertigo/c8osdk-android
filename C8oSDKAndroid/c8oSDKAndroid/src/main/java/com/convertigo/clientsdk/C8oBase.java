@@ -3,8 +3,10 @@ package com.convertigo.clientsdk;
 import org.apache.http.NameValuePair;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by nicolasa on 13/11/2015.
@@ -14,22 +16,23 @@ class C8oBase {
 
     protected int timeout = 0;
     protected boolean trustAllCertificates = false;
-    protected List<NameValuePair> cookies = new LinkedList<NameValuePair>();
+    protected Map<String, String> cookies = null;
 
     //*** Log ***//
 
     protected boolean logRemote = true;
-    protected boolean handleExceptionsOnLog;
+    protected C8oOnFail logOnFail = null;
 
     //*** FullSync ***//
 
-    protected String defaultDatabaseName;
-    protected String authenticationCookieValue;
+    protected String defaultDatabaseName = null;
+    protected String authenticationCookieValue = null;
+    protected String fullSyncLocalSuffix = null;
 
     //*** Encryption ***//
 
-    protected boolean useEncryption;
-    protected boolean disableSSL;
+    protected boolean useEncryption = false;
+    protected boolean disableSSL = false;
     protected InputStream keyStoreInputStream;
     protected String keyStorePassword;
     protected InputStream trustStoreInputStream;
@@ -60,7 +63,7 @@ class C8oBase {
      * Default is <b>null</b>.
      * @return List of cookies.
      */
-    public List<NameValuePair> getCookies() {
+    public Map<String, String> getCookies() {
         return cookies;
     }
 
@@ -73,12 +76,16 @@ class C8oBase {
         return logRemote;
     }
 
-    public boolean isHandleExceptionsOnLog() {
-        return handleExceptionsOnLog;
+    public C8oOnFail getLogOnFail() {
+        return logOnFail;
     }
 
     public String getDefaultDatabaseName() {
         return defaultDatabaseName;
+    }
+
+    public String getFullSyncLocalSuffix() {
+        return fullSyncLocalSuffix;
     }
 
     public String getAuthenticationCookieValue() {
@@ -115,17 +122,23 @@ class C8oBase {
 
         timeout = c8oBase.timeout;
         trustAllCertificates = c8oBase.trustAllCertificates;
-        cookies = new LinkedList<NameValuePair>(c8oBase.cookies);
+        if (cookies == null) {
+            cookies = new HashMap<String, String>();
+        }
+        if (c8oBase.cookies != null) {
+            cookies.putAll(c8oBase.cookies);
+        }
 
         //*** Log ***//
 
         logRemote = c8oBase.logRemote;
-        handleExceptionsOnLog = c8oBase.handleExceptionsOnLog;
+        logOnFail = c8oBase.logOnFail;
 
         //*** FullSync ***//
 
         defaultDatabaseName = c8oBase.defaultDatabaseName;
         authenticationCookieValue = c8oBase.authenticationCookieValue;
+        fullSyncLocalSuffix = c8oBase.fullSyncLocalSuffix;
 
         //*** Encryption ***//
 

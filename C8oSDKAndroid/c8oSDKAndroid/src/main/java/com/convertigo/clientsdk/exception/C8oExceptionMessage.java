@@ -6,7 +6,7 @@ import java.util.Map;
 import org.apache.http.NameValuePair;
 
 import com.convertigo.clientsdk.C8o;
-import com.convertigo.clientsdk.fullsync.FullSyncInterface;
+import com.convertigo.clientsdk.C8oFullSync;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.convertigo.clientsdk.util.C8oUtils;
 
@@ -32,7 +32,7 @@ public class C8oExceptionMessage {
 	
 	public static String illegalArgumentInvalidParameterProjectRequestableFullSync(String projectParameter) {
 		return C8oExceptionMessage.illegalArgumentInvalidParameterValue(C8o.ENGINE_PARAMETER_PROJECT, projectParameter) + 
-		", to run a fullSync request this parameter must start with '" + FullSyncInterface.FULL_SYNC_PROJECT + "'";
+		", to run a fullSync request this parameter must start with '" + C8oFullSync.FULL_SYNC_PROJECT + "'";
 	}
 	
 	public static String illegalArgumentInvalidURL(String urlStr) {
@@ -197,7 +197,7 @@ public class C8oExceptionMessage {
 		return "Unable to get or create the fullSync database '" + databaseName + "'";
 	}
 	
-	public static String fullSyncHandleRequest(String requestable, String databaseName, List<NameValuePair> parameters) {
+	public static String fullSyncHandleRequest(String requestable, String databaseName, Map<String, Object> parameters) {
 		return "Error while running the fullSync request, requestalbe='" + requestable + "', databaseName='" + databaseName + "', parameters=" + parameters;
 	}
 	

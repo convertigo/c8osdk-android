@@ -24,6 +24,7 @@
 package com.convertigo.clientsdk.listener;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.NameValuePair;
 
@@ -36,5 +37,5 @@ public interface C8oExceptionListener {
 	 * 
 	 * @param exception - The thrown exception
 	 */
-	public void onException(List<NameValuePair> requestParameters, Exception exception);
+	public void onException(Exception exception, Map<String, Object> requestParameters);
 }

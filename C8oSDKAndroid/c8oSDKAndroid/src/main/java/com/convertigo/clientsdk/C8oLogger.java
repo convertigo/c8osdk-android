@@ -7,13 +7,17 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -25,8 +29,6 @@ import android.util.Log;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oExceptionMessage;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
-import com.convertigo.clientsdk.http.HttpInterface;
-import com.convertigo.clientsdk.listener.C8oExceptionListener;
 
 public class C8oLogger {
 	
@@ -85,21 +87,15 @@ public class C8oLogger {
 	 */
 	private DecimalFormat logTimeFormat;
 	/**
-	 * Indicates if exceptions thrown by sending logs are handled by the C8oResponseListener.
-	 */
-	private boolean handleExceptionsOnLog;
-	
-	private C8oExceptionListener defaultC8oExceptionListener;
-	/**
 	 * Used to run HTTP requests.<br/>
 	 * It is set out of the constructor.
 	 */
 	private HttpInterface httpInterface;
 	private String deviceUuid;
+	private C8o c8o;
 	
-	public C8oLogger(C8oExceptionListener defaultC8oExceptionListener, C8oBase c8oSettings) {
-		this.defaultC8oExceptionListener = defaultC8oExceptionListener;
-		this.handleExceptionsOnLog = c8oSettings.isHandleExceptionsOnLog();
+	public C8oLogger(C8o c8o) {
+		this.c8o = c8o;
 		
 		// Remote log
 		this.isLogRemote = false;
@@ -169,7 +165,7 @@ public class C8oLogger {
 			AsyncTask<Void, Void, JSONObject> remoteLogTask = new AsyncTask<Void, Void, JSONObject>() {
 				@Override
 				protected JSONObject doInBackground(Void... params) {
-					ArrayList<NameValuePair> parameters = new ArrayList<NameValuePair>();
+					List<NameValuePair> parameters = new LinkedList<NameValuePair>();
 					try {
 						// Take logs in the queue and add it to a json array
 						int count = 0;
@@ -195,9 +191,9 @@ public class C8oLogger {
 						}
 						// Http request sending logs
 						HttpPost request = new HttpPost(C8oLogger.this.remoteLogUrl);
-						parameters.add(new ObjectNameValuePair("logs", logsArray.toString()));
-						parameters.add(new ObjectNameValuePair("env", "{\"uid\":\"" + C8oLogger.this.uidRemoteLogs + "\"}"));
-						parameters.add(new ObjectNameValuePair(C8o.ENGINE_PARAMETER_DEVICE_UUID, C8oLogger.this.deviceUuid));
+						parameters.add(new BasicNameValuePair("logs", logsArray.toString()));
+						parameters.add(new BasicNameValuePair("env", "{\"uid\":\"" + C8oLogger.this.uidRemoteLogs + "\"}"));
+						parameters.add(new BasicNameValuePair(C8o.ENGINE_PARAMETER_DEVICE_UUID, C8oLogger.this.deviceUuid));
 						try {
 							request.setEntity(new UrlEncodedFormEntity(parameters));
 						} catch (UnsupportedEncodingException e) {
@@ -230,8 +226,8 @@ public class C8oLogger {
 					} catch (Exception e) {
 						// If there is an error then it stop logging remotely
 						C8oLogger.this.isLogRemote = false;
-						if (C8oLogger.this.handleExceptionsOnLog) {
-							C8o.handleCallException(C8oLogger.this.defaultC8oExceptionListener, parameters, e);
+						if (c8o.getLogOnFail() != null) {
+							c8o.getLogOnFail().run(e, null);
 						} else {
 							C8o.handleCallException(null, null, e);
 						}
@@ -257,8 +253,8 @@ public class C8oLogger {
 						} catch (Exception e) {
 							// If there is an error then it stop logging remotely
 							C8oLogger.this.isLogRemote = false;
-							if (C8oLogger.this.handleExceptionsOnLog) {
-								C8o.handleCallException(C8oLogger.this.defaultC8oExceptionListener, null, e);
+							if (c8o.getLogOnFail() != null) {
+								c8o.getLogOnFail().run(e, null);
 							} else {
 								C8o.handleCallException(null, null, e);
 							}
@@ -282,13 +278,13 @@ public class C8oLogger {
 	public void logMethodCall(String methodName, Object... params) {
 		boolean isLoggableConsole = this.isLoggableConsole(Log.DEBUG);
 		boolean isLoggableRemote = this.isLoggableRemote(Log.DEBUG);
+
 		if (isLoggableConsole || isLoggableRemote) {
 			String methodCallLogMessage = "Method call : " + methodName;
-			
-			this.log(Log.DEBUG, methodCallLogMessage, isLoggableConsole, isLoggableRemote);
 
 			isLoggableConsole = this.isLoggableConsole(Log.VERBOSE);
 			isLoggableRemote = this.isLoggableRemote(Log.VERBOSE);
+
 			if (isLoggableConsole || isLoggableRemote) {
 				methodCallLogMessage += ", Parameters : [";
 				// Add parameters
@@ -303,6 +299,8 @@ public class C8oLogger {
 				methodCallLogMessage = methodCallLogMessage.substring(0, methodCallLogMessage.length() - 2) + "]";
 				
 				this.log(Log.VERBOSE, methodCallLogMessage, isLoggableConsole, isLoggableRemote);
+			} else {
+				this.log(Log.DEBUG, methodCallLogMessage, isLoggableConsole, isLoggableRemote);
 			}
 		}
 	}
@@ -316,9 +314,9 @@ public class C8oLogger {
 	 * @throws InterruptedException 
 	 * @throws UnsupportedEncodingException 
 	 */
-	public void logC8oCall(String url, List<NameValuePair> parameters) {
-		boolean isLoggableConsole = this.isLoggableConsole(Log.DEBUG);
-		boolean isLoggableRemote = this.isLoggableRemote(Log.DEBUG);
+	public void logC8oCall(String url, Map<String, Object> parameters) {
+		boolean isLoggableConsole = isLoggableConsole(Log.DEBUG);
+		boolean isLoggableRemote = isLoggableRemote(Log.DEBUG);
 		
 		if (isLoggableConsole || isLoggableRemote) {
 			String c8oCallLogMessage = "C8o call :" + 
@@ -340,7 +338,7 @@ public class C8oLogger {
 	 * @throws InterruptedException 
 	 * @throws UnsupportedEncodingException 
 	 */
-	public void logC8oCallXMLResponse(Document response, String url, List<NameValuePair> parameters) throws C8oException {
+	public void logC8oCallXMLResponse(Document response, String url, Map<String, Object> parameters) throws C8oException {
 		boolean isLoggableConsole = this.isLoggableConsole(Log.VERBOSE);
 		boolean isLoggableRemote = this.isLoggableRemote(Log.VERBOSE);
 		
@@ -364,7 +362,7 @@ public class C8oLogger {
 	 * @throws InterruptedException 
 	 * @throws UnsupportedEncodingException 
 	 */
-	public void logC8oCallJSONResponse(JSONObject response, String url, List<NameValuePair> parameters) {
+	public void logC8oCallJSONResponse(JSONObject response, String url, Map<String, Object> parameters) {
 		boolean isLoggableConsole = this.isLoggableConsole(Log.VERBOSE);
 		boolean isLoggableRemote = this.isLoggableRemote(Log.VERBOSE);
 		

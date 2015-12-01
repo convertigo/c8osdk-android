@@ -1,4 +1,4 @@
-package com.convertigo.clientsdk.http;
+package com.convertigo.clientsdk;
 
 import java.io.IOException;
 import java.lang.reflect.Method;

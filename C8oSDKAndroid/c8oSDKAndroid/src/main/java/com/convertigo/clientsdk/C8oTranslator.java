@@ -10,6 +10,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.transform.Result;
@@ -308,15 +309,8 @@ public class C8oTranslator {
         return stringWriter.getBuffer().toString();
 	}
 	
-	public static JSONObject c8oCallRequestToJSON(List<NameValuePair> parameters) throws C8oException {
-		JSONObject json = new JSONObject();
-		try {
-			for (NameValuePair parameter : parameters) {
-				json.put(parameter.getName(), parameter.getValue());
-			}
-		} catch (JSONException e) {
-			throw new C8oException(C8oExceptionMessage.putJson(), e);
-		}
+	public static JSONObject c8oCallRequestToJSON(Map<String, Object> parameters) throws C8oException {
+		JSONObject json = new JSONObject(parameters);
 		return json;
 	}
 	

@@ -1,4 +1,4 @@
-package com.convertigo.clientsdk.fullsync;
+package com.convertigo.clientsdk;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -10,7 +10,9 @@ import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oExceptionMessage;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
+import com.convertigo.clientsdk.util.C8oUtils;
 import com.couchbase.lite.CouchbaseLiteException;
+import com.couchbase.lite.Database;
 import com.couchbase.lite.Document;
 import com.couchbase.lite.Query;
 import com.couchbase.lite.Query.IndexUpdateMode;
@@ -30,56 +32,81 @@ public class FullSyncEnum {
 	public enum FullSyncRequestable {
 		GET("get") {
 			@Override
-			protected Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) {
-				return fullSyncinterface.handleGetDocumentRequest(fullsyncDatabase, parameters);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+				String docid = C8oUtils.peekParameterStringValue(parameters, FullSyncGetDocumentParameter.DOCID.name, true);
+				return c8oFullSync.handleGetDocumentRequest(databaseName, docid, parameters);
 			}
 		},
 		DELETE("delete") {
 			@Override
-			protected Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException	{
-				return fullSyncinterface.handleDeleteDocumentRequest(fullsyncDatabase, parameters);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException	{
+				String docid = C8oUtils.peekParameterStringValue(parameters, FullSyncGetDocumentParameter.DOCID.name, true);
+				return c8oFullSync.handleDeleteDocumentRequest(databaseName, docid, parameters);
 			}
 		},
 		POST("post") {
 			@Override
-			protected Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) throws C8oException	{
-				return fullSyncinterface.handlePostDocumentRequest(fullsyncDatabase, parameters);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException	{
+				// Gets the policy parameter
+				String fullSyncPolicyParameter = C8oUtils.peekParameterStringValue(parameters, FullSyncPostDocumentParameter.POLICY.name, false);
+
+				// Finds the policy corresponding to the parameter value if it exists
+				FullSyncPolicy fullSyncPolicy = FullSyncPolicy.getFullSyncPolicy(fullSyncPolicyParameter);
+
+				return c8oFullSync.handlePostDocumentRequest(databaseName, fullSyncPolicy, parameters);
 			}
 		},
 		ALL("all") {
 			@Override
-			protected Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
-				return fullSyncinterface.handleAllDocumentsRequest(fullsyncDatabase, parameters);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+				return c8oFullSync.handleAllDocumentsRequest(databaseName, parameters);
 			}
 		},
 		VIEW("view") {
 			@Override
-			protected Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException {
-				return fullSyncinterface.handleGetViewRequest(fullsyncDatabase, parameters);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException {
+				// Gets the design doc parameter value
+				String ddoc = C8oUtils.peekParameterStringValue(parameters, FullSyncGetViewParameter.DDOC.name, false);
+				// Gets the view name parameter value
+				String view = C8oUtils.peekParameterStringValue(parameters, FullSyncGetViewParameter.VIEW.name, false);
+
+				return c8oFullSync.handleGetViewRequest(databaseName, ddoc, view, parameters);
 			}
 		},
 		SYNC("sync") {
 			@Override
-			Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) {
-				return fullSyncinterface.handleSyncRequest(fullsyncDatabase, parameters, c8oResponseListener);
+			Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+				return c8oFullSync.handleSyncRequest(databaseName, parameters, c8oResponseListener);
 			}
 		},
 		REPLICATE_PULL("replicate_pull") {
 			@Override
-			protected Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) {
-				return fullSyncinterface.handleReplicatePullRequest(fullsyncDatabase, parameters, c8oResponseListener);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+				return c8oFullSync.handleReplicatePullRequest(databaseName, parameters, c8oResponseListener);
 			}
 		},
 		REPLICATE_PUSH("replicate_push") {
 			@Override
-			protected Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) {
-				return fullSyncinterface.handleReplicatePushRequest(fullsyncDatabase, parameters, c8oResponseListener);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+				return c8oFullSync.handleReplicatePushRequest(databaseName, parameters, c8oResponseListener);
 			}
 		},
 		RESET("reset") {
 			@Override
-			protected Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
-				return fullSyncinterface.handleResetDatabaseRequest(fullsyncDatabase, parameters);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+				return c8oFullSync.handleResetDatabaseRequest(databaseName);
+			}
+		},
+		CREATE("create") {
+			@Override
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+				return c8oFullSync.handleCreateDatabaseRequest(databaseName);
+			}
+		},
+		DESTROY("destroy") {
+			@Override
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+				return c8oFullSync.handleDestroyDatabaseRequest(databaseName);
 			}
 		};
 		
@@ -89,7 +116,7 @@ public class FullSyncEnum {
 			this.value = value;
 		}
 		
-		abstract Object handleFullSyncRequest(FullSyncInterface fullSyncinterface, FullSyncDatabase fullsyncDatabase, List<NameValuePair> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException;
+		abstract Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException;
 	
 		static FullSyncRequestable getFullSyncRequestable(String value) {
 			FullSyncRequestable[] fullSyncRequestableValues = FullSyncRequestable.values();
@@ -116,7 +143,7 @@ public class FullSyncEnum {
 				if (parameter instanceof Boolean) {
 					query.setDescending((Boolean) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, Boolean.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -132,7 +159,7 @@ public class FullSyncEnum {
 				if (parameter instanceof String) {
 					query.setEndKeyDocId((String) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, String.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, String.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -142,7 +169,7 @@ public class FullSyncEnum {
 				if (parameter instanceof Integer) {
 					query.setGroupLevel((Integer) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, Integer.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Integer.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -152,7 +179,7 @@ public class FullSyncEnum {
 				if (parameter instanceof Boolean) {
 					query.setIncludeDeleted((Boolean) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, Boolean.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -168,7 +195,7 @@ public class FullSyncEnum {
 						}
 					}
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, String.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, String.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -179,7 +206,7 @@ public class FullSyncEnum {
 				if (parameter instanceof List<?>) {
 					query.setKeys((List<Object>) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, List.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, List.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -189,7 +216,17 @@ public class FullSyncEnum {
 				if (parameter instanceof Integer) {
 					query.setLimit((Integer) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, Integer.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Integer.class.getName(), parameter.getClass().getName()));
+				}
+			}
+		},
+		INCLUDE_DOCS("include_docs", true) {
+			@Override
+			void addToQuery(Query query, Object parameter) {
+				if (parameter instanceof Boolean) {
+					// TODO
+				} else {
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -199,7 +236,7 @@ public class FullSyncEnum {
 				if (parameter instanceof Boolean) {
 					query.setMapOnly((Boolean) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, Boolean.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -209,7 +246,7 @@ public class FullSyncEnum {
 				if (parameter instanceof Boolean) {
 					query.setPrefetch((Boolean) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, Boolean.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -219,7 +256,7 @@ public class FullSyncEnum {
 				if (parameter instanceof Integer) {
 					query.setSkip((Integer) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, Integer.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Integer.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		},
@@ -235,7 +272,7 @@ public class FullSyncEnum {
 				if (parameter instanceof String) {
 					query.setStartKeyDocId((String) parameter);
 				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(this.name, String.class.getName(), parameter.getClass().getName()));
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, String.class.getName(), parameter.getClass().getName()));
 				}
 			}
 		};
@@ -336,14 +373,27 @@ public class FullSyncEnum {
 	public enum FullSyncReplicateDatabaseParameter {
 		CANCEL("cancel") {
 			@Override
-			void setReplication(Replication replication, String parameterValue) {
+			void setReplication(Replication replication, Object parameter) {
 			}
 		},
 		LIVE("live") {
 			@Override
-			void setReplication(Replication replication, String parameterValue) {
-				boolean live = parameterValue.equals("true");
-				replication.setContinuous(live);
+			void setReplication(Replication replication, Object parameter) {
+				if (parameter instanceof Boolean) {
+					replication.setContinuous((Boolean) parameter);
+				} else {
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
+				}
+			}
+		},
+		DOCIDS("docids") {
+			@Override
+			void setReplication(Replication replication, Object parameter) {
+				if (parameter instanceof List) {
+					replication.setDocIds((List<String>) parameter);
+				} else {
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, List.class.getName(), parameter.getClass().getName()));
+				}
 			}
 		};
 		
@@ -356,7 +406,7 @@ public class FullSyncEnum {
 			this.name = name;
 		}
 		
-		abstract void setReplication(Replication replication, String parameterValue);
+		abstract void setReplication(Replication replication, Object parameterValue);
 	}
 	
 	//*** TAG Policy ***//
@@ -367,8 +417,8 @@ public class FullSyncEnum {
 	public enum FullSyncPolicy {
 		NONE("none") {
 			@Override
-			Document postDocument(FullSyncDatabase fullsyncDatabase, LinkedHashMap<String, Object> newProperties) throws C8oException {
-				Document createdDocument = fullsyncDatabase.database.createDocument();
+			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
+				Document createdDocument = database.createDocument();
 				try {
 					createdDocument.putProperties(newProperties);
 				} catch (CouchbaseLiteException e) {
@@ -379,11 +429,11 @@ public class FullSyncEnum {
 		},
 		CREATE("create") {
 			@Override
-			Document postDocument(FullSyncDatabase fullsyncDatabase, LinkedHashMap<String, Object> newProperties) throws C8oException {
+			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
 				// Removes special properties in order to create a new document
-				newProperties.remove(FullSyncInterface.FULL_SYNC__ID);
-				newProperties.remove(FullSyncInterface.FULL_SYNC__REV);
-				Document createdDocument = fullsyncDatabase.database.createDocument();
+				newProperties.remove(C8oFullSync.FULL_SYNC__ID);
+				newProperties.remove(C8oFullSync.FULL_SYNC__REV);
+				Document createdDocument = database.createDocument();
 				try {
 					createdDocument.putProperties(newProperties);
 				} catch (CouchbaseLiteException e) {
@@ -394,32 +444,32 @@ public class FullSyncEnum {
 		},
 		OVERRIDE("override") {
 			@Override
-			Document postDocument(FullSyncDatabase fullsyncDatabase, LinkedHashMap<String, Object> newProperties) throws C8oException {
+			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
 				// Gets the document ID
 				String documentId = null;
-				Object documentIdObj = newProperties.get(FullSyncInterface.FULL_SYNC__ID);
+				Object documentIdObj = newProperties.get(C8oFullSync.FULL_SYNC__ID);
 				if (documentIdObj != null) {
 					if (documentIdObj instanceof String) {
 						documentId = (String) documentIdObj;
 					} else {
-						throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(FullSyncInterface.FULL_SYNC__ID, String.class.getName(), documentIdObj.getClass().getName()));
+						throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(C8oFullSync.FULL_SYNC__ID, String.class.getName(), documentIdObj.getClass().getName()));
 					}
 				}
 				
 				// Removes special properties
-				newProperties.remove(FullSyncInterface.FULL_SYNC__ID);
-				newProperties.remove(FullSyncInterface.FULL_SYNC__REV);
+				newProperties.remove(C8oFullSync.FULL_SYNC__ID);
+				newProperties.remove(C8oFullSync.FULL_SYNC__REV);
 				
 				// Creates a new document or get an existing one (if the ID is specified)
 				Document createdDocument;
 				if (documentId == null) {
-					createdDocument = fullsyncDatabase.database.createDocument();
+					createdDocument = database.createDocument();
 				} else {
-					createdDocument = fullsyncDatabase.database.getDocument(documentId);
+					createdDocument = database.getDocument(documentId);
 					// Must add the current revision to the properties
 					SavedRevision currentRevision = createdDocument.getCurrentRevision();
 					if (currentRevision != null) {
-						newProperties.put(FullSyncInterface.FULL_SYNC__REV, currentRevision.getId());
+						newProperties.put(C8oFullSync.FULL_SYNC__REV, currentRevision.getId());
 					}
 				}
 				
@@ -434,35 +484,35 @@ public class FullSyncEnum {
 		},
 		MERGE("merge") {
 			@Override
-			Document postDocument(FullSyncDatabase fullsyncDatabase, LinkedHashMap<String, Object> newProperties) throws C8oException {
+			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
 				// Gets the document ID
 				String documentId = null;
-				Object documentIdObj = newProperties.get(FullSyncInterface.FULL_SYNC__ID);
+				Object documentIdObj = newProperties.get(C8oFullSync.FULL_SYNC__ID);
 				if (documentIdObj != null) {
 					if (documentIdObj instanceof String) {
 						documentId = (String) documentIdObj;
 					} else {
-						throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(FullSyncInterface.FULL_SYNC__ID, String.class.getName(), documentIdObj.getClass().getName()));
+						throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(C8oFullSync.FULL_SYNC__ID, String.class.getName(), documentIdObj.getClass().getName()));
 					}
 				}
 				
 				// Removes special properties
-				newProperties.remove(FullSyncInterface.FULL_SYNC__ID);
-				newProperties.remove(FullSyncInterface.FULL_SYNC__REV);
+				newProperties.remove(C8oFullSync.FULL_SYNC__ID);
+				newProperties.remove(C8oFullSync.FULL_SYNC__REV);
 				
 				// Creates a new document or get an existing one (if the ID is specified)
 				Document createdDocument;
 				if (documentId == null) {
-					createdDocument = fullsyncDatabase.database.createDocument();
+					createdDocument = database.createDocument();
 					documentId = createdDocument.getId();
 				} else {
-					createdDocument = fullsyncDatabase.database.getDocument(documentId);
+					createdDocument = database.getDocument(documentId);
 				}
 				
 				// Merges old properties with the new ones
 				Map<String, Object> oldProperties = createdDocument.getProperties();
 				if (oldProperties != null) {
-					FullSyncInterface.mergeProperties(newProperties, oldProperties);
+					C8oFullSyncCbl.mergeProperties(newProperties, oldProperties);
 				}
 				
 				try {
@@ -483,7 +533,15 @@ public class FullSyncEnum {
 		FullSyncPolicy(String value) {
 			this.value = value;
 		}
+
+		public static FullSyncPolicy getFullSyncPolicy(String name) {
+			try {
+				return valueOf(name);
+			} catch (Exception e) {
+				return NONE;
+			}
+		}
 		
-		abstract Document postDocument(FullSyncDatabase fullsyncDatabase, LinkedHashMap<String, Object> newProperties) throws C8oException;
+		abstract Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException;
 	}
 }
