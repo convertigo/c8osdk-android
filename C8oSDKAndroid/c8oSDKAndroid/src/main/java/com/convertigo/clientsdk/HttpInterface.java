@@ -1,5 +1,32 @@
 package com.convertigo.clientsdk;
 
+import android.annotation.SuppressLint;
+import android.os.AsyncTask;
+
+import com.convertigo.clientsdk.exception.C8oException;
+import com.convertigo.clientsdk.exception.C8oHttpRequestException;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.conn.scheme.Scheme;
+import org.apache.http.conn.scheme.SchemeRegistry;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.impl.cookie.BasicClientCookie2;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -32,35 +59,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CookieStore;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.ClientContext;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.scheme.SchemeRegistry;
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.impl.cookie.BasicClientCookie2;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
-
-import android.annotation.SuppressLint;
-import android.os.AsyncTask;
-
-import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
-import com.convertigo.clientsdk.exception.C8oHttpRequestException;
-import com.convertigo.clientsdk.C8oSslSocketFactory;
 
 public class HttpInterface {
 	
@@ -114,7 +112,7 @@ public class HttpInterface {
 	
 	//*** Constructors ***//
 
-	public HttpInterface(C8o c8o) throws C8oException {
+	public HttpInterface(final C8o c8o) throws C8oException {
 		this.c8o = c8o;
 		
 		// Create a HttpParams to set the connection timeout
@@ -249,7 +247,7 @@ public class HttpInterface {
 					// If doInBackGround didn't work
 					if (result instanceof Exception) {
 						// Handle exception with empty request parameters
-						C8o.handleCallException(null, new HashMap<String, Object>(),  (Exception) result);
+						c8o.handleCallException(null, new HashMap<String, Object>(),  (Exception) result);
 					}
 				}
 	    	};
@@ -328,7 +326,7 @@ public class HttpInterface {
 			parameters.put(C8o.ENGINE_PARAMETER_ENCODED, encoded.toString());
 		}
 		
-		c8o.c8oLogger.logC8oCall(url, parameters);
+		c8o.log.logC8oCall(url, parameters);
 		
 		// Set parameters of the POST request
 		try {
@@ -352,7 +350,7 @@ public class HttpInterface {
 	
 	public HttpResponse handleRequest(HttpPost request) throws C8oHttpRequestException {
 		try {
-			return this.httpClient.execute(request, this.httpContext);
+			return httpClient.execute(request, this.httpContext);
 		} catch (ClientProtocolException e) {
 			throw new C8oHttpRequestException(C8oExceptionMessage.runHttpRequest(), e);
 		} catch (IOException e) {
@@ -367,7 +365,7 @@ public class HttpInterface {
 	 */
 	@SuppressLint("TrulyRandom")
 	private void initCipher() throws C8oException {
-		this.c8o.c8oLogger.logMethodCall("initCipher");
+		c8o.log.logMethodCall("initCipher");
 		
 		synchronized(cipher) {
 			if (cipher[0] == null) {
@@ -469,5 +467,4 @@ public class HttpInterface {
 	public CookieStore getCookieStore() {
 		return (CookieStore) this.httpContext.getAttribute(ClientContext.COOKIE_STORE);
 	}
-	
 }

@@ -1,20 +1,16 @@
-package com.convertigo.clientsdk.exception;
+package com.convertigo.clientsdk;
 
-import java.util.List;
-import java.util.Map;
+import com.convertigo.clientsdk.listener.C8oResponseListener;
 
 import org.apache.http.NameValuePair;
 
-import com.convertigo.clientsdk.C8o;
-import com.convertigo.clientsdk.C8oFullSync;
-import com.convertigo.clientsdk.listener.C8oResponseListener;
-import com.convertigo.clientsdk.util.C8oUtils;
+import java.util.Map;
 
 /**
  * Contains static functions returning the exception messages 
  * in order to make simpler their modification and avoid duplication.
  */
-public class C8oExceptionMessage {
+class C8oExceptionMessage {
 	
 	//*** TAG Illegal argument ***//
 	

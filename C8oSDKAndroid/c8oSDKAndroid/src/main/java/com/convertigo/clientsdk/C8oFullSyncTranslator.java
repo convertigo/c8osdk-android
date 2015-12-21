@@ -1,20 +1,19 @@
 package com.convertigo.clientsdk;
 
-import javax.xml.parsers.DocumentBuilder;
+import com.convertigo.clientsdk.FullSyncResponse.FullSyncDefaultResponse;
+import com.convertigo.clientsdk.FullSyncResponse.FullSyncDocumentOperationResponse;
+import com.convertigo.clientsdk.exception.C8oException;
+import com.couchbase.lite.Document;
+import com.couchbase.lite.QueryEnumerator;
+import com.couchbase.lite.QueryRow;
+import com.couchbase.lite.replicator.Replication.ChangeEvent;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Element;
 
-import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
-import com.convertigo.clientsdk.FullSyncResponse.FullSyncDefaultResponse;
-import com.convertigo.clientsdk.FullSyncResponse.FullSyncDocumentOperationResponse;
-import com.couchbase.lite.Document;
-import com.couchbase.lite.QueryEnumerator;
-import com.couchbase.lite.QueryRow;
-import com.couchbase.lite.replicator.Replication.ChangeEvent;
+import javax.xml.parsers.DocumentBuilder;
 
 /**
  * Provides static functions to translate fullSync responses to JSON or XML.
@@ -29,8 +28,8 @@ public class C8oFullSyncTranslator {
 	private static final String FULL_SYNC_RESPONSE_KEY_OK = "ok";
 	private static final String FULL_SYNC_RESPONSE_KEY_STATUS = "status";
 
-	private static final String FULL_SYNC_RESPONSE_VALUE_DIRECTION_PUSH = "push";
-	private static final String FULL_SYNC_RESPONSE_VALUE_DIRECTION_PULL = "pull";
+	static final String FULL_SYNC_RESPONSE_VALUE_DIRECTION_PUSH = "push";
+	static final String FULL_SYNC_RESPONSE_VALUE_DIRECTION_PULL = "pull";
 	
 	private static final String XML_KEY_DOCUMENT = "document";
 	private static final String XML_KEY_COUCHDB_OUTPUT = "couchdb_output";
@@ -41,7 +40,7 @@ public class C8oFullSyncTranslator {
 	 * @param builder
 	 * @param json
 	 * @return
-	 * @throws C8oException 
+	 * @throws C8oException
 	 */
 	private static org.w3c.dom.Document fullSyncJsonToXml(JSONObject json, DocumentBuilder builder) throws C8oException {
 		org.w3c.dom.Document xmlDocument;

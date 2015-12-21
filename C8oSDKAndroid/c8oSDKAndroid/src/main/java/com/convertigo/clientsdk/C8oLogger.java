@@ -1,17 +1,10 @@
 package com.convertigo.clientsdk;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.LinkedBlockingQueue;
+import android.os.AsyncTask;
+import android.util.Log;
+
+import com.convertigo.clientsdk.exception.C8oException;
+import com.convertigo.clientsdk.exception.C8oHttpRequestException;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -23,29 +16,43 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Document;
 
-import android.os.AsyncTask;
-import android.util.Log;
-
-import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
-import com.convertigo.clientsdk.exception.C8oHttpRequestException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.text.DecimalFormat;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.regex.Pattern;
 
 public class C8oLogger {
-	
+    private final static Pattern RE_FORMAT_TIME = Pattern.compile("(\\d*?)([\\d ]{4})((?:\\.[\\d ]{3})|(?: {4}))");
 	//*** Constants ***//
-	
-	/**
-	 * The JSON key used to get the Convertigo server log level.
-	 */
-	private final static String REMOTE_LOG_LEVEL_KEY = "remoteLogLevel";
+
 	/**
 	 * The log tag used by the SDK.
 	 */
 	private final static String LOG_TAG = "c8o";
+    private final static String LOG_INTERNAL_PREFIX = "[" + LOG_TAG + "] ";
+
 	/**
 	 * The maximum number of logs sent to the Convertigo server in one time.
 	 */
 	private final static int REMOTE_LOG_LIMIT = 100;
+
+    /**
+     * The JSON key used to get the Convertigo server log level.
+     */
+    private final static String JSON_KEY_REMOTE_LOG_LEVEL = "remoteLogLevel";
+    private final static String JSON_KEY_TIME = "time";
+    private final static String JSON_KEY_LEVEL = "level";
+    private final static String JSON_KEY_MESSAGE = "msg";
+    private final static String JSON_KEY_LOGS = "logs";
+    private final static String JSON_KEY_ENV = "env";
+
 	/**
 	 * Convertigo log levels fixed to fit with Android log levels.<br/>
 	 * Android log levels : 2 : VERBOSE, 3 : DEBUG, 4 : INFO, 5 : WARN, 6 : ERROR, 7 : ASSERT
@@ -65,7 +72,7 @@ public class C8oLogger {
 	/**
 	 * Contains logs to be sent to the Convertigo server.
 	 */
-	private LinkedBlockingQueue<C8oLog> remoteLogs;
+	private LinkedBlockingQueue<JSONObject> remoteLogs;
 	/**
 	 * Indicate if a thread is logging.
 	 */
@@ -90,32 +97,69 @@ public class C8oLogger {
 	 * Used to run HTTP requests.<br/>
 	 * It is set out of the constructor.
 	 */
-	private HttpInterface httpInterface;
-	private String deviceUuid;
 	private C8o c8o;
 	
 	public C8oLogger(C8o c8o) {
 		this.c8o = c8o;
-		
-		// Remote log
-		this.isLogRemote = false;
-		this.remoteLogs = new LinkedBlockingQueue<C8oLog>();
-		this.alreadyRemoteLogging = new boolean[] {false};
-		this.remoteLogLevel = 0;
+
+        remoteLogUrl = c8o.getEndpointConvertigo() + "/admin/services/logs.Add";
+		remoteLogs = new LinkedBlockingQueue<JSONObject>();
+		alreadyRemoteLogging = new boolean[] {false};
+
+        isLogRemote = c8o.isLogRemote();
+		remoteLogLevel = 0;
+
 		long currentTime = new Date().getTime();
-		this.startTimeRemoteLog = currentTime;
-		this.uidRemoteLogs = Long.toString(currentTime, 16);
-		this.logTimeFormat = new DecimalFormat(".###");
+		startTimeRemoteLog = currentTime;
+		uidRemoteLogs = Long.toString(currentTime, 16);
+		logTimeFormat = new DecimalFormat(".###");
 	}
 	
 	private boolean isLoggableRemote(int logLevel) {
-		return this.isLogRemote && logLevel > 1 && logLevel < C8oLogger.REMOTE_LOG_LEVELS.length && logLevel >= this.remoteLogLevel;
+		return isLogRemote
+				&& 1 < logLevel
+				&& logLevel < C8oLogger.REMOTE_LOG_LEVELS.length
+                && logLevel >= remoteLogLevel;
 	}
 	
 	private boolean isLoggableConsole(int logLevel) {
-		return Log.isLoggable(C8oLogger.LOG_TAG, logLevel);
+		return Log.isLoggable(C8oLogger.LOG_TAG, logLevel)
+                && 1 < logLevel
+                && logLevel < C8oLogger.REMOTE_LOG_LEVELS.length
+                && logLevel >= c8o.getLogLevelLocal();
 	}
-	
+
+    public boolean canLog(int logLevel) {
+        return isLoggableConsole(logLevel) || isLoggableRemote(logLevel);
+    }
+
+    public boolean isFatal() {
+        return canLog(Log.ASSERT);
+    }
+
+    public boolean isError() {
+        return canLog(Log.ERROR);
+    }
+
+    public boolean isWarn() {
+        return canLog(Log.WARN);
+    }
+
+    public boolean isInfo() {
+        return canLog(Log.INFO);
+    }
+
+    public boolean isDebug() {
+        return canLog(Log.DEBUG);
+    }
+
+    public boolean isTrace() {
+        return canLog(Log.VERBOSE);
+    }
+
+//    public void log(int logLevel, String message) {
+//        log(logLevel, message, null);
+//    }
 	/**
 	 * Log the message in the console and in Convertigo server if the log level is enough high.<br/>
 	 * Android : 1 : NONE, 2 : VERBOSE, 3 : DEBUG, 4 : INFO, 5 : WARN, 6 : ERROR, 7 : ASSERT<br/>
@@ -127,22 +171,142 @@ public class C8oLogger {
 	 * @throws JSONException
 	 * @throws InterruptedException
 	 */
-	public void log(int logLevel, String message) {
-		this.log(logLevel, message, this.isLoggableConsole(logLevel), this.isLoggableRemote(logLevel));
+	public void log(int logLevel, String message, Exception exception) {
+		boolean isLoggableConsole = isLoggableConsole(logLevel);
+        boolean isLoggableRemote = isLoggableRemote(logLevel);
+
+        if (isLoggableConsole || isLoggableRemote) {
+            if (exception != null) {
+                message += "\n" + exception;
+            }
+
+            long time = (new Date().getTime() - this.startTimeRemoteLog) / 1000;
+            String stringLevel = REMOTE_LOG_LEVELS[logLevel];
+
+            if (isLoggableRemote) {
+                // If the capacity of the queue is reached then it will wait here
+                try {
+                    remoteLogs.add(new JSONObject()
+                            .put(JSON_KEY_TIME, "" + time)
+                            .put(JSON_KEY_LEVEL, stringLevel)
+                            .put(JSON_KEY_MESSAGE, message));
+                    logRemote();
+                } catch (Throwable t){
+                    Log.println(Log.DEBUG, C8oLogger.LOG_TAG, "[C8oLogger] Failed to queue remote log: " + t);
+                }
+            }
+
+            if (isLoggableConsole) {
+                Log.println(logLevel, C8oLogger.LOG_TAG, this.logTimeFormat.format(time) + " [" + stringLevel + "] " + message);
+            }
+        }
 	}
-	
-	private void log(int logLevel, String message, boolean isLoggableConsole, boolean isLoggableRemote) {
-		if (isLoggableConsole) {
-			Log.println(logLevel, C8oLogger.LOG_TAG, message);
-		}
-		
-		if (isLoggableRemote) {
-			String time = this.logTimeFormat.format((float) (new Date().getTime() - this.startTimeRemoteLog) / 1000);
-			// If the capacity of the queue is reached then it will wait here
-			this.remoteLogs.add(new C8oLog(time, logLevel, message));
-			this.logRemote();
+
+    public void fatal(String message) {
+        log(Log.ASSERT, message, null);
+    }
+
+    public void fatal(String message, Exception exception) {
+        log(Log.ASSERT, message, exception);
+    }
+
+    public void error(String message) {
+        log(Log.ERROR, message, null);
+    }
+
+    public void error(String message, Exception exception) {
+        log(Log.ERROR, message, exception);
+    }
+
+    public void warn(String message) {
+        log(Log.WARN, message, null);
+    }
+
+    public void warn(String message, Exception exception) {
+        log(Log.WARN, message, exception);
+    }
+
+    public void info(String message) {
+        log(Log.INFO, message, null);
+    }
+
+    public void info(String message, Exception exception) {
+        log(Log.INFO, message, exception);
+    }
+
+    public void debug(String message) {
+        log(Log.DEBUG, message, null);
+    }
+
+    public void debug(String message, Exception exception) {
+        log(Log.DEBUG, message, exception);
+    }
+
+    public void trace(String message) {
+        log(Log.VERBOSE, message, null);
+    }
+
+    public void trace(String message, Exception exception) {
+        log(Log.VERBOSE, message, exception);
+    }
+
+    void _log(int logLevel, String message) {
+        _log(logLevel, message, null);
+    }
+
+	void _log(int logLevel, String message, Exception exception) {
+		if (c8o.isLogC8o()) {
+			log(logLevel, LOG_INTERNAL_PREFIX + message, exception);
 		}
 	}
+
+    void _fatal(String message) {
+        log(Log.ASSERT, message, null);
+    }
+
+    void _fatal(String message, Exception exception) {
+        log(Log.ASSERT, message, exception);
+    }
+
+    void _error(String message) {
+        log(Log.ERROR, message, null);
+    }
+
+    void _error(String message, Exception exception) {
+        log(Log.ERROR, message, exception);
+    }
+
+    void _warn(String message) {
+        log(Log.WARN, message, null);
+    }
+
+    void _warn(String message, Exception exception) {
+        log(Log.WARN, message, exception);
+    }
+
+    void _info(String message) {
+        log(Log.INFO, message, null);
+    }
+
+    void _info(String message, Exception exception) {
+        log(Log.INFO, message, exception);
+    }
+
+    void _debug(String message) {
+        log(Log.DEBUG, message, null);
+    }
+
+    void _debug(String message, Exception exception) {
+        log(Log.DEBUG, message, exception);
+    }
+
+    void _trace(String message) {
+        log(Log.VERBOSE, message, null);
+    }
+
+    void _trace(String message, Exception exception) {
+        log(Log.VERBOSE, message, exception);
+    }
 	
 	/** 
 	 * Sends stored logs to the Convertigo server if there is not already another thread doing it.
@@ -154,10 +318,10 @@ public class C8oLogger {
 	private void logRemote() {
 		// Check if there is another thread logging
 		boolean canLog = false;
-		synchronized (this.alreadyRemoteLogging) {
-			canLog = !this.remoteLogs.isEmpty() && !this.alreadyRemoteLogging[0];
+		synchronized (alreadyRemoteLogging) {
+			canLog = !alreadyRemoteLogging[0] && !remoteLogs.isEmpty();
 			if (canLog) {
-				this.alreadyRemoteLogging[0] = true;
+				alreadyRemoteLogging[0] = true;
 			}
 		}
 		
@@ -169,31 +333,18 @@ public class C8oLogger {
 					try {
 						// Take logs in the queue and add it to a json array
 						int count = 0;
-						int listSize = C8oLogger.this.remoteLogs.size();
+						int listSize = remoteLogs.size();
 						JSONArray logsArray = new JSONArray();
-						while (count < listSize && count < C8oLogger.REMOTE_LOG_LIMIT) {
-							C8oLog c8oLog;
-							try {
-								c8oLog = C8oLogger.this.remoteLogs.take();
-							} catch (InterruptedException e) {
-								throw new C8oException(C8oExceptionMessage.takeLog(), e);
-							}
-							JSONObject jsonLog = new JSONObject();
-							try {
-								jsonLog.put("time", c8oLog.time);
-								jsonLog.put("level", C8oLogger.REMOTE_LOG_LEVELS[c8oLog.logLevel]);
-								jsonLog.put("msg", c8oLog.msg);
-							} catch (JSONException e) {
-								throw new C8oException(C8oExceptionMessage.putJson(), e);
-							}
-							logsArray.put(jsonLog);
+
+						while (count < listSize && count < REMOTE_LOG_LIMIT) {
+							logsArray.put(remoteLogs.take());
 							count++;
 						}
 						// Http request sending logs
-						HttpPost request = new HttpPost(C8oLogger.this.remoteLogUrl);
-						parameters.add(new BasicNameValuePair("logs", logsArray.toString()));
-						parameters.add(new BasicNameValuePair("env", "{\"uid\":\"" + C8oLogger.this.uidRemoteLogs + "\"}"));
-						parameters.add(new BasicNameValuePair(C8o.ENGINE_PARAMETER_DEVICE_UUID, C8oLogger.this.deviceUuid));
+						HttpPost request = new HttpPost(remoteLogUrl);
+						parameters.add(new BasicNameValuePair(JSON_KEY_LOGS, logsArray.toString()));
+						parameters.add(new BasicNameValuePair(JSON_KEY_ENV, "{\"uid\":\"" + uidRemoteLogs + "\"}"));
+						parameters.add(new BasicNameValuePair(C8o.ENGINE_PARAMETER_DEVICE_UUID, c8o.getDeviceUUID()));
 						try {
 							request.setEntity(new UrlEncodedFormEntity(parameters));
 						} catch (UnsupportedEncodingException e) {
@@ -202,7 +353,7 @@ public class C8oLogger {
 						// Get http response
 						HttpResponse response;
 						try {
-							response = C8oLogger.this.httpInterface.handleRequest(request);
+							response = c8o.httpInterface.handleRequest(request);
 						} catch (C8oHttpRequestException e) {
 							throw new C8oException(C8oExceptionMessage.remoteLogHttpRequest(), e);
 						}
@@ -225,11 +376,11 @@ public class C8oLogger {
 						return jsonResponse;
 					} catch (Exception e) {
 						// If there is an error then it stop logging remotely
-						C8oLogger.this.isLogRemote = false;
+						isLogRemote = false;
 						if (c8o.getLogOnFail() != null) {
 							c8o.getLogOnFail().run(e, null);
 						} else {
-							C8o.handleCallException(null, null, e);
+							c8o.handleCallException(null, null, e);
 						}
 					}
 					return null;
@@ -237,29 +388,28 @@ public class C8oLogger {
 
 				@Override
 				protected void onPostExecute(JSONObject result) {
-					synchronized(C8oLogger.this.alreadyRemoteLogging) {
-						C8oLogger.this.alreadyRemoteLogging[0] = false;
-					}
-					
 					if (result != null) {
 						try {
-							String logLevelStr = (String) result.get(C8oLogger.REMOTE_LOG_LEVEL_KEY);
+							String logLevelStr = (String) result.get(C8oLogger.JSON_KEY_REMOTE_LOG_LEVEL);
 							int logLevel = Arrays.asList(C8oLogger.REMOTE_LOG_LEVELS).indexOf(logLevelStr);
 							if (logLevel > 1 && logLevel < C8oLogger.REMOTE_LOG_LEVELS.length) {
-								C8oLogger.this.remoteLogLevel = logLevel;
+								remoteLogLevel = logLevel;
 							}
-							
-							C8oLogger.this.logRemote();
+							logRemote();
 						} catch (Exception e) {
 							// If there is an error then it stop logging remotely
-							C8oLogger.this.isLogRemote = false;
+							isLogRemote = false;
 							if (c8o.getLogOnFail() != null) {
 								c8o.getLogOnFail().run(e, null);
 							} else {
-								C8o.handleCallException(null, null, e);
+								c8o.handleCallException(null, null, e);
 							}
 						}
 					}
+
+                    synchronized(alreadyRemoteLogging) {
+                        alreadyRemoteLogging[0] = false;
+                    }
 				}
 			};
 			remoteLogTask.execute();
@@ -276,16 +426,10 @@ public class C8oLogger {
 	 * @throws UnsupportedEncodingException 
 	 */
 	public void logMethodCall(String methodName, Object... params) {
-		boolean isLoggableConsole = this.isLoggableConsole(Log.DEBUG);
-		boolean isLoggableRemote = this.isLoggableRemote(Log.DEBUG);
-
-		if (isLoggableConsole || isLoggableRemote) {
+        if (c8o.isLogC8o() && isDebug()) {
 			String methodCallLogMessage = "Method call : " + methodName;
 
-			isLoggableConsole = this.isLoggableConsole(Log.VERBOSE);
-			isLoggableRemote = this.isLoggableRemote(Log.VERBOSE);
-
-			if (isLoggableConsole || isLoggableRemote) {
+			if (isTrace()) {
 				methodCallLogMessage += ", Parameters : [";
 				// Add parameters
 				for (Object param : params) {
@@ -298,9 +442,9 @@ public class C8oLogger {
 				// Remove the last character
 				methodCallLogMessage = methodCallLogMessage.substring(0, methodCallLogMessage.length() - 2) + "]";
 				
-				this.log(Log.VERBOSE, methodCallLogMessage, isLoggableConsole, isLoggableRemote);
+				_trace(methodCallLogMessage);
 			} else {
-				this.log(Log.DEBUG, methodCallLogMessage, isLoggableConsole, isLoggableRemote);
+                _debug(methodCallLogMessage);
 			}
 		}
 	}
@@ -318,12 +462,12 @@ public class C8oLogger {
 		boolean isLoggableConsole = isLoggableConsole(Log.DEBUG);
 		boolean isLoggableRemote = isLoggableRemote(Log.DEBUG);
 		
-		if (isLoggableConsole || isLoggableRemote) {
+		if (c8o.isLogC8o() && isDebug()) {
 			String c8oCallLogMessage = "C8o call :" + 
 				" URL=" + url + ", " + 
 				" Parameters=" + parameters;
 			
-			this.log(Log.DEBUG, c8oCallLogMessage, isLoggableConsole, isLoggableRemote);
+			_debug(c8oCallLogMessage);
 		}
 	}
 	
@@ -339,17 +483,7 @@ public class C8oLogger {
 	 * @throws UnsupportedEncodingException 
 	 */
 	public void logC8oCallXMLResponse(Document response, String url, Map<String, Object> parameters) throws C8oException {
-		boolean isLoggableConsole = this.isLoggableConsole(Log.VERBOSE);
-		boolean isLoggableRemote = this.isLoggableRemote(Log.VERBOSE);
-		
-		if (isLoggableConsole || isLoggableRemote) {
-			String c8oCallXMLResponseLogMessage = "C8o call XML response :" + 
-				" URL=" + url + ", " + 
-				" Parameters=" + parameters + ", " + 
-				" Response=" + C8oTranslator.xmlToString(response);
-			
-			this.log(Log.VERBOSE, c8oCallXMLResponseLogMessage, isLoggableConsole, isLoggableRemote);
-		}
+        logC8oCallResponse(C8oTranslator.xmlToString(response), "XML", url, parameters);
 	}
 	
 	/**
@@ -363,48 +497,22 @@ public class C8oLogger {
 	 * @throws UnsupportedEncodingException 
 	 */
 	public void logC8oCallJSONResponse(JSONObject response, String url, Map<String, Object> parameters) {
-		boolean isLoggableConsole = this.isLoggableConsole(Log.VERBOSE);
-		boolean isLoggableRemote = this.isLoggableRemote(Log.VERBOSE);
-		
-		if (isLoggableConsole || isLoggableRemote) {
-			String c8oCallJSONResponseLogMessage = "C8o call JSON response :" + 
-				" URL=" + url + ", " + 
-				" Parameters=" + parameters + ", " + 
-				" Response=" + response.toString();
-			
-			this.log(Log.VERBOSE, c8oCallJSONResponseLogMessage, isLoggableConsole, isLoggableRemote);
-		}
-	}
-	
-	public void setRemoteLogParameters(HttpInterface httpInterface, boolean logRemote, String urlBase, String deviceUuid) {
-		this.httpInterface = httpInterface;
-		this.isLogRemote = logRemote;
-		this.remoteLogUrl = urlBase + "/admin/services/logs.Add";
-		this.deviceUuid = deviceUuid;
-	}
-	
-	/**
-	 * Contains informations related to a log line.
-	 */
-	private class C8oLog {
-		/**
-		 * The logged message.
-		 */
-		public String msg;
-		/**
-		 * The log priority level.
-		 */
-		public int logLevel;
-		/**
-		 * The time elapsed since the instantiation of the C8o object used to send this log.
-		 */
-		public String time;
-		
-		public C8oLog(String time, int level, String message) {
-			this.time = time;
-			this.logLevel = level;
-			this.msg = message;
-		}
-	}
-	
+        try {
+            logC8oCallResponse(response.toString(2), "JSON", url, parameters);
+        } catch (JSONException e) {
+            // not probable
+            e.printStackTrace();
+        }
+    }
+
+    public void logC8oCallResponse(String responseStr, String responseType, String url, Map<String, Object> parameters) {
+        if (c8o.isLogC8o() && isTrace()) {
+            String c8oCallResponseLogMessage = "C8o call JSON response :" +
+                    " URL=" + url + ", " +
+                    " Parameters=" + parameters + ", " +
+                    " Response=" + responseStr;
+
+            _trace(c8oCallResponseLogMessage);
+        }
+    }
 }

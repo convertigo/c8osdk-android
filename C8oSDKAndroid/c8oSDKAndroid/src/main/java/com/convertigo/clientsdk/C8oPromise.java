@@ -9,9 +9,10 @@ import java.util.Map;
 /**
  * Created by nicolasa on 16/11/2015.
  */
-public class C8oPromise<T> implements C8oPromiseSync {
+public class C8oPromise<T> implements C8oPromiseFailSync {
     private C8o c8o;
     private final List<Pair<C8oOnResponse<T>, Boolean>> c8oOnResponses = new LinkedList<Pair<C8oOnResponse<T>, Boolean>>();
+    private Pair<C8oOnProgress, Boolean> c8oProgress;
     private Pair<C8oOnFail, Boolean> c8oFail;
     private final Object syncMutex = new Object();
 
@@ -36,13 +37,23 @@ public class C8oPromise<T> implements C8oPromiseSync {
         return this;
     }
 
+    public C8oPromiseFailSync<T> progress(C8oOnProgress c8oOnProgress) {
+        c8oProgress = new Pair<C8oOnProgress, Boolean>(c8oOnProgress, false);
+        return this;
+    }
+
+    public C8oPromiseFailSync<T> progressUI(C8oOnProgress c8oOnProgress) {
+        c8oProgress = new Pair<C8oOnProgress, Boolean>(c8oOnProgress, true);
+        return this;
+    }
+
     public C8oPromiseSync<T> fail(C8oOnFail c8oOnFail) {
-        this.c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, false);
+        c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, false);
         return this;
     }
 
     public C8oPromiseSync<T> failUI(C8oOnFail c8oOnFail) {
-        this.c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, true);
+        c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, true);
         return this;
     }
 
@@ -119,6 +130,41 @@ public class C8oPromise<T> implements C8oPromiseSync {
             }
         } catch (Throwable throwable) {
             onFailure(throwable, parameters);
+        }
+    }
+
+    synchronized void onProgress(final C8oProgress progress) {
+        if (c8oProgress != null) {
+            if (c8oProgress.second) {
+                final Object locker = new Object();
+                synchronized (locker) {
+                    c8o.runUI(new Runnable() {
+                        @Override
+                        public void run() {
+                            synchronized (locker) {
+                                try {
+                                    c8oProgress.first.run(progress);
+                                } finally {
+                                    locker.notify();
+                                }
+                            }
+                        }
+                    });
+
+                    try {
+                        locker.wait();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            } else {
+                c8oProgress.first.run(progress);
+            }
+        }
+
+        synchronized (syncMutex)
+        {
+            syncMutex.notify();
         }
     }
 

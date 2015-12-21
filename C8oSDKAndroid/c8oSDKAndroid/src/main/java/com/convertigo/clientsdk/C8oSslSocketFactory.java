@@ -1,5 +1,9 @@
 package com.convertigo.clientsdk;
 
+import com.convertigo.clientsdk.exception.C8oException;
+
+import org.apache.http.conn.ssl.SSLSocketFactory;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.Socket;
@@ -21,14 +25,6 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-
-import org.apache.http.conn.ssl.SSLSocketFactory;
-
-import android.util.Log;
-
-import com.convertigo.clientsdk.C8o;
-import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
 
 /**
  * C8oSslSocketFactory is an SSLSocketFactory allowing to use custom key and trust stores with HTTPS request 
@@ -262,7 +258,7 @@ class C8oSslSocketFactory extends SSLSocketFactory {
     			Method setHostnameMethod = sock.getClass().getMethod("setHostname", String.class);
     			setHostnameMethod.invoke(sock, host);
     		} catch (Exception e) {
-				this.c8o.c8oLogger.log(Log.DEBUG, "SNI not useable");
+				c8o.log._debug("SNI not useable");
     		}
     	}
     	

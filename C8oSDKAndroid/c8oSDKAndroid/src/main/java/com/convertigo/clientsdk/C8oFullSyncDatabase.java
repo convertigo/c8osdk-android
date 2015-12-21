@@ -1,29 +1,20 @@
 package com.convertigo.clientsdk;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.http.cookie.Cookie;
-
 import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
-import com.convertigo.clientsdk.listener.C8oFullSyncChangeEventListener;
-import com.convertigo.clientsdk.listener.C8oResponseCblListener;
-import com.convertigo.clientsdk.listener.C8oJSONChangeEventListener;
-import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
-import com.convertigo.clientsdk.listener.C8oXMLChangeEventListener;
-import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
-import com.convertigo.clientsdk.util.C8oUtils;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.replicator.Replication;
+import com.couchbase.lite.replicator.Replication.ChangeEvent;
 import com.couchbase.lite.replicator.Replication.ChangeListener;
+
+import org.apache.http.cookie.Cookie;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class C8oFullSyncDatabase {
@@ -46,6 +37,8 @@ public class C8oFullSyncDatabase {
 	 * The fullSync database name.
 	 */
     private String databaseName;
+
+	private URL c8oFullSyncDatabaseUrl;
 	/**
 	 * The fullSync Database instance.
 	 */
@@ -53,11 +46,11 @@ public class C8oFullSyncDatabase {
 	/**
 	 * Used to make pull replication (uploads changes from the local database to the remote one).
 	 */
-    private FullSyncReplication pullFullSyncReplication;
+    private FullSyncReplication pullFullSyncReplication = new FullSyncReplication(true);
     /**
 	 * Used to make push replication (downloads changes from the remote database to the local one).
 	 */
-    private FullSyncReplication pushFullSyncReplication;
+    private FullSyncReplication pushFullSyncReplication = new FullSyncReplication(false);
     /**
      * ???
      */
@@ -77,7 +70,11 @@ public class C8oFullSyncDatabase {
     public C8oFullSyncDatabase(C8o c8o, Manager manager, String databaseName, String fullSyncDatabases, String localSuffix) throws C8oException {
         this.c8o = c8o;
 
-        String fullSyncDatabaseUrl = fullSyncDatabases + databaseName + "/";
+		try {
+			c8oFullSyncDatabaseUrl = new URL(fullSyncDatabases + databaseName + "/");
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidFullSyncDatabaseUrl(fullSyncDatabases + databaseName + "/"), e);
+		}
 
         this.databaseName = (databaseName += localSuffix);
 
@@ -86,18 +83,8 @@ public class C8oFullSyncDatabase {
 		} catch (CouchbaseLiteException e) {
 			throw new C8oException(C8oExceptionMessage.unableToGetFullSyncDatabase(databaseName), e);
 		}
-        
-        URL fullSyncDatabaseUri;
-        // The "/" at the end is important
-		try {
-			fullSyncDatabaseUri = new URL(fullSyncDatabaseUrl);
-		} catch (MalformedURLException e) {
-			throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidFullSyncDatabaseUrl(fullSyncDatabaseUrl), e);
-		}
 
-        Replication pullReplication = database.createPullReplication(fullSyncDatabaseUri);
-        Replication pushReplication = database.createPushReplication(fullSyncDatabaseUri);
-        
+        /*
         // ??? Does surely something but do not know what, it is optional so it is still here ???
         String authenticationCookieValue = c8o.getAuthenticationCookieValue();
         if (authenticationCookieValue != null) {
@@ -112,17 +99,31 @@ public class C8oFullSyncDatabase {
         	pullReplication.setCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME, authenticationCookieValue, "/", expirationDate, isSecure, httpOnly);
         	pushReplication.setCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME, authenticationCookieValue, "/", expirationDate, isSecure, httpOnly);
         }
-        
-        pullFullSyncReplication = new FullSyncReplication(pullReplication);
-        pushFullSyncReplication = new FullSyncReplication(pushReplication);
+        */
     }
-    
-    //*** TAG Replication ***//
+
+	private Replication getReplication(FullSyncReplication fsReplication) {
+		if (fsReplication.replication != null) {
+			fsReplication.replication.stop();
+			if (fsReplication.changeListener != null) {
+				fsReplication.replication.removeChangeListener(fsReplication.changeListener);
+			}
+		}
+		Replication replication = fsReplication.replication = fsReplication.pull ?
+				database.createPullReplication(c8oFullSyncDatabaseUrl) :
+				database.createPushReplication(c8oFullSyncDatabaseUrl);
+
+		for (Cookie cookie : c8o.getCookieStore().getCookies()) {
+			replication.setCookie(cookie.getName(), cookie.getValue(), cookie.getPath(), cookie.getExpiryDate(), cookie.isSecure(), false);
+		}
+
+		return replication;
+	}
 
     /**
      * Start pull and push replications.
      */
-    public void startAllReplications(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) {
+    public void startAllReplications(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
 	    startPullReplication(parameters, c8oResponseListener);
 	    startPushReplication(parameters, c8oResponseListener);
     }
@@ -130,75 +131,102 @@ public class C8oFullSyncDatabase {
     /**
      * Start pull replication.
      */
-    public void startPullReplication(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) {
-    	startReplication(this.c8o, this.pullFullSyncReplication, c8oResponseListener, parameters);
+    public void startPullReplication(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+        startReplication(pullFullSyncReplication, parameters, c8oResponseListener);
     }
     
     /**
      * Start push replication.
      * @return 
      */
-    public void startPushReplication(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) {
-    	startReplication(this.c8o, this.pushFullSyncReplication, c8oResponseListener, parameters);
+    public void startPushReplication(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
+		startReplication(pushFullSyncReplication, parameters, c8oResponseListener);
     }
 
     /**
      * Starts a replication taking into account parameters.<br/>
      * This action does not directly return something but setup a callback raised when the replication raises change events.
-     * 
-     * @param c8o
-     * @param c8oReplication
+     *
+     * @param fullSyncReplication
      * @param c8oResponseListener
      * @param parameters
      */
-    private static void startReplication(C8o c8o, FullSyncReplication c8oReplication, C8oResponseListener c8oResponseListener, Map<String, Object> parameters) {
-    	synchronized (c8oReplication.replication) {
-    		
-    		// Cancel the replication if it is already running
-    		if (c8oReplication.replication.isRunning()) {
-    			c8oReplication.replication.stop();
-    		}
-    		
-    		// Adds parameter to the replication
-    		for (FullSyncEnum.FullSyncReplicateDatabaseParameter fullSyncParameter : FullSyncEnum.FullSyncReplicateDatabaseParameter.values()) {
-    			String parameterValue = C8oUtils.getParameterStringValue(parameters, fullSyncParameter.name, false);
-    			if (parameterValue != null) {
-    				// Cancel the replication
-    				if (fullSyncParameter == FullSyncEnum.FullSyncReplicateDatabaseParameter.CANCEL && parameterValue.equals("true")) {
-    					return;
-    				}
-    				fullSyncParameter.setReplication(c8oReplication.replication, parameterValue);
-    			}
-    		}
-    		
-    		List<Cookie> cookies = c8o.getCookieStore().getCookies();
-    		for (Cookie cookie : cookies) {
-    			c8oReplication.replication.setCookie(cookie.getName(), cookie.getValue(), cookie.getPath(), cookie.getExpiryDate(), cookie.isSecure(), false);
-    		}
-    		
-    		// Removes the current change listener
-    		if (c8oReplication.changeListener != null) {
-    			c8oReplication.replication.removeChangeListener(c8oReplication.changeListener);
-    		}
-    		// Replaces the change listener by a new one according to the C8oResponseListener type
-    		c8oReplication.changeListener = null;
-    		if (c8oResponseListener != null) {
-    			if (c8oResponseListener instanceof C8oResponseCblListener) {
-    				c8oReplication.changeListener = new C8oFullSyncChangeEventListener((C8oResponseCblListener) c8oResponseListener, c8oReplication.replication, parameters);
-    			} else if (c8oResponseListener instanceof C8oResponseJsonListener) {
-    				c8oReplication.changeListener = new C8oJSONChangeEventListener((C8oResponseJsonListener) c8oResponseListener, c8oReplication.replication, parameters);
-    			} else if (c8oResponseListener instanceof C8oResponseXmlListener) {
-    				c8oReplication.changeListener = new C8oXMLChangeEventListener((C8oResponseXmlListener) c8oResponseListener, c8oReplication.replication, c8o.getDocumentBuilder(), parameters);
-    			}
-    			// TODO else error ?
-    			
-    			if (c8oReplication.changeListener != null) {
-    				c8oReplication.replication.addChangeListener(c8oReplication.changeListener);
-    			}
-    		}
-    		
-    		// Finally starts the replication
-    		c8oReplication.replication.start();
+    private void startReplication(FullSyncReplication fullSyncReplication, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
+		boolean continuous = false;
+		boolean cancel = false;
+
+		if (parameters.containsKey("continuous"))
+		{
+			continuous = parameters.get("continuous").toString().equalsIgnoreCase("true");
+		}
+
+		if (parameters.containsKey("cancel"))
+		{
+			cancel = parameters.get("cancel").toString().equalsIgnoreCase("true");
+		}
+
+		final Replication rep = getReplication(fullSyncReplication);
+
+		// Cancel the replication if it is already running
+		if (rep != null)
+		{
+			rep.stop();
+		}
+
+		if (cancel)
+		{
+			return;
+		}
+
+		final Map<String, Object> param = new HashMap<String, Object>(parameters);
+		final C8oProgress progress = new C8oProgress();
+		progress.raw = rep;
+		progress.pull = rep.isPull();
+		param.put(C8o.ENGINE_PARAMETER_PROGRESS, progress);
+
+		final Object mutex = new Object();
+
+		rep.addChangeListener(
+				fullSyncReplication.changeListener = new ChangeListener() {
+
+                    @Override
+                    public void changed(ChangeEvent changeEvent) {
+                        progress.total = changeEvent.getChangeCount();
+                        progress.current = changeEvent.getCompletedChangeCount();
+                        progress.taskInfo = changeEvent.getTransition().toString();
+                        progress.status = "" + rep.getStatus();
+                        progress.finished = !rep.isRunning();
+
+                        if (progress.finished) {
+                            synchronized (mutex) {
+                                mutex.notify();
+                            }
+                        }
+
+                        if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener) {
+                            ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, param);
+                        }
+                    }
+                }
+        );
+
+		synchronized (mutex)
+		{
+			// Finally starts the replication
+			rep.start();
+            try {
+                mutex.wait();
+            } catch (InterruptedException e) {
+                throw new C8oException("TODO", e);
+            }
+            rep.stop();
+		}
+
+		if (continuous)
+		{
+            Replication replication = getReplication(fullSyncReplication);
+            replication.setContinuous(true);
+            replication.start();
 		}
     }
     
@@ -240,15 +268,15 @@ public class C8oFullSyncDatabase {
     	
     	public Replication replication;
     	public ChangeListener changeListener;
+		public boolean pull;
     	
     	// Replication history -> ?
 		// Replication id version -> ?
 		// Session ID -> replication.getSessionID();
 		// Source last seq -> replication.getLocalDatabase().getLastSequenceNumber();
     	
-    	public FullSyncReplication (Replication replication) {
-    		this.replication = replication;
-    		changeListener = null;
+    	public FullSyncReplication (boolean pull) {
+    		this.pull = pull;
     	}
     }
 }

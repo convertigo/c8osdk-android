@@ -1,8 +1,5 @@
 package com.convertigo.clientsdk;
 
-import com.convertigo.clientsdk.C8o;
-import com.convertigo.clientsdk.C8oPromise;
-
 import java.util.Map;
 
 /**

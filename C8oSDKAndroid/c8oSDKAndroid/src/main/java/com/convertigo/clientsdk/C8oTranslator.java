@@ -1,5 +1,16 @@
 package com.convertigo.clientsdk;
 
+import com.convertigo.clientsdk.exception.C8oException;
+import com.convertigo.clientsdk.util.StringUtils;
+import com.couchbase.lite.Manager;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.SAXException;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -9,7 +20,6 @@ import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -19,22 +29,6 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-import org.apache.http.NameValuePair;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
-
-import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
-import com.convertigo.clientsdk.util.C8oUtils;
-import com.convertigo.clientsdk.util.StringUtils;
-import com.couchbase.lite.Manager;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 public class C8oTranslator {
 	

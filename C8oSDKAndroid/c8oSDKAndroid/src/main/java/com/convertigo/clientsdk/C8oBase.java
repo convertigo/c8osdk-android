@@ -1,11 +1,7 @@
 package com.convertigo.clientsdk;
 
-import org.apache.http.NameValuePair;
-
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,6 +17,8 @@ class C8oBase {
     //*** Log ***//
 
     protected boolean logRemote = true;
+    protected int logLevelLocal = 0;
+    protected boolean logC8o = true;
     protected C8oOnFail logOnFail = null;
 
     //*** FullSync ***//
@@ -74,6 +72,14 @@ class C8oBase {
      */
     public boolean isLogRemote() {
         return logRemote;
+    }
+
+    public int getLogLevelLocal() {
+        return logLevelLocal;
+    }
+
+    public boolean isLogC8o() {
+        return logC8o;
     }
 
     public C8oOnFail getLogOnFail() {
@@ -132,6 +138,8 @@ class C8oBase {
         //*** Log ***//
 
         logRemote = c8oBase.logRemote;
+        logLevelLocal = c8oBase.logLevelLocal;
+        logC8o = c8oBase.logC8o;
         logOnFail = c8oBase.logOnFail;
 
         //*** FullSync ***//

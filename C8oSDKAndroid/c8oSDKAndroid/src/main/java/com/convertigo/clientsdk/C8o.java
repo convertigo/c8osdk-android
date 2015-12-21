@@ -23,9 +23,23 @@
 
 package com.convertigo.clientsdk;
 
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
+
+import com.convertigo.clientsdk.exception.C8oException;
+import com.convertigo.clientsdk.listener.C8oExceptionListener;
+import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
+import com.convertigo.clientsdk.listener.C8oResponseListener;
+import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
+
+import org.apache.http.client.CookieStore;
+import org.json.JSONObject;
+import org.w3c.dom.Document;
+
 import java.security.InvalidParameterException;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,25 +47,6 @@ import java.util.regex.Pattern;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
-import org.apache.http.client.CookieStore;
-import org.json.JSONObject;
-import org.w3c.dom.Document;
-
-import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
-import android.provider.Settings;
-
-import com.convertigo.clientsdk.C8oEnum.LocalCachePolicy;
-import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
-import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
-import com.convertigo.clientsdk.listener.C8oExceptionListener;
-import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
-import com.convertigo.clientsdk.listener.C8oResponseListener;
-import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
-import com.convertigo.clientsdk.util.C8oUtils;
 
 // TODO :
 // Mieux logger par etape
@@ -89,13 +84,15 @@ public class C8o extends C8oBase {
 	
 	//*** Engine reserved parameters ***//
 	
-	public static final String ENGINE_PARAMETER_PROJECT = "__project";
-	public static final String ENGINE_PARAMETER_SEQUENCE = "__sequence";
-	public static final String ENGINE_PARAMETER_CONNECTOR = "__connector";
-	public static final String ENGINE_PARAMETER_TRANSACTION = "__transaction";
-	public static final String ENGINE_PARAMETER_ENCODED = "__encoded";
-	public static final String ENGINE_PARAMETER_LOCAL_CACHE = "__localCache";
-	static final String ENGINE_PARAMETER_DEVICE_UUID = "__uuid";
+	static final String ENGINE_PARAMETER_PROJECT = "__project";
+	static final String ENGINE_PARAMETER_SEQUENCE = "__sequence";
+	static final String ENGINE_PARAMETER_CONNECTOR = "__connector";
+	static final String ENGINE_PARAMETER_TRANSACTION = "__transaction";
+	static final String ENGINE_PARAMETER_ENCODED = "__encoded";
+	static final String ENGINE_PARAMETER_LOCAL_CACHE = "__localCache";
+    static final String ENGINE_PARAMETER_DEVICE_UUID = "__uuid";
+    static final String ENGINE_PARAMETER_PROGRESS = "__progress";
+
 	
 	//*** Local cache keys ***//
 	
@@ -134,7 +131,7 @@ public class C8o extends C8oBase {
     /**
      * Allows to log locally and remotely to the Convertigo server.
      */
-    C8oLogger c8oLogger;
+    public final C8oLogger log;
 
     /**
      * Used to run fullSync requests.
@@ -153,6 +150,7 @@ public class C8o extends C8oBase {
 	 *
 	 * @param context
 	 * @param endpoint - The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;server&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt; (Example : http://127.0.0.1:18080/convertigo/projects/MyProject)
+     *
 	 * @throws C8oException
 	 */
 	public C8o(Context context, String endpoint) throws C8oException {
@@ -160,9 +158,11 @@ public class C8o extends C8oBase {
 	}
 	
 	/**
-	 * Construct a C8o instance without specifying a C8oExceptionListener.
+     * This is the base object representing a Convertigo Server end point. This object should be instanciated
+     * when the apps starts and be accessible from any class of the app. Although this is not common , you may have
+     * several C8o objects instanciated in your app.
 	 *
-	 * @param context
+	 * @param context The current application Android Context
 	 * @param endpoint - The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;server&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt; (Example : http://127.0.0.1:18080/convertigo/projects/MyProject)
 	 * @param c8oSettings -  Contains optional parameters
 	 *
@@ -198,10 +198,9 @@ public class C8o extends C8oBase {
 
         httpInterface = new HttpInterface(this);
 
-		c8oLogger = new C8oLogger(this);
-        c8oLogger.setRemoteLogParameters(httpInterface, logRemote, endpointConvertigo, deviceUUID);
+		log = new C8oLogger(this);
 
-		c8oLogger.logMethodCall("C8o", this);
+		log.logMethodCall("C8o", this);
 
 		try {
 			documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -229,7 +228,7 @@ public class C8o extends C8oBase {
     public void call(String requestable, Map<String, Object> parameters, C8oResponseListener c8oResponseListener, C8oExceptionListener c8oExceptionListener) {
         try {
             if (requestable == null) {
-                throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentNullParameter("Requestable"));
+                throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentNullParameter("requestable"));
             }
 
             if (parameters == null) {
@@ -260,7 +259,7 @@ public class C8o extends C8oBase {
 
             call(parameters, c8oResponseListener, c8oExceptionListener);
         } catch (Exception e) {
-            C8o.handleCallException(c8oExceptionListener, parameters, e);
+            handleCallException(c8oExceptionListener, parameters, e);
         }
     }
 
@@ -287,7 +286,7 @@ public class C8o extends C8oBase {
     public void call(Map<String, Object> parameters, C8oResponseListener c8oResponseListener, C8oExceptionListener c8oExceptionListener) {
         // IMPORTANT : all c8o calls have to end here !
         try {
-            this.c8oLogger.logMethodCall("call", parameters, c8oResponseListener, c8oExceptionListener);
+            log.logMethodCall("call", parameters, c8oResponseListener, c8oExceptionListener);
 
             // Checks parameters validity
             if (parameters == null) {
@@ -302,7 +301,7 @@ public class C8o extends C8oBase {
             // Performs the task
             task.execute();
         } catch (Exception e) {
-            C8o.handleCallException(c8oExceptionListener, parameters, e);
+            handleCallException(c8oExceptionListener, parameters, e);
         }
     }
 
@@ -331,13 +330,17 @@ public class C8o extends C8oBase {
 
         call(requestable, parameters, new C8oResponseJsonListener() {
             @Override
-            public void onJsonResponse(JSONObject response, Map<String, Object> parameters) {
-                promise.onResponse(response, parameters);
+            public void onJsonResponse(JSONObject response, Map<String, Object> requestParameters) {
+                if (response == null && requestParameters.containsKey(ENGINE_PARAMETER_PROGRESS)) {
+                    promise.onProgress((C8oProgress) requestParameters.get(ENGINE_PARAMETER_PROGRESS));
+                } else {
+                    promise.onResponse(response, requestParameters);
+                }
             }
         }, new C8oExceptionListener() {
             @Override
-            public void onException(Exception exception, Map<String, Object> requestParameters) {
-                promise.onFailure(exception, requestParameters);
+            public void onException(Exception exception, Map<String, Object> data) {
+                promise.onFailure(exception, data);
             }
         });
 
@@ -354,7 +357,11 @@ public class C8o extends C8oBase {
         call(requestable, parameters, new C8oResponseXmlListener() {
             @Override
             public void onXmlResponse(Document response, Map<String, Object> requestParameters) {
-                promise.onResponse(response, requestParameters);
+                if (response == null && requestParameters.containsKey(ENGINE_PARAMETER_PROGRESS)) {
+                    promise.onProgress((C8oProgress) requestParameters.get(ENGINE_PARAMETER_PROGRESS));
+                } else {
+                    promise.onResponse(response, requestParameters);
+                }
             }
         }, new C8oExceptionListener() {
             @Override
@@ -379,10 +386,6 @@ public class C8o extends C8oBase {
      */
     public void addCookie(String name, String value) {
         this.httpInterface.addCookie(name, value);
-    }
-
-    public void log(int logLevel, String message) {
-        c8oLogger.log(logLevel, message);
     }
 
     public void runUI(Runnable code) {
@@ -455,11 +458,11 @@ public class C8o extends C8oBase {
      * @param requestParameters
      * @param exception
      */
-    static void handleCallException(C8oExceptionListener c8oExceptionListener, Map<String, Object> requestParameters, Exception exception) {
+    void handleCallException(C8oExceptionListener c8oExceptionListener, Map<String, Object> requestParameters, Exception exception) {
+        log._warn("Handle a call exception", exception);
+
         if (c8oExceptionListener != null) {
             c8oExceptionListener.onException(exception, requestParameters);
-        } else {
-            exception.printStackTrace();
         }
     }
 }

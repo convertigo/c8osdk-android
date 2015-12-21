@@ -2,17 +2,19 @@ package com.convertigo.clientsdk;
 
 import android.content.Context;
 
+import com.convertigo.clientsdk.FullSyncEnum.FullSyncDeleteDocumentParameter;
+import com.convertigo.clientsdk.FullSyncEnum.FullSyncPolicy;
+import com.convertigo.clientsdk.FullSyncEnum.FullSyncPostDocumentParameter;
+import com.convertigo.clientsdk.FullSyncEnum.FullSyncRequestParameter;
+import com.convertigo.clientsdk.FullSyncResponse.FullSyncDefaultResponse;
+import com.convertigo.clientsdk.FullSyncResponse.FullSyncDocumentOperationResponse;
 import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
 import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
 import com.convertigo.clientsdk.listener.C8oResponseCblListener;
 import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
-import com.convertigo.clientsdk.FullSyncEnum.*;
-import com.convertigo.clientsdk.util.C8oUtils;
-import com.convertigo.clientsdk.FullSyncResponse.*;
 import com.couchbase.lite.Attachment;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
@@ -34,12 +36,10 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
@@ -117,6 +117,8 @@ public class C8oFullSyncCbl extends C8oFullSync {
             //*** FullSyncDefaultResponse (Sync, ReplicatePull, ReplicatePush, Reset) ***//
             else if (response instanceof FullSyncDefaultResponse) {
                 return C8oFullSyncTranslator.fullSyncDefaultResponseToJson((FullSyncDefaultResponse) response);
+            } else if (response instanceof JSONObject) {
+                return response;
             } else {
                 throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentIncompatibleListener
                         (listener.getClass().getName(), response.getClass().getName()));
@@ -380,7 +382,7 @@ public class C8oFullSyncCbl extends C8oFullSync {
         try {
             Database db = manager.getDatabase(databaseName + localSuffix);
             if (db != null) {
-                    db.delete();
+                db.delete();
             }
         } catch (CouchbaseLiteException e) {
             new C8oException("TODO", e);

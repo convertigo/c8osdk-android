@@ -1,10 +1,9 @@
 package com.convertigo.clientsdk;
 
 import android.os.AsyncTask;
-import android.util.Log;
 
+import com.convertigo.clientsdk.C8oEnum.LocalCachePolicy;
 import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
 import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
 import com.convertigo.clientsdk.listener.C8oExceptionListener;
@@ -12,8 +11,6 @@ import com.convertigo.clientsdk.listener.C8oResponseCblListener;
 import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
-import com.convertigo.clientsdk.util.C8oUtils;
-import com.convertigo.clientsdk.C8oEnum.*;
 import com.couchbase.lite.QueryEnumerator;
 
 import org.apache.http.HttpResponse;
@@ -22,7 +19,6 @@ import org.w3c.dom.Document;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 // Informations on AsyncTask :
@@ -64,7 +60,7 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
 		this.c8oResponseListener = c8oResponseListener;
 		this.c8oExceptionListener = c8oExceptionListener;
 
-        c8o.c8oLogger.logMethodCall("C8oCallTask", parameters, c8oResponseListener, c8oExceptionListener);
+        c8o.log.logMethodCall("C8oCallTask", parameters, c8oResponseListener, c8oExceptionListener);
     }
 
     // Perform background operations
@@ -90,7 +86,7 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
         boolean isFullSyncRequest = C8oFullSync.isFullSyncRequest(parameters);
 
         if (isFullSyncRequest) {
-			c8o.log(Log.DEBUG, "Is FullSync request");
+			c8o.log._debug("Is FullSync request");
             try {
 				Object fullSyncResult = c8o.c8oFullSync.handleFullSyncRequest(parameters, c8oResponseListener);
 				return fullSyncResult;
@@ -259,10 +255,10 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
             }
 
             if (result instanceof Document) {
-                c8o.c8oLogger.logC8oCallXMLResponse((Document) result, c8oCallUrl, parameters);
+                c8o.log.logC8oCallXMLResponse((Document) result, c8oCallUrl, parameters);
                 ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse((Document) result, parameters);
             } else if (result instanceof JSONObject) {
-                c8o.c8oLogger.logC8oCallJSONResponse((JSONObject) result, c8oCallUrl, parameters);
+                c8o.log.logC8oCallJSONResponse((JSONObject) result, c8oCallUrl, parameters);
                 ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse((JSONObject) result, parameters);
             } else if (result instanceof com.couchbase.lite.Document) {
                 // TODO log
@@ -276,13 +272,13 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
                 ((C8oResponseCblListener) c8oResponseListener).onQueryEnumeratorResponse((QueryEnumerator) result, parameters);
             } else if (result instanceof Exception){
                 // The result is an Exception
-                C8o.handleCallException(c8oExceptionListener, parameters, (Exception) result);
+                c8o.handleCallException(c8oExceptionListener, parameters, (Exception) result);
             } else {
                 // The result type is unknown
-                C8o.handleCallException(c8oExceptionListener, parameters, new C8oException(C8oExceptionMessage.wrongResult(result)));
+                c8o.handleCallException(c8oExceptionListener, parameters, new C8oException(C8oExceptionMessage.wrongResult(result)));
             }
         } catch (Exception e) {
-            C8o.handleCallException(c8oExceptionListener, parameters, e);
+            c8o.handleCallException(c8oExceptionListener, parameters, e);
         }
     }
 }

@@ -1,16 +1,10 @@
 package com.convertigo.clientsdk;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.http.NameValuePair;
-
 import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oExceptionMessage;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
+import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
-import com.convertigo.clientsdk.util.C8oUtils;
+import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Document;
@@ -18,6 +12,11 @@ import com.couchbase.lite.Query;
 import com.couchbase.lite.Query.IndexUpdateMode;
 import com.couchbase.lite.SavedRevision;
 import com.couchbase.lite.replicator.Replication;
+
+import org.json.JSONObject;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * Contains many enumerations relating to the fullSync requests.
@@ -75,20 +74,117 @@ public class FullSyncEnum {
 		},
 		SYNC("sync") {
 			@Override
-			Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
-				return c8oFullSync.handleSyncRequest(databaseName, parameters, c8oResponseListener);
+			Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
+                final Object mutex = new Object();
+                final boolean[] pullFinish = {false};
+                final boolean[] pushFinish = {false};
+                synchronized (mutex)
+                {
+                    c8oFullSync.handleSyncRequest(databaseName, parameters, new C8oResponseProgressListener() {
+
+                        @Override
+                        public void onProgressResponse(C8oProgress progress, Map<String, Object> parameters) {
+                            if (progress.isPull() && progress.isFinished()) {
+                                pullFinish[0] = true;
+                            }
+
+                            if (progress.isPush() && progress.isFinished()) {
+                                pushFinish[0] = true;
+                            }
+
+                            if (pullFinish[0] && pushFinish[0]) {
+                                synchronized (mutex) {
+                                    mutex.notify();
+                                }
+                            }
+
+                            if (c8oResponseListener instanceof C8oResponseJsonListener) {
+                                ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
+                            } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
+                                ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                            }
+                        }
+                    });
+
+                    JSONObject response = new JSONObject();
+                    try {
+                        mutex.wait();
+                        response.put("ok", true);
+                    } catch (Exception e) {
+                        new C8oException("TODO", e);
+                    }
+                    return response;
+                }
 			}
 		},
 		REPLICATE_PULL("replicate_pull") {
 			@Override
-			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
-				return c8oFullSync.handleReplicatePullRequest(databaseName, parameters, c8oResponseListener);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
+				final Object mutex = new Object();
+                synchronized (mutex)
+                {
+                    c8oFullSync.handleReplicatePullRequest(databaseName, parameters, new C8oResponseProgressListener() {
+
+                        @Override
+                        public void onProgressResponse(C8oProgress progress, Map<String, Object> parameters) {
+                            if (progress.isFinished()) {
+                                synchronized (mutex) {
+                                    mutex.notify();
+                                }
+                            }
+
+                            if (c8oResponseListener instanceof C8oResponseJsonListener) {
+                                ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
+                            } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
+                                ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                            }
+                        }
+                    });
+
+                    JSONObject response = new JSONObject();
+                    try {
+                        mutex.wait();
+                        response.put("ok", true);
+                    } catch (Exception e) {
+                        new C8oException("TODO", e);
+                    }
+                    return response;
+                }
 			}
 		},
 		REPLICATE_PUSH("replicate_push") {
 			@Override
-			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
-				return c8oFullSync.handleReplicatePushRequest(databaseName, parameters, c8oResponseListener);
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
+                final Object mutex = new Object();
+                synchronized (mutex)
+                {
+                    c8oFullSync.handleReplicatePushRequest(databaseName, parameters, new C8oResponseProgressListener() {
+
+                        @Override
+                        public void onProgressResponse(C8oProgress progress, Map<String, Object> parameters) {
+                            if (progress.isFinished()) {
+                                synchronized (mutex) {
+                                    mutex.notify();
+                                }
+                            }
+
+                            if (c8oResponseListener instanceof C8oResponseJsonListener) {
+                                ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
+                            } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
+                                ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                            }
+                        }
+                    });
+
+                    JSONObject response = new JSONObject();
+                    try {
+                        mutex.wait();
+                        response.put("ok", true);
+                    } catch (Exception e) {
+                        new C8oException("TODO", e);
+                    }
+                    return response;
+                }
 			}
 		},
 		RESET("reset") {

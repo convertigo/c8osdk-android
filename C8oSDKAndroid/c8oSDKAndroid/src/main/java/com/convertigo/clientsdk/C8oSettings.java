@@ -25,10 +25,6 @@ package com.convertigo.clientsdk;
 
 import java.io.InputStream;
 import java.util.HashMap;
-import java.util.LinkedList;
-
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
 
 
 /**
