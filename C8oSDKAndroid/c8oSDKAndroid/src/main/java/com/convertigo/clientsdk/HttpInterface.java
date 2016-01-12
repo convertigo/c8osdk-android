@@ -260,6 +260,7 @@ public class HttpInterface {
 	public HttpResponse handleC8oCallRequest(String url, Map<String, Object> parameters) throws C8oHttpRequestException, C8oException {
 		HttpPost request = new HttpPost(url);
 		request.addHeader("x-convertigo-sdk", C8o.getSdkVersion());
+		request.addHeader("User-Agent", "Convertigo Client SDK " + C8o.getSdkVersion());
 
 		if (c8o.isUseEncryption()) {
 			// Initialize the cipher
