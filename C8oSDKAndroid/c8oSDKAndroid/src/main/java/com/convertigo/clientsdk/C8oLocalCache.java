@@ -15,7 +15,7 @@ public class C8oLocalCache {
      * When the device has no network access, the local cache response is used, if existing.
      */
     public enum Priority {
-        server {
+        SERVER {
             @Override
             boolean isAvailable(C8o c8o) {
                 try {
@@ -29,7 +29,7 @@ public class C8oLocalCache {
                 return false;
             }
         },
-        local {
+        LOCAL {
             @Override
             boolean isAvailable(C8o c8o) {
                 return true;
