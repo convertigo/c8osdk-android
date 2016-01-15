@@ -2,7 +2,6 @@ package com.convertigo.clientsdk;
 
 import android.os.AsyncTask;
 
-import com.convertigo.clientsdk.C8oEnum.LocalCachePolicy;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
 import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
@@ -109,46 +108,35 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
 
             String c8oCallRequestIdentifier = null;
 
-            // Allows to enable or disable the local cache on a Convertigo requestable, default value is true
+            // Checks if the local cache must be used
+            C8oLocalCache localCache = (C8oLocalCache) C8oUtils.getParameterObjectValue(parameters, C8oLocalCache.PARAM, false);
             boolean localCacheEnabled = false;
 
-            // Defines the time to live of the cached response, in milliseconds
-            long localCacheTimeToLive = -1;
-
-            // Checks if the local cache must be used
-            Object localCacheParameterValue = C8oUtils.getParameterObjectValue(parameters, C8o.ENGINE_PARAMETER_LOCAL_CACHE, false);
-
             // If the engine parameter for local cache is specified
-            if (localCacheParameterValue != null) {
-                // Checks if this is a JSON object (represented by a LinkedHashMap once translated)
-                Map<String, Object> localCacheParameters = (Map<String, Object>) localCacheParameterValue;
+            if (localCache != null) {
+                // Checks if the same request is stored in the local cache
+                parameters.remove(C8oLocalCache.PARAM);
+
                 // The local cache policy
-                try {
-                    // Gets local cache properties
-                    localCacheEnabled = C8oUtils.getParameterAndCheckType(localCacheParameters, C8o.LOCAL_CACHE_PARAMETER_KEY_ENABLED, Boolean.class, false, true);
-                } catch (C8oException e) {
-                    return new C8oException(C8oExceptionMessage.getLocalCacheParameters(), e);
-                }
-                if (localCacheEnabled) {
-                    // Checks if the same request is stored in the local cache
-                    parameters.remove(C8o.ENGINE_PARAMETER_LOCAL_CACHE);
+                if (localCacheEnabled = localCache.enable) {
                     try {
                         c8oCallRequestIdentifier = C8oUtils.identifyC8oCallRequest(parameters, responseType);
                     } catch (C8oException e) {
                         return new C8oException(C8oExceptionMessage.serializeC8oCallRequest(), e);
                     }
 
-                    String localCachePolicyStr = C8oUtils.getParameterAndCheckType(localCacheParameters, C8o.LOCAL_CACHE_PARAMETER_KEY_POLICY, String.class, true, null);
-                    LocalCachePolicy localCachePolicy = LocalCachePolicy.getLocalCachePolicy(localCachePolicyStr);
-
-                    if (localCachePolicy != null && localCachePolicy.isAvailable(c8o.getContext())) {
+                    if (localCache.priority.isAvailable(c8o)) {
                         try {
                             C8oLocalCacheResponse localCacheResponse = c8o.c8oFullSync.getResponseFromLocalCache(c8oCallRequestIdentifier);
                             if (!localCacheResponse.isExpired()) {
-                                //TODO return response
+                                if (responseType == C8o.RESPONSE_TYPE_XML) {
+                                    return C8oTranslator.stringToXML(localCacheResponse.getResponse(), c8o.getDocumentBuilder());
+                                } else if (responseType == C8o.RESPONSE_TYPE_JSON) {
+                                    return C8oTranslator.stringToJSON(localCacheResponse.getResponse());
+                                }
                             }
                         } catch (C8oUnavailableLocalCacheException e) {
-                            throw new C8oException("TODO", e);
+                            // no entry
                         }
                     }
                 }
@@ -171,18 +159,20 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
                 return new C8oException(C8oExceptionMessage.handleC8oCallRequest(), e);
             } catch (C8oHttpRequestException e) {
                 if (localCacheEnabled) {
-                    /*
                     try {
-                        return c8o.getResponseFromLocalCacheDocument(localCacheDocument, C8oEnum.LocalCachePolicy.PRIORITY_LOCAL.value);
-                    } catch (C8oException e1) {
-                        return new C8oException(C8oExceptionMessage.handleC8oCallRequest(), e);
-                    } catch (C8oUnavailableLocalCacheException e1) {
-                        return new C8oException(C8oExceptionMessage.handleC8oCallRequest(), e);
+                        C8oLocalCacheResponse localCacheResponse = c8o.c8oFullSync.getResponseFromLocalCache(c8oCallRequestIdentifier);
+                        if (!localCacheResponse.isExpired()) {
+                            if (responseType == C8o.RESPONSE_TYPE_XML) {
+                                return C8oTranslator.stringToXML(localCacheResponse.getResponse(), c8o.getDocumentBuilder());
+                            } else if (responseType == C8o.RESPONSE_TYPE_JSON) {
+                                return C8oTranslator.stringToJSON(localCacheResponse.getResponse());
+                            }
+                        }
+                    } catch (C8oUnavailableLocalCacheException ex) {
+                        // no entry
                     }
-                    */
-                } else {
-                    return new C8oException(C8oExceptionMessage.handleC8oCallRequest(), e);
                 }
+                return new C8oException(C8oExceptionMessage.handleC8oCallRequest(), e);
             }
             // Get the c8o call result
             try {
@@ -229,12 +219,11 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
 
             if (localCacheEnabled) {
                 try {
-                    // String responseString = C8oTranslator.StreamToString(responseStream);
-                    long expirationdate = localCacheTimeToLive;
-                    if (expirationdate > 0) {
-                        expirationdate = expirationdate + System.currentTimeMillis();
+                    long expirationDate = -1;
+                    if (localCache.ttl > 0) {
+                        expirationDate = localCache.ttl + System.currentTimeMillis();
                     }
-                    C8oLocalCacheResponse localCacheResponse = new C8oLocalCacheResponse(responseString, null, expirationdate);
+                    C8oLocalCacheResponse localCacheResponse = new C8oLocalCacheResponse(responseString, responseType, expirationDate);
                     c8o.c8oFullSync.saveResponseToLocalCache(c8oCallRequestIdentifier, localCacheResponse);
                 } catch (C8oException e) {
                     return new C8oException(C8oExceptionMessage.saveResponseToLocalCache());

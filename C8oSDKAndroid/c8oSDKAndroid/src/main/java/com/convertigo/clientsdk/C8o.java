@@ -89,16 +89,11 @@ public class C8o extends C8oBase {
 	static final String ENGINE_PARAMETER_CONNECTOR = "__connector";
 	static final String ENGINE_PARAMETER_TRANSACTION = "__transaction";
 	static final String ENGINE_PARAMETER_ENCODED = "__encoded";
-	static final String ENGINE_PARAMETER_LOCAL_CACHE = "__localCache";
     static final String ENGINE_PARAMETER_DEVICE_UUID = "__uuid";
     static final String ENGINE_PARAMETER_PROGRESS = "__progress";
 
 	
 	//*** Local cache keys ***//
-	
-	static final String LOCAL_CACHE_PARAMETER_KEY_ENABLED = "enabled";
-	static final String LOCAL_CACHE_PARAMETER_KEY_POLICY = "policy";
-	static final String LOCAL_CACHE_PARAMETER_KEY_TTL = "ttl";
 	static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE = "response";
 	static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE_TYPE = "responseType";
 	static final String LOCAL_CACHE_DOCUMENT_KEY_EXPIRATION_DATE = "expirationDate";
@@ -441,7 +436,7 @@ public class C8o extends C8oBase {
         return this.documentBuilder;
     }
 
-    private static Map<String, Object> toParameters(Object[] parameters) {
+    public static Map<String, Object> toParameters(Object... parameters) {
         if (parameters.length % 2 != 0) {
             throw new InvalidParameterException("TODO");
         }

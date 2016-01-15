@@ -650,8 +650,7 @@ public class C8oFullSyncCbl extends C8oFullSync {
 
     void saveResponseToLocalCache(String c8oCalRequestIdentifier, C8oLocalCacheResponse localCacheResponse) throws C8oException {
         C8oFullSyncDatabase fullSyncDatabase = getOrCreateFullSyncDatabase(C8o.LOCAL_CACHE_DATABASE_NAME);
-        Document localCacheDocument = fullSyncDatabase.getDatabase().getExistingDocument(c8oCalRequestIdentifier);
-
+        Document localCacheDocument =  fullSyncDatabase.getDatabase().getDocument(c8oCalRequestIdentifier);
         Map<String, Object> properties = new HashMap<String, Object>();
         properties.put(C8o.LOCAL_CACHE_DOCUMENT_KEY_RESPONSE, localCacheResponse.getResponse());
         properties.put(C8o.LOCAL_CACHE_DOCUMENT_KEY_RESPONSE_TYPE, localCacheResponse.getResponseType());
