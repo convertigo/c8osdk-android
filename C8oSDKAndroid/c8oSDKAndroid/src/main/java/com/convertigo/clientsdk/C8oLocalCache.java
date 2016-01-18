@@ -41,7 +41,7 @@ public class C8oLocalCache {
 
     Priority priority;
     long ttl;
-    boolean enable;
+    boolean enabled;
 
     public C8oLocalCache(Priority priority) {
         this(priority, -1, true);
@@ -51,12 +51,18 @@ public class C8oLocalCache {
         this(priority, ttl, true);
     }
 
-    public C8oLocalCache(Priority priority, long ttl, boolean enable) {
+    /**
+     *
+     * @param priority
+     * @param ttl
+     * @param enabled
+     */
+    public C8oLocalCache(Priority priority, long ttl, boolean enabled) {
         if (priority == null) {
             throw new IllegalArgumentException("Local Cache priority cannot be null");
         }
         this.priority = priority;
         this.ttl = ttl;
-        this.enable = enable;
+        this.enabled = enabled;
     }
 }

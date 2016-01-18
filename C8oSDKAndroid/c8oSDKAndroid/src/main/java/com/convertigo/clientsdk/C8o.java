@@ -80,7 +80,7 @@ public class C8o extends C8oBase {
 	/**
 	 * The regex used to get the part of the endpoint before '/projects/...'
 	 */
-	private static final Pattern RE_ENDPOINT = Pattern.compile("^(http(s)?://([^:]+)(:[0-9]+)?/[^/]+)/projects/[^/]+$");
+	private static final Pattern RE_ENDPOINT = Pattern.compile("^(http(s)?://([^:]+)(:[0-9]+)?/?.*?)/projects/[^/]+$");
 	
 	//*** Engine reserved parameters ***//
 	
