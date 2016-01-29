@@ -4,68 +4,138 @@ package com.convertigo.clientsdk;
  * Created by nicolasa on 04/12/2015.
  */
 public class C8oProgress {
-    boolean finished;
-    boolean pull;
-    long current;
-    long total;
-    String taskInfo;
-    String status;
-    Object raw;
+    private boolean changed = false;
+    private boolean continuous = false;
+    private boolean finished = false;
+    private boolean pull = true;
+    private long current = -1;
+    private long total = -1;
+    private String status = "";
+    private String taskInfo = "";
+    private Object raw;
 
-    C8oProgress()
-    {
+    C8oProgress() {
+    }
+
+    C8oProgress(C8oProgress progress) {
+        continuous = progress.continuous;
+        finished = progress.finished;
+        pull = progress.pull;
+        current = progress.current;
+        total = progress.total;
+        status = progress.status;
+        taskInfo = progress.taskInfo;
+        raw = progress.raw;
+    }
+
+    boolean isChanged() {
+        return changed;
+    }
+
+    void setChanged(boolean changed) {
+        this.changed = changed;
     }
 
     @Override
-    public String toString()
-    {
-        return "" + current + "/" + total + " (" + (finished ? "done" : "running") + ")";
+    public String toString() {
+        return getDirection() + ": " + current + "/" + total + " (" + (finished ? (continuous ? "live" : "done") : "running") + ")";
     }
 
-    public long getCurrent()
-    {
+    public boolean isContinuous() {
+        return continuous;
+    }
+
+    void setContinuous(boolean continuous) {
+        if (this.continuous != continuous) {
+            changed = true;
+            this.continuous = continuous;
+        }
+    }
+
+    public boolean isFinished() {
+        return finished;
+    }
+
+    void setFinished(boolean finished) {
+        if (this.finished != finished) {
+            changed = true;
+            this.finished = finished;
+        }
+    }
+
+    public boolean isPull() {
+        return pull;
+    }
+
+    void setPull(boolean pull) {
+        if (this.pull != pull) {
+            changed = true;
+            this.pull = pull;
+        }
+    }
+
+    public boolean isPush() {
+        return !pull;
+    }
+
+    public long getCurrent() {
         return current;
     }
 
-    public long getTotal()
-    {
+    void setCurrent(long current) {
+        if (this.current != current) {
+            changed = true;
+            this.current = current;
+        }
+    }
+
+    public long getTotal() {
         return total;
     }
 
-    public String getDirection()
-    {
+    void setTotal(long total) {
+        if (this.total != total) {
+            changed = true;
+            this.total = total;
+        }
+    }
+
+    public String getDirection() {
         return pull ?
                 C8oFullSyncTranslator.FULL_SYNC_RESPONSE_VALUE_DIRECTION_PULL :
                 C8oFullSyncTranslator.FULL_SYNC_RESPONSE_VALUE_DIRECTION_PUSH;
     }
 
-    public String getTaskInfo()
-    {
-        return taskInfo;
-    }
-
-    public String getStatus()
-    {
+    public String getStatus() {
         return status;
     }
 
-    public boolean isFinished()
-    {
-        return finished;
+    void setStatus(String status) {
+        if (!this.status.equals(status)) {
+            changed = true;
+            this.status = status;
+        }
     }
 
-    public boolean isPull()
-    {
-        return pull;
+    public String getTaskInfo() {
+        return taskInfo;
     }
 
-    public boolean isPush()
-    {
-        return !pull;
+    void setTaskInfo(String taskInfo) {
+        if (!this.taskInfo.equals(taskInfo)) {
+            changed = true;
+            this.taskInfo = taskInfo;
+        }
     }
 
-    public Object getRaw()
-    {
+    public Object getRaw() {
         return raw;
+    }
+
+    void setRaw(Object raw) {
+        if (this.raw != raw) {
+            changed = true;
+            this.raw = raw;
+        }
     }
 }

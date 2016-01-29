@@ -72,6 +72,11 @@ public class C8oSettings extends C8oBase {
 		return this;
 	}
 
+	public C8oSettings setLogC8o(boolean logC8o) {
+		this.logC8o = logC8o;
+		return this;
+	}
+
 	/**
 	 * Sets a value indicating if logs are sent to the Convertigo server.<br/>
 	 * Default is <b>true</b>.

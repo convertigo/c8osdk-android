@@ -106,7 +106,7 @@ public class C8o extends C8oBase {
 	public static final String RESPONSE_TYPE_JSON = "json";
 
     public static String getSdkVersion() {
-        return "2.0.0";
+        return "2.0.1";
     }
 
 	//*** Network ***//
@@ -350,7 +350,7 @@ public class C8o extends C8oBase {
         return callJson(requestable, toParameters(parameters));
     }
 
-    public C8oPromise<Document> callXml(String requestable, Map<String, Object> parameters) {
+    public C8oPromise<Document> callXml(String requestable, final Map<String, Object> parameters) {
         final C8oPromise<Document> promise = new C8oPromise<Document>(this);
 
         call(requestable, parameters, new C8oResponseXmlListener() {

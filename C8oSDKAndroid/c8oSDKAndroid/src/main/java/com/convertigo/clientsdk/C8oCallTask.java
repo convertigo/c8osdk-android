@@ -118,7 +118,7 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
                 parameters.remove(C8oLocalCache.PARAM);
 
                 // The local cache policy
-                if (localCacheEnabled = localCache.enable) {
+                if (localCacheEnabled = localCache.enabled) {
                     try {
                         c8oCallRequestIdentifier = C8oUtils.identifyC8oCallRequest(parameters, responseType);
                     } catch (C8oException e) {

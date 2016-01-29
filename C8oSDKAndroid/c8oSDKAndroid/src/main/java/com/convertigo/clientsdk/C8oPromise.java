@@ -116,6 +116,9 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
                     if (promise[0].c8oFail == null) {
                         promise[0].c8oFail = c8oFail;
                     }
+                    if (promise[0].c8oProgress == null) {
+                        promise[0].c8oProgress = c8oProgress;
+                    }
                     promise[0].then(new C8oOnResponse<T>() {
                         @Override
                         public C8oPromise<T> run(T response, Map<String, Object> parameters) {

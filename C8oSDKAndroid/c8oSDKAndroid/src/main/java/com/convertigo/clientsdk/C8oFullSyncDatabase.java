@@ -167,22 +167,19 @@ public class C8oFullSyncDatabase {
 
 		final Replication rep = getReplication(fullSyncReplication);
 
-		// Cancel the replication if it is already running
-		if (rep != null)
-		{
-			rep.stop();
-		}
-
 		if (cancel)
 		{
+            if (rep != null) {
+                rep.stop();
+            }
 			return;
 		}
 
 		final Map<String, Object> param = new HashMap<String, Object>(parameters);
-		final C8oProgress progress = new C8oProgress();
-		progress.raw = rep;
-		progress.pull = rep.isPull();
-		param.put(C8o.ENGINE_PARAMETER_PROGRESS, progress);
+		C8oProgress progress = new C8oProgress();
+        final C8oProgress[] _progress = {progress};
+		progress.setRaw(rep);
+		progress.setPull(rep.isPull());
 
 		final Object mutex = new Object();
 
@@ -191,20 +188,27 @@ public class C8oFullSyncDatabase {
 
                     @Override
                     public void changed(ChangeEvent changeEvent) {
-                        progress.total = changeEvent.getChangeCount();
-                        progress.current = changeEvent.getCompletedChangeCount();
-                        progress.taskInfo = changeEvent.getTransition().toString();
-                        progress.status = "" + rep.getStatus();
-                        progress.finished = !rep.isRunning();
+                        C8oProgress progress = _progress[0];
+                        progress.setTotal(changeEvent.getChangeCount());
+                        progress.setCurrent(changeEvent.getCompletedChangeCount());
+                        progress.setTaskInfo("n/a");//changeEvent.getTransition().toString();
+                        progress.setStatus("" + rep.getStatus());
+                        progress.setFinished(rep.getStatus() != Replication.ReplicationStatus.REPLICATION_ACTIVE);
 
-                        if (progress.finished) {
+                        if (progress.isFinished()) {
                             synchronized (mutex) {
                                 mutex.notify();
                             }
                         }
 
-                        if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener) {
-                            ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, param);
+                        if (progress.isChanged()) {
+                            _progress[0] = new C8oProgress(progress);
+
+                            if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener)
+                            {
+                                param.put(C8o.ENGINE_PARAMETER_PROGRESS, progress);
+                                ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, param);
+                            }
                         }
                     }
                 }
@@ -224,8 +228,52 @@ public class C8oFullSyncDatabase {
 
 		if (continuous)
 		{
+            progress = _progress[0];
+            final long lastCurrent = progress.getCurrent();
+            final short[] stat = {0};
             Replication replication = getReplication(fullSyncReplication);
+            progress.setRaw(replication);
+            progress.setContinuous(true);
             replication.setContinuous(true);
+            replication.addChangeListener(
+                    fullSyncReplication.changeListener = new ChangeListener() {
+
+                        @Override
+                        public void changed(ChangeEvent changeEvent) {
+                            long total = changeEvent.getChangeCount();
+                            if (stat[0] == 0) {
+                                c8o.log.warn("total >= lastCurrent ? " + total + " >= " + lastCurrent);
+                                if (lastCurrent == 0 || total > 0) {
+                                    stat[0] = 1;
+                                }
+                            }
+
+                            if (stat[0] == 1) {
+                                c8o.log.warn("total == 0 ? " + total);
+                                if (total == 0) {
+                                    stat[0] = 2;
+                                }
+                            }
+
+                            if (stat[0] == 2 && total > 0) {
+                                C8oProgress progress = _progress[0];
+                                progress.setTotal(total);
+                                progress.setCurrent(changeEvent.getCompletedChangeCount());
+                                progress.setTaskInfo("n/a");//changeEvent.getTransition().toString();
+                                progress.setStatus("" + rep.getStatus());
+
+                                if (progress.isChanged()) {
+                                    _progress[0] = new C8oProgress(progress);
+
+                                    if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener) {
+                                        param.put(C8o.ENGINE_PARAMETER_PROGRESS, progress);
+                                        ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, param);
+                                    }
+                                }
+                            }
+                        }
+                    }
+            );
             replication.start();
 		}
     }
