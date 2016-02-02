@@ -514,7 +514,28 @@ public class FullSyncEnum {
 		NONE("none") {
 			@Override
 			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
-				Document createdDocument = database.createDocument();
+				String documentId = null;
+				Object documentIdObj = newProperties.get(C8oFullSync.FULL_SYNC__ID);
+
+				if (documentIdObj != null) {
+					if (documentIdObj instanceof String) {
+						documentId = (String) documentIdObj;
+					} else {
+						throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(C8oFullSync.FULL_SYNC__ID, String.class.getName(), documentIdObj.getClass().getName()));
+					}
+				}
+
+				// Removes special properties
+				newProperties.remove(C8oFullSync.FULL_SYNC__ID);
+
+				// Creates a new document or get an existing one (if the ID is specified)
+				Document createdDocument;
+				if (documentId == null) {
+					createdDocument = database.createDocument();
+				} else {
+					createdDocument = database.getDocument(documentId);
+				}
+
 				try {
 					createdDocument.putProperties(newProperties);
 				} catch (CouchbaseLiteException e) {
