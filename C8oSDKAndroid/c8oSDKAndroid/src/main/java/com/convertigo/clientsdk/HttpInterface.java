@@ -367,8 +367,6 @@ public class HttpInterface {
 	 */
 	@SuppressLint("TrulyRandom")
 	private void initCipher() throws C8oException {
-		c8o.log.logMethodCall("initCipher");
-		
 		synchronized(cipher) {
 			if (cipher[0] == null) {
 				// build the URL to get the public key
