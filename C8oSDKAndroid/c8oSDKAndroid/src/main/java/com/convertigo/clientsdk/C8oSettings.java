@@ -87,6 +87,18 @@ public class C8oSettings extends C8oBase {
 		return this;
 	}
 
+	/**
+	 * Sets a value indicating the log level you want in the device console
+	 * 0: ALL, 1: NONE, 2: TRACE, 3: DEBUG, 4: INFO, 5: WARN, 6: ERROR, 7: FATAL
+	 * or use the android.util.Log constants
+	 * Default is <b>0</b>.
+	 * @return The current <b>C8oSettings</b>, for chaining.
+	 */
+	public C8oSettings setLogLevelLocal(int logLevelLocal) {
+		this.logLevelLocal = logLevelLocal;
+		return this;
+	}
+
 	public C8oSettings setLogOnFail(C8oOnFail logOnFail) {
 		this.logOnFail = logOnFail;
 		return this;

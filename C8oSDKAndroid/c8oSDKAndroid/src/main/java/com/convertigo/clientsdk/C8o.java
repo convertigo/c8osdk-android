@@ -387,6 +387,28 @@ public class C8o extends C8oBase {
         this.httpInterface.addCookie(name, value);
     }
 
+    public void setLogC8o(boolean logC8o) {
+        this.logC8o = logC8o;
+    }
+
+    /**
+     * Sets a value indicating if logs are sent to the Convertigo server.<br/>
+     * Default is <b>true</b>.
+     */
+    public void setLogRemote(boolean logRemote) {
+        this.logRemote = logRemote;
+    }
+
+    /**
+     * Sets a value indicating the log level you want in the device console
+     * 0: ALL, 1: NONE, 2: TRACE, 3: DEBUG, 4: INFO, 5: WARN, 6: ERROR, 7: FATAL
+     * or use the android.util.Log constants
+     * Default is <b>0</b>.
+     */
+    public void setLogLevelLocal(int logLevelLocal) {
+        this.logLevelLocal = logLevelLocal;
+    }
+
     public void runUI(Runnable code) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             code.run();

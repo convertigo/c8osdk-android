@@ -60,11 +60,7 @@ public class C8oLogger {
 	private final static String[] REMOTE_LOG_LEVELS = {"", "none", "trace", "debug", "info", "warn", "error", "fatal"};
 	
 	//*** Attributes ***//
-	
-	/**
-	 * Indicates if there are logs remotely.
-	 */
-	private boolean isLogRemote;
+
 	/**
 	 * The URL with which logs are sent.
 	 */
@@ -106,7 +102,6 @@ public class C8oLogger {
 		remoteLogs = new LinkedBlockingQueue<JSONObject>();
 		alreadyRemoteLogging = new boolean[] {false};
 
-        isLogRemote = c8o.isLogRemote();
 		remoteLogLevel = 0;
 
 		long currentTime = new Date().getTime();
@@ -116,15 +111,14 @@ public class C8oLogger {
 	}
 	
 	private boolean isLoggableRemote(int logLevel) {
-		return isLogRemote
+		return c8o.isLogRemote()
 				&& 1 < logLevel
 				&& logLevel < C8oLogger.REMOTE_LOG_LEVELS.length
                 && logLevel >= remoteLogLevel;
 	}
 	
 	private boolean isLoggableConsole(int logLevel) {
-		return Log.isLoggable(C8oLogger.LOG_TAG, logLevel)
-                && 1 < logLevel
+		return 1 < logLevel
                 && logLevel < C8oLogger.REMOTE_LOG_LEVELS.length
                 && logLevel >= c8o.getLogLevelLocal();
 	}
@@ -376,7 +370,7 @@ public class C8oLogger {
 						return jsonResponse;
 					} catch (Exception e) {
 						// If there is an error then it stop logging remotely
-						isLogRemote = false;
+						c8o.setLogRemote(false);
 						if (c8o.getLogOnFail() != null) {
 							c8o.getLogOnFail().run(e, null);
 						} else {
@@ -398,7 +392,7 @@ public class C8oLogger {
 							logRemote();
 						} catch (Exception e) {
 							// If there is an error then it stop logging remotely
-							isLogRemote = false;
+							c8o.setLogRemote(false);
 							if (c8o.getLogOnFail() != null) {
 								c8o.getLogOnFail().run(e, null);
 							} else {
