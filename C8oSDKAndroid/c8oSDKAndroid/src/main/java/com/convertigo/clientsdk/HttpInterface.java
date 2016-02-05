@@ -46,11 +46,11 @@ import java.security.cert.CertificateException;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -349,9 +349,19 @@ public class HttpInterface {
 		
 		// Set parameters of the POST request
 		try {
-            List<NameValuePair> params = new ArrayList(parameters.size());
+            List<NameValuePair> params = new LinkedList<NameValuePair>();
             for (Entry<String, Object> parameter : parameters.entrySet()) {
-                params.add(new BasicNameValuePair(parameter.getKey(), "" + parameter.getValue()));
+				Object value = parameter.getValue();
+				if (value != null && value.getClass().isArray()) {
+					value = Arrays.asList((Object[]) value);
+				}
+				if (value instanceof Collection) {
+					for (Object v: (Collection) value) {
+						params.add(new BasicNameValuePair(parameter.getKey(), "" + v));
+					}
+				} else {
+					params.add(new BasicNameValuePair(parameter.getKey(), "" + value));
+				}
             }
 			request.setEntity(new UrlEncodedFormEntity(params));
 		} catch (UnsupportedEncodingException e) {
