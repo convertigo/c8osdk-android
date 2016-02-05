@@ -47,6 +47,8 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -228,7 +230,7 @@ public class HttpInterface {
 	    	
 	    	// Create an AsyncTask to initialize the cipher in a background thread
 	    	// This operation need to call Convertigo to get the Convertigo public key
-	    	// So it has to be executed in a background thread cause netwotk operations can't be executed on the main thread
+	    	// So it has to be executed in a background thread cause network operations can't be executed on the main thread
 	    	AsyncTask<Void, Void, Object> initCipherTask = new AsyncTask<Void, Void, Object>() {
 				@Override
 				protected Object doInBackground(Void... params) {
@@ -277,10 +279,25 @@ public class HttpInterface {
 			String parametersString = "";
 			while (parametersIterator.hasNext()) {
                 Entry<String, Object> parameter = parametersIterator.next();
-				try {
-					parametersString = parametersString + "&" + URLEncoder.encode(parameter.getKey(), "UTF-8") + "=" + URLEncoder.encode("" + parameter.getValue(), "UTF-8");
-				} catch (UnsupportedEncodingException e) {
-					throw new C8oException(C8oExceptionMessage.urlEncode(), e);
+
+				Object value = parameter.getValue();
+				if (value != null && value.getClass().isArray()) {
+					value = Arrays.asList((Object[]) value);
+				}
+				if (value instanceof Collection) {
+					for (Object v: (Collection) value) {
+						try {
+							parametersString += "&" + URLEncoder.encode(parameter.getKey(), "UTF-8") + "=" + URLEncoder.encode("" + v, "UTF-8");
+						} catch (UnsupportedEncodingException e) {
+							throw new C8oException(C8oExceptionMessage.urlEncode(), e);
+						}
+					}
+				} else {
+					try {
+						parametersString += "&" + URLEncoder.encode(parameter.getKey(), "UTF-8") + "=" + URLEncoder.encode("" + value, "UTF-8");
+					} catch (UnsupportedEncodingException e) {
+						throw new C8oException(C8oExceptionMessage.urlEncode(), e);
+					}
 				}
 			}
 			
