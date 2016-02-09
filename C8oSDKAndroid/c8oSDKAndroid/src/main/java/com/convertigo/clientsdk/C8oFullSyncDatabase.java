@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class C8oFullSyncDatabase {
+class C8oFullSyncDatabase {
 	
 	//*** TAG Constants ***//
 	

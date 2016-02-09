@@ -21,14 +21,14 @@ import java.util.Map;
 /**
  * Contains many enumerations relating to the fullSync requests.
  */
-public class FullSyncEnum {
+class FullSyncEnum {
 	
 	//*** TAG Requestalbes ***//
 	
 	/**
 	 * FullSync requestables.
 	 */
-	public enum FullSyncRequestable {
+	enum FullSyncRequestable {
 		GET("get") {
 			@Override
 			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
@@ -232,7 +232,7 @@ public class FullSyncEnum {
 	/**
 	 * Parameters common to some fullSync's requests.
 	 */
-	public enum FullSyncRequestParameter {
+	enum FullSyncRequestParameter {
 		DESCENDING("descending", true) {
 			@Override
 			void addToQuery(Query query, Object parameter) {
@@ -399,7 +399,7 @@ public class FullSyncEnum {
 	/**
 	 * Specific parameters for the fullSync's getView request.
 	 */
-	public enum FullSyncGetViewParameter {
+	enum FullSyncGetViewParameter {
 		VIEW("view"),
 		DDOC("ddoc");
 		
@@ -416,7 +416,7 @@ public class FullSyncEnum {
 	/**
 	 * Specific parameters for the fullSync's getDocument request.
 	 */
-	public enum FullSyncGetDocumentParameter {
+	enum FullSyncGetDocumentParameter {
 		DOCID("docid");
 		
 		/**
@@ -432,7 +432,7 @@ public class FullSyncEnum {
 	/**
 	 * Specific parameters for the fullSync's deleteDocument request.
 	 */
-	public enum FullSyncDeleteDocumentParameter {
+	enum FullSyncDeleteDocumentParameter {
 		DOCID("docid"),
 		REV("rev");
 		
@@ -449,7 +449,7 @@ public class FullSyncEnum {
 	/**
 	 * Specific parameters for the fullSync's postDocument request.
 	 */
-	public enum FullSyncPostDocumentParameter {
+	enum FullSyncPostDocumentParameter {
 		POLICY("_use_policy"),
 		SUBKEY_SEPARATOR("_use_subkey_separator");
 		
@@ -466,7 +466,7 @@ public class FullSyncEnum {
 	/**
 	 * Specific parameters for the fullSync's replicateDatabase request (push or pull).
 	 */
-	public enum FullSyncReplicateDatabaseParameter {
+	enum FullSyncReplicateDatabaseParameter {
 		CANCEL("cancel") {
 			@Override
 			void setReplication(Replication replication, Object parameter) {
@@ -510,7 +510,7 @@ public class FullSyncEnum {
 	/**
 	 * The policies of the fullSync's postDocument request. 
 	 */
-	public enum FullSyncPolicy {
+	enum FullSyncPolicy {
 		NONE("none") {
 			@Override
 			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {

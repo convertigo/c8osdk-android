@@ -47,7 +47,7 @@ import java.util.regex.Pattern;
 /**
  * Created by nicolasa on 01/12/2015.
  */
-public class C8oFullSyncCbl extends C8oFullSync {
+class C8oFullSyncCbl extends C8oFullSync {
     private final static String ATTACHMENT_PROPERTY_KEY_CONTENT_URL = "content_url";
 
     /**

@@ -62,7 +62,7 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-public class HttpInterface {
+class HttpInterface {
 	
 	//*** Regular expression ***//
 	

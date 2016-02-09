@@ -95,7 +95,7 @@ public class C8oLogger {
 	 */
 	private C8o c8o;
 	
-	public C8oLogger(C8o c8o) {
+	C8oLogger(C8o c8o) {
 		this.c8o = c8o;
 
         remoteLogUrl = c8o.getEndpointConvertigo() + "/admin/services/logs.Add";

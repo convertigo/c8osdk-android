@@ -18,7 +18,7 @@ import javax.xml.parsers.DocumentBuilder;
 /**
  * Provides static functions to translate fullSync responses to JSON or XML.
  */
-public class C8oFullSyncTranslator {
+class C8oFullSyncTranslator {
 	
 	private static final String FULL_SYNC_RESPONSE_KEY_COUNT = "count";
 	private static final String FULL_SYNC_RESPONSE_KEY_ROWS = "rows";

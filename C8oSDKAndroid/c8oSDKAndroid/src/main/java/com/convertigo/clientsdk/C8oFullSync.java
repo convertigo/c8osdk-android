@@ -13,7 +13,7 @@ import com.couchbase.lite.javascript.JavaScriptViewCompiler;
 
 import java.util.Map;
 
-abstract public class C8oFullSync {
+abstract class C8oFullSync {
 	private final static String FULL_SYNC_URL_PATH = "/fullsync/";
 	/**
 	 * The project requestable value to execute a fullSync request.

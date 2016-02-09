@@ -6,7 +6,7 @@ import java.util.Map;
 /**
  * Describes many FullSync response types.
  */
-public class FullSyncResponse {
+class FullSyncResponse {
 	/**
 	 * Used to create sub-class instances.
 	 */
@@ -46,7 +46,7 @@ public class FullSyncResponse {
 	/**
 	 * Represents a default fullSync response.
 	 */
-	static public class FullSyncDefaultResponse extends FullSyncAbstractResponse {
+	static class FullSyncDefaultResponse extends FullSyncAbstractResponse {
 		public FullSyncDefaultResponse(boolean operationStatus) {
 			super(operationStatus);
 		}
@@ -55,7 +55,7 @@ public class FullSyncResponse {
 	/**
 	 * Returned by a fullSync document operation without return data.
 	 */
-	static public class FullSyncDocumentOperationResponse extends FullSyncAbstractResponse {
+	static class FullSyncDocumentOperationResponse extends FullSyncAbstractResponse {
 		public String documentId;
 		public String documentRevision;
 

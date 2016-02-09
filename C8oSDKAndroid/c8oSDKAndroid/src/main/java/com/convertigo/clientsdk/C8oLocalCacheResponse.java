@@ -3,7 +3,7 @@ package com.convertigo.clientsdk;
 /**
  * Created by nicolasa on 01/12/2015.
  */
-public class C8oLocalCacheResponse {
+class C8oLocalCacheResponse {
     private String response;
     private String responseType;
     private long expirationDate;
