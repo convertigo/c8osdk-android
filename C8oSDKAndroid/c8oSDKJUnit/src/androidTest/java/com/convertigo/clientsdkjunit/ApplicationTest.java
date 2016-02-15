@@ -8,6 +8,8 @@ import android.test.ActivityInstrumentationTestCase2;
 import com.convertigo.clientsdk.C8o;
 import com.convertigo.clientsdk.exception.C8oException;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,6 +32,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     static final String HOST = "buildus.twinsoft.fr";
     static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
 
+    static final XPath xpath = XPathFactory.newInstance().newXPath();
+
     static Context context;
 
     enum Stuff {
@@ -38,39 +42,63 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             Object get() throws Throwable {
                 return new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
             }
+        },
+        C8O_BIS {
+            @Override
+            Object get() throws Throwable {
+                return new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+            }
+        },
+        SetGetInSession {
+            @Override
+            Object get() throws Throwable {
+                C8o c8o = get(C8O_BIS);
+                String ts = "" + System.currentTimeMillis();
+                Document doc = c8o.callXml(".SetInSession", "ts", ts).sync();
+                String newTs = xpath.evaluate("/document/pong/ts/text()", doc);
+                assertEquals(ts, newTs);
+                doc = c8o.callXml(".GetFromSession").sync();
+                newTs = xpath.evaluate("/document/session/expression/text()", doc);
+                assertEquals(ts, newTs);
+                return new Object();
+            }
         };
 
-        abstract Object get() throws Throwable;
-    }
+        static Map<Stuff, Object> stuffs = Collections.synchronizedMap(new HashMap<Stuff, Object>());
 
-    Map<Stuff, Object> objects = Collections.synchronizedMap(new HashMap<Stuff, Object>());
-    XPath xpath = XPathFactory.newInstance().newXPath();
+        abstract Object get() throws Throwable;
+
+        static public <T> T get(Stuff stuff) throws Throwable {
+            //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            synchronized (stuff) {
+                Object res = stuffs.get(stuff);
+                if (res == null) {
+                    try {
+                        res = stuff.get();
+                    } catch (Throwable e) {
+                        res = e;
+                    }
+                    stuffs.put(stuff, res);
+                }
+                if (res instanceof Throwable) {
+                    throw (Throwable) res;
+                }
+
+                @SuppressWarnings("unchecked")
+                T t = (T) res;
+
+                return t;
+            }
+        }
+
+    }
 
     public ApplicationTest() {
         super(MainActivity.class);
     }
 
     public <T> T get(Stuff stuff) throws Throwable {
-        //noinspection SynchronizationOnLocalVariableOrMethodParameter
-        synchronized (stuff) {
-            Object res = objects.get(stuff);
-            if (res == null) {
-                try {
-                    res = stuff.get();
-                } catch (Throwable e) {
-                    res = e;
-                }
-                objects.put(stuff, res);
-            }
-            if (res instanceof Throwable) {
-                throw (Throwable) res;
-            }
-
-            @SuppressWarnings("unchecked")
-            T t = (T) res;
-
-            return t;
-        }
+        return Stuff.get(stuff);
     }
 
     @Before
@@ -112,7 +140,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
-    public void C8oDefaultPingTwoSingleValue() throws Throwable {
+    public void C8oDefaultPingTwoSingleValues() throws Throwable {
         C8o c8o = get(Stuff.C8O);
         Document doc = c8o.callXml(".Ping",
                 "var1", "value one",
@@ -125,14 +153,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
-    public void C8oDefaultPingTwoSingleValueOneMulti() throws Throwable {
+    public void C8oDefaultPingTwoSingleValuesOneMulti() throws Throwable {
         C8o c8o = get(Stuff.C8O);
         Document doc = c8o.callXml(".Ping",
                 "var1", "value one",
                 "var2", "value two",
                 "mvar1", new String[]{"mvalue one", "mvalue two", "mvalue three"}
         ).sync();
-        String value = xpath.evaluate("/document/pong/var1/text()", doc);
+        Object value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
         value = xpath.evaluate("/document/pong/var2/text()", doc);
         assertEquals("value two", value);
@@ -142,11 +170,12 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals("mvalue two", value);
         value = xpath.evaluate("/document/pong/mvar1[3]/text()", doc);
         assertEquals("mvalue three", value);
-        assertEquals(3.0, xpath.evaluate("count(/document/pong/mvar1)", doc, XPathConstants.NUMBER));
+        value = xpath.evaluate("count(/document/pong/mvar1)", doc, XPathConstants.NUMBER);
+        assertEquals(3.0, value);
     }
 
     @Test
-    public void C8oDefaultPingTwoSingleValueTwoMulti() throws Throwable {
+    public void C8oDefaultPingTwoSingleValuesTwoMulti() throws Throwable {
         C8o c8o = get(Stuff.C8O);
         Document doc = c8o.callXml(".Ping",
                 "var1", "value one",
@@ -154,7 +183,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 "mvar1", new String[]{"mvalue one", "mvalue two", "mvalue three"},
                 "mvar2", new String[]{"mvalue2 one"}
         ).sync();
-        String value = xpath.evaluate("/document/pong/var1/text()", doc);
+        Object value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
         value = xpath.evaluate("/document/pong/var2/text()", doc);
         assertEquals("value two", value);
@@ -164,9 +193,60 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals("mvalue two", value);
         value = xpath.evaluate("/document/pong/mvar1[3]/text()", doc);
         assertEquals("mvalue three", value);
-        assertEquals(3.0, xpath.evaluate("count(/document/pong/mvar1)", doc, XPathConstants.NUMBER));
+        value = xpath.evaluate("count(/document/pong/mvar1)", doc, XPathConstants.NUMBER);
+        assertEquals(3.0, value);
         value = xpath.evaluate("/document/pong/mvar2[1]/text()", doc);
         assertEquals("mvalue2 one", value);
-        assertEquals(1.0, xpath.evaluate("count(/document/pong/mvar2)", doc, XPathConstants.NUMBER));
+        value = xpath.evaluate("count(/document/pong/mvar2)", doc, XPathConstants.NUMBER);
+        assertEquals(1.0, value);
+    }
+
+    @Test
+    public void C8oCheckJsonTypes() throws Throwable {
+        C8o c8o = get(Stuff.C8O);
+        JSONObject json = c8o.callJson(".JsonTypes",
+                "var1", "value one",
+                "mvar1", new String[]{"mvalue one", "mvalue two", "mvalue three"}
+        ).sync();
+        json = json.getJSONObject("document");
+        JSONObject pong = json.getJSONObject("pong");
+        Object value = pong.getString("var1");
+        assertEquals("value one", value);
+        JSONArray mvar1 = pong.getJSONArray("mvar1");
+        value = mvar1.getString(0);
+        assertEquals("mvalue one", value);
+        value = mvar1.getString(1);
+        assertEquals("mvalue two", value);
+        value = mvar1.getString(2);
+        assertEquals("mvalue three", value);
+        value = mvar1.length();
+        assertEquals(3, value);
+        JSONObject complex = json.getJSONObject("complex");
+        boolean isBool = complex.isNull("isNull");
+        assertTrue(isBool);
+        value = complex.getInt("isInt3615");
+        assertEquals(3615, value);
+        value = complex.getString("isStringWhere");
+        assertEquals("where is my string?!", value);
+        value = complex.getDouble("isDoublePI");
+        assertEquals(3.141592653589793, value);
+        isBool = complex.getBoolean("isBoolTrue");
+        assertTrue(isBool);
+        value = complex.getString("ÉlŸz@-node");
+        assertEquals("that's ÉlŸz@", value);
+    }
+
+    @Test
+    public void SetGetInSession() throws Throwable {
+        get(Stuff.SetGetInSession);
+    }
+
+    @Test
+    public void CheckNoMixSession() throws Throwable {
+        get(Stuff.SetGetInSession);
+        C8o c8o = get(Stuff.C8O);
+        Document doc = c8o.callXml(".GetFromSession").sync();
+        Object expression = xpath.evaluate("/document/session/expression", doc, XPathConstants.NODE);
+        assertNull(expression);
     }
 }
