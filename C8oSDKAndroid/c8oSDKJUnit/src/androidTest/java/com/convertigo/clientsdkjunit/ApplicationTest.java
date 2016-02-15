@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import android.test.ActivityInstrumentationTestCase2;
+import android.util.Log;
 
 import com.convertigo.clientsdk.C8o;
 import com.convertigo.clientsdk.exception.C8oException;
@@ -40,13 +41,16 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         C8O {
             @Override
             Object get() throws Throwable {
-                return new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+                c8o.setLogRemote(false);
+                c8o.setLogLevelLocal(Log.ERROR);
+                return c8o;
             }
         },
         C8O_BIS {
             @Override
             Object get() throws Throwable {
-                return new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+                return C8O.get();
             }
         },
         SetGetInSession {
@@ -248,5 +252,41 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         Document doc = c8o.callXml(".GetFromSession").sync();
         Object expression = xpath.evaluate("/document/session/expression", doc, XPathConstants.NODE);
         assertNull(expression);
+    }
+
+    public void CheckLogRemoteHelper(C8o c8o, String lvl, String msg) throws Throwable {
+        Document doc = c8o.callXml(".GetLogs").sync();
+        JSONArray line = new JSONArray(xpath.evaluate("/document/line/text()", doc));
+        assertEquals(lvl, line.getString(2));
+        String newMsg = line.getString(4);
+        newMsg = newMsg.substring(newMsg.indexOf("logID="));
+        assertEquals(msg, newMsg);
+    }
+
+    @Test
+    public void CheckLogRemote() throws Throwable {
+        C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+        c8o.setLogC8o(false);
+        String id = "logID=" + System.currentTimeMillis();
+        c8o.callXml(".GetLogs", "init", id).sync();
+        c8o.log.error(id);
+        CheckLogRemoteHelper(c8o, "ERROR", id);
+        c8o.log.error(id, new C8oException("for test"));
+        CheckLogRemoteHelper(c8o, "ERROR", id + "\ncom.convertigo.clientsdk.exception.C8oException: for test");
+        c8o.log.warn(id);
+        CheckLogRemoteHelper(c8o, "WARN", id);
+        c8o.log.info(id);
+        CheckLogRemoteHelper(c8o, "INFO", id);
+        c8o.log.debug(id);
+        CheckLogRemoteHelper(c8o, "DEBUG", id);
+        c8o.log.trace(id);
+        CheckLogRemoteHelper(c8o, "TRACE", id);
+        c8o.log.fatal(id);
+        CheckLogRemoteHelper(c8o, "FATAL", id);
+        c8o.setLogRemote(false);
+        c8o.log.info(id);
+        Document doc = c8o.callXml(".GetLogs").sync();
+        Object value = xpath.evaluate("/document/line", doc, XPathConstants.NODE);
+        assertNull(value);
     }
 }
