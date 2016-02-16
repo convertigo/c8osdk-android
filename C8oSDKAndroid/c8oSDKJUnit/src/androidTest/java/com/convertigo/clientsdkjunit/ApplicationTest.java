@@ -11,7 +11,9 @@ import com.convertigo.clientsdk.C8o;
 import com.convertigo.clientsdk.C8oOnFail;
 import com.convertigo.clientsdk.C8oOnResponse;
 import com.convertigo.clientsdk.C8oPromise;
+import com.convertigo.clientsdk.C8oSettings;
 import com.convertigo.clientsdk.exception.C8oException;
+import com.convertigo.clientsdk.exception.C8oHttpRequestException;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -25,6 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.net.ssl.SSLHandshakeException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
@@ -565,6 +568,72 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals("step 1", value);
         assertNull(xjson[1]);
         assertNotNull(exception);
-            assertEquals("random failure", exception.getMessage());
+        assertEquals("random failure", exception.getMessage());
+    }
+
+    @Test
+    public void C8oSslTrustFail() throws Throwable {
+        Throwable exception = null;
+        try {
+            C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH);
+            Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
+            String value = xpath.evaluate("/document/pong/var1/text()", doc);
+            assertEquals("not possible", value);
+        } catch (Exception ex) {
+            exception = ex;
+        }
+        assertNotNull(exception);
+        assertEquals(C8oException.class, exception.getClass());
+        exception = exception.getCause();
+        assertEquals(com.convertigo.clientsdk.exception.C8oHttpRequestException.class, exception.getClass());
+        exception = exception.getCause();
+        assertEquals(javax.net.ssl.SSLHandshakeException.class, exception.getClass());
+        exception = exception.getCause();
+        assertEquals(java.security.cert.CertificateException.class, exception.getClass());
+        exception = exception.getCause();
+        assertEquals(java.security.cert.CertPathValidatorException.class, exception.getClass());
+    }
+
+    @Test
+    public void C8oSslTrustAll() throws Throwable {
+        C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
+        Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
+        String value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals("value one", value);
+    }
+
+    //@Test
+    public void C8oSslValid() throws Throwable {
+        C8o c8o = new C8o(context, "https://" + HOST + ":444" + PROJECT_PATH);
+        Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
+        String value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals("value one", value);
+    }
+
+    //@Test
+    public void C8oSslTrustAllClientFail() throws Throwable {
+        C8o c8o = new C8o(context, "https://" + HOST + ":446" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
+        Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
+        String value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals("value one", value);
+    }
+
+    //@Test
+    public void C8oSslTrustAllClientOk() throws Throwable {
+        C8o c8o = new C8o(context, "https://" + HOST + ":446" + PROJECT_PATH, new C8oSettings()
+                .setTrustAllCertificates(true)
+                .setKeyStoreInputStream(null, "")
+        );
+        Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
+        String value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals("value one", value);
+    }
+
+    //@Test
+    public void C8oWithTimeout() throws Throwable {
+        C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH, new C8oSettings().setTimeout(1000));
+        Document doc = c8o.callXml(".Sleep2sec").sync();
+        String value = xpath.evaluate("/document/element/text()", doc);
+        assertEquals("ok", value);
     }
 }
