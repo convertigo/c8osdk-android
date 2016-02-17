@@ -4,7 +4,6 @@ import android.content.Context;
 
 import com.convertigo.clientsdk.FullSyncEnum.FullSyncDeleteDocumentParameter;
 import com.convertigo.clientsdk.FullSyncEnum.FullSyncPolicy;
-import com.convertigo.clientsdk.FullSyncEnum.FullSyncPostDocumentParameter;
 import com.convertigo.clientsdk.FullSyncEnum.FullSyncRequestParameter;
 import com.convertigo.clientsdk.FullSyncResponse.FullSyncDefaultResponse;
 import com.convertigo.clientsdk.FullSyncResponse.FullSyncDocumentOperationResponse;
@@ -221,7 +220,7 @@ class C8oFullSyncCbl extends C8oFullSync {
         C8oFullSyncDatabase fullSyncDatabase = getOrCreateFullSyncDatabase(databaseName);
 
         // Gets the subkey separator parameter
-        String subkeySeparatorParameterValue = C8oUtils.getParameterStringValue(parameters, FullSyncPostDocumentParameter.SUBKEY_SEPARATOR.name, false);
+        String subkeySeparatorParameterValue = C8oUtils.getParameterStringValue(parameters, C8o.FS_SUBKEY_SEPARATOR, false);
         if (subkeySeparatorParameterValue == null) {
             subkeySeparatorParameterValue = ".";
         }
@@ -260,13 +259,7 @@ class C8oFullSyncCbl extends C8oFullSync {
         }
 
         // Execute the query depending to the policy
-        Document createdDocument;
-        try {
-            createdDocument = fullSyncPolicy.postDocument(fullSyncDatabase.getDatabase(), newProperties);
-        } catch (C8oException e) {
-            throw new C8oException(C8oExceptionMessage.postDocument(), e);
-        }
-
+        Document createdDocument = fullSyncPolicy.postDocument(fullSyncDatabase.getDatabase(), newProperties);
         String documentId = createdDocument.getId();
         String currentRevision = createdDocument.getCurrentRevisionId();
         return new FullSyncDocumentOperationResponse(documentId, currentRevision, true);

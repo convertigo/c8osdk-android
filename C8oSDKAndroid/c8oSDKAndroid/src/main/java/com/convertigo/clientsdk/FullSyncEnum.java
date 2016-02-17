@@ -1,5 +1,6 @@
 package com.convertigo.clientsdk;
 
+import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
 import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
@@ -47,7 +48,7 @@ class FullSyncEnum {
 			@Override
 			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException	{
 				// Gets the policy parameter
-				String fullSyncPolicyParameter = C8oUtils.peekParameterStringValue(parameters, FullSyncPostDocumentParameter.POLICY.name, false);
+				String fullSyncPolicyParameter = C8oUtils.peekParameterStringValue(parameters, C8o.FS_POLICY, false);
 
 				// Finds the policy corresponding to the parameter value if it exists
 				FullSyncPolicy fullSyncPolicy = FullSyncPolicy.getFullSyncPolicy(fullSyncPolicyParameter);
@@ -447,23 +448,6 @@ class FullSyncEnum {
 	}
 	
 	/**
-	 * Specific parameters for the fullSync's postDocument request.
-	 */
-	enum FullSyncPostDocumentParameter {
-		POLICY("_use_policy"),
-		SUBKEY_SEPARATOR("_use_subkey_separator");
-		
-		/**
-		 * The name of the parameter i.e. the key to send.
-		 */
-		public final String name;
-		
-		FullSyncPostDocumentParameter(String name) {
-			this.name = name;
-		}
-	}
-	
-	/**
 	 * Specific parameters for the fullSync's replicateDatabase request (push or pull).
 	 */
 	enum FullSyncReplicateDatabaseParameter {
@@ -511,131 +495,103 @@ class FullSyncEnum {
 	 * The policies of the fullSync's postDocument request. 
 	 */
 	enum FullSyncPolicy {
-		NONE("none") {
+		NONE(C8o.FS_POLICY_NONE) {
 			@Override
 			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
-				String documentId = null;
-				Object documentIdObj = newProperties.get(C8oFullSync.FULL_SYNC__ID);
-
-				if (documentIdObj != null) {
-					if (documentIdObj instanceof String) {
-						documentId = (String) documentIdObj;
-					} else {
-						throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(C8oFullSync.FULL_SYNC__ID, String.class.getName(), documentIdObj.getClass().getName()));
-					}
-				}
-
-				// Removes special properties
-				newProperties.remove(C8oFullSync.FULL_SYNC__ID);
-
-				// Creates a new document or get an existing one (if the ID is specified)
 				Document createdDocument;
-				if (documentId == null) {
-					createdDocument = database.createDocument();
-				} else {
-					createdDocument = database.getDocument(documentId);
-				}
-
 				try {
+					String documentId = C8oUtils.getParameterStringValue(newProperties, C8oFullSync.FULL_SYNC__ID, false);
+
+					// Removes special properties
+					newProperties.remove(C8oFullSync.FULL_SYNC__ID);
+
+					// Creates a new document or get an existing one (if the ID is specified)
+                    createdDocument = (documentId == null) ? database.createDocument() : database.getDocument(documentId);
+
 					createdDocument.putProperties(newProperties);
 				} catch (CouchbaseLiteException e) {
-					throw new C8oException(C8oExceptionMessage.fullSyncPutProperties(newProperties), e);
+					throw new C8oCouchbaseLiteException(C8oExceptionMessage.fullSyncPutProperties(newProperties), e);
 				}
 				return createdDocument;
 			}
 		},
-		CREATE("create") {
+		CREATE(C8o.FS_POLICY_CREATE) {
 			@Override
 			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
-				// Removes special properties in order to create a new document
-				newProperties.remove(C8oFullSync.FULL_SYNC__ID);
-				newProperties.remove(C8oFullSync.FULL_SYNC__REV);
-				Document createdDocument = database.createDocument();
-				try {
-					createdDocument.putProperties(newProperties);
+                Document createdDocument;
+                try {
+                    // Removes special properties in order to create a new document
+                    newProperties.remove(C8oFullSync.FULL_SYNC__ID);
+                    newProperties.remove(C8oFullSync.FULL_SYNC__REV);
+                    createdDocument = database.createDocument();
+                    createdDocument.putProperties(newProperties);
 				} catch (CouchbaseLiteException e) {
-					throw new C8oException(C8oExceptionMessage.fullSyncPutProperties(newProperties), e);
+					throw new C8oCouchbaseLiteException(C8oExceptionMessage.fullSyncPutProperties(newProperties), e);
 				}
 				return createdDocument;
 			}
 		},
-		OVERRIDE("override") {
+		OVERRIDE(C8o.FS_POLICY_OVERRIDE) {
 			@Override
 			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
-				// Gets the document ID
-				String documentId = null;
-				Object documentIdObj = newProperties.get(C8oFullSync.FULL_SYNC__ID);
-				if (documentIdObj != null) {
-					if (documentIdObj instanceof String) {
-						documentId = (String) documentIdObj;
-					} else {
-						throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(C8oFullSync.FULL_SYNC__ID, String.class.getName(), documentIdObj.getClass().getName()));
-					}
-				}
-				
-				// Removes special properties
-				newProperties.remove(C8oFullSync.FULL_SYNC__ID);
-				newProperties.remove(C8oFullSync.FULL_SYNC__REV);
-				
-				// Creates a new document or get an existing one (if the ID is specified)
-				Document createdDocument;
-				if (documentId == null) {
-					createdDocument = database.createDocument();
-				} else {
-					createdDocument = database.getDocument(documentId);
-					// Must add the current revision to the properties
-					SavedRevision currentRevision = createdDocument.getCurrentRevision();
-					if (currentRevision != null) {
-						newProperties.put(C8oFullSync.FULL_SYNC__REV, currentRevision.getId());
-					}
-				}
-				
-				try {
+                Document createdDocument;
+                try {
+                    // Gets the document ID
+                    String documentId = C8oUtils.getParameterStringValue(newProperties, C8oFullSync.FULL_SYNC__ID, false);
+
+                    // Removes special properties
+                    newProperties.remove(C8oFullSync.FULL_SYNC__ID);
+                    newProperties.remove(C8oFullSync.FULL_SYNC__REV);
+
+                    // Creates a new document or get an existing one (if the ID is specified)
+                    if (documentId == null) {
+                        createdDocument = database.createDocument();
+                    } else {
+                        createdDocument = database.getDocument(documentId);
+                        // Must add the current revision to the properties
+                        SavedRevision currentRevision = createdDocument.getCurrentRevision();
+                        if (currentRevision != null) {
+                            newProperties.put(C8oFullSync.FULL_SYNC__REV, currentRevision.getId());
+                        }
+                    }
+
 					createdDocument.putProperties(newProperties);
 				} catch (CouchbaseLiteException e) {
-					throw new C8oException(C8oExceptionMessage.fullSyncPutProperties(newProperties), e);
+					throw new C8oCouchbaseLiteException(C8oExceptionMessage.fullSyncPutProperties(newProperties), e);
 				}
 				
 				return createdDocument;
 			}
 		},
-		MERGE("merge") {
+		MERGE(C8o.FS_POLICY_MERGE) {
 			@Override
 			Document postDocument(Database database, Map<String, Object> newProperties) throws C8oException {
-				// Gets the document ID
-				String documentId = null;
-				Object documentIdObj = newProperties.get(C8oFullSync.FULL_SYNC__ID);
-				if (documentIdObj != null) {
-					if (documentIdObj instanceof String) {
-						documentId = (String) documentIdObj;
-					} else {
-						throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(C8oFullSync.FULL_SYNC__ID, String.class.getName(), documentIdObj.getClass().getName()));
-					}
-				}
-				
-				// Removes special properties
-				newProperties.remove(C8oFullSync.FULL_SYNC__ID);
-				newProperties.remove(C8oFullSync.FULL_SYNC__REV);
-				
-				// Creates a new document or get an existing one (if the ID is specified)
-				Document createdDocument;
-				if (documentId == null) {
-					createdDocument = database.createDocument();
-					documentId = createdDocument.getId();
-				} else {
-					createdDocument = database.getDocument(documentId);
-				}
-				
-				// Merges old properties with the new ones
-				Map<String, Object> oldProperties = createdDocument.getProperties();
-				if (oldProperties != null) {
-					C8oFullSyncCbl.mergeProperties(newProperties, oldProperties);
-				}
-				
-				try {
+                Document createdDocument;
+                try {
+                    // Gets the document ID
+                    String documentId = C8oUtils.getParameterStringValue(newProperties, C8oFullSync.FULL_SYNC__ID, false);
+
+                    // Removes special properties
+                    newProperties.remove(C8oFullSync.FULL_SYNC__ID);
+                    newProperties.remove(C8oFullSync.FULL_SYNC__REV);
+
+                    // Creates a new document or get an existing one (if the ID is specified)
+                    if (documentId == null) {
+                        createdDocument = database.createDocument();
+                        documentId = createdDocument.getId();
+                    } else {
+                        createdDocument = database.getDocument(documentId);
+                    }
+
+                    // Merges old properties with the new ones
+                    Map<String, Object> oldProperties = createdDocument.getProperties();
+                    if (oldProperties != null) {
+                        C8oFullSyncCbl.mergeProperties(newProperties, oldProperties);
+                    }
+
 					createdDocument.putProperties(newProperties);
 				} catch (CouchbaseLiteException e) {
-					throw new C8oException(C8oExceptionMessage.fullSyncPutProperties(newProperties), e);
+					throw new C8oCouchbaseLiteException(C8oExceptionMessage.fullSyncPutProperties(newProperties), e);
 				}
 				
 				return createdDocument;
@@ -653,7 +609,7 @@ class FullSyncEnum {
 
 		public static FullSyncPolicy getFullSyncPolicy(String name) {
 			try {
-				return valueOf(name);
+				return valueOf(name.toUpperCase());
 			} catch (Exception e) {
 				return NONE;
 			}

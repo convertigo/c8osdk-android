@@ -92,6 +92,14 @@ public class C8o extends C8oBase {
     static final String ENGINE_PARAMETER_DEVICE_UUID = "__uuid";
     static final String ENGINE_PARAMETER_PROGRESS = "__progress";
 
+    //*** FULLSYNC parameters ***//
+
+    static final public String FS_POLICY = "_use_policy";
+    static final public String FS_POLICY_NONE = "none";
+    static final public String FS_POLICY_CREATE = "create";
+    static final public String FS_POLICY_OVERRIDE = "override";
+    static final public String FS_POLICY_MERGE = "merge";
+    static final public String FS_SUBKEY_SEPARATOR = "_use_subkey_separator";
 	
 	//*** Local cache keys ***//
 	static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE = "response";

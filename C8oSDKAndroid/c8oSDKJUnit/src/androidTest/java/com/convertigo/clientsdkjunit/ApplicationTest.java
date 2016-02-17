@@ -12,6 +12,7 @@ import com.convertigo.clientsdk.C8oOnFail;
 import com.convertigo.clientsdk.C8oOnResponse;
 import com.convertigo.clientsdk.C8oPromise;
 import com.convertigo.clientsdk.C8oSettings;
+import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
@@ -592,7 +593,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH);
             Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
             String value = xpath.evaluate("/document/pong/var1/text()", doc);
-            assertEquals("not possible", value);
+            assertTrue("not possible", false);
         } catch (Exception ex) {
             exception = ex;
         }
@@ -619,23 +620,169 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     @Test
     public void C8oFsPostGetDestroyCreate() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS);
-        JSONObject json = c8o.callJson("fs://.reset").sync();
-        assertTrue(json.getBoolean("ok"));
-        String ts = "ts=" + System.currentTimeMillis();
-        json = c8o.callJson("fs://.post", "ts", ts).sync();
-        assertTrue(json.getBoolean("ok"));
-        String id = json.getString("id");
-        json = c8o.callJson("fs://.get", "docid", id).sync();
-        assertEquals(ts, json.getString("ts"));
-        json = c8o.callJson("fs://.destroy").sync();
-        assertTrue(json.getBoolean("ok"));
-        json = c8o.callJson("fs://.create").sync();
-        assertTrue(json.getBoolean("ok"));
-        try {
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String ts = "ts=" + System.currentTimeMillis();
+            json = c8o.callJson("fs://.post", "ts", ts).sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = json.getString("id");
             json = c8o.callJson("fs://.get", "docid", id).sync();
-            assertEquals("not possible", json.getString("ts"));
-        } catch (Exception e) {
-            assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            assertEquals(ts, json.getString("ts"));
+            json = c8o.callJson("fs://.destroy").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.create").sync();
+            assertTrue(json.getBoolean("ok"));
+            try {
+                json = c8o.callJson("fs://.get", "docid", id).sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            }
+        }
+    }
+
+    @Test
+    public void C8oFsPostReset() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.post").sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = json.getString("id");
+            json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            try {
+                json = c8o.callJson("fs://.get", "docid", id).sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            }
+        }
+    }
+
+    @Test
+    public void C8oFsPostExisting() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.post").sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = json.getString("id");
+            try {
+                json = c8o.callJson("fs://.post", "_id", id).sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oCouchbaseLiteException.class, e.getClass());
+            }
+        }
+    }
+
+    @Test
+    public void C8oFsPostExistingPolicyNone() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.post", C8o.FS_POLICY, C8o.FS_POLICY_NONE).sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = json.getString("id");
+            try {
+                json = c8o.callJson("fs://.post",
+                    C8o.FS_POLICY, C8o.FS_POLICY_NONE,
+                     "_id", id
+                ).sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oCouchbaseLiteException.class, e.getClass());
+            }
+        }
+    }
+
+    @Test
+    public void C8oFsPostExistingPolicyCreate() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String myId = "custom-" + System.currentTimeMillis();
+            json = c8o.callJson("fs://.post", "_id", myId).sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = json.getString("id");
+            assertEquals(myId, id);
+            json = c8o.callJson("fs://.post",
+                C8o.FS_POLICY, C8o.FS_POLICY_CREATE,
+                "_id", id
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            id = json.getString("id");
+            assertNotSame(myId, id);
+        }
+    }
+
+    @Test
+    public void C8oFsPostExistingPolicyOverride() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String myId = "custom-" + System.currentTimeMillis();
+            json = c8o.callJson("fs://.post",
+                    C8o.FS_POLICY, C8o.FS_POLICY_OVERRIDE,
+                    "_id", myId,
+                    "a", 1,
+                    "b", 2
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = json.getString("id");
+            assertEquals(myId, id);
+            json = c8o.callJson("fs://.post",
+                    C8o.FS_POLICY, C8o.FS_POLICY_OVERRIDE,
+                    "_id", myId,
+                    "a", 3,
+                    "c", 4
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            id = json.getString("id");
+            assertEquals(myId, id);
+            json = c8o.callJson("fs://.get", "docid", myId).sync();
+            assertEquals(3, json.getInt("a"));
+            assertFalse(json.has("b"));
+            assertEquals(4, json.getInt("c"));
+        }
+    }
+
+    @Test
+    public void C8oFsPostExistingPolicyMerge() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String myId = "custom-" + System.currentTimeMillis();
+            json = c8o.callJson("fs://.post",
+                C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                "_id", myId,
+                "a", 1,
+                "b", 2
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = json.getString("id");
+            assertEquals(myId, id);
+            json = c8o.callJson("fs://.post",
+                C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                "_id", myId,
+                "a", 3,
+                "c", 4
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            id = json.getString("id");
+            assertEquals(myId, id);
+            json = c8o.callJson("fs://.get", "docid", myId).sync();
+            assertEquals(3, json.getInt("a"));
+            assertEquals(2, json.getInt("b"));
+            assertEquals(4, json.getInt("c"));
         }
     }
 
