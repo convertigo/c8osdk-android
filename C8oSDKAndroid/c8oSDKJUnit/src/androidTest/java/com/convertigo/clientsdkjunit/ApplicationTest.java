@@ -587,7 +587,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
-    public void C8oSslTrust1Fail() throws Throwable {
+    public void C8oSsl1TrustFail() throws Throwable {
         Throwable exception = null;
         try {
             C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH);
@@ -610,13 +610,68 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
-    public void C8oSslTrust2All() throws Throwable {
+    public void C8oSsl2TrustAll() throws Throwable {
         C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
         Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
         String value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsPostGetDelete() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String myId = "custom-" + System.currentTimeMillis();
+            json = c8o.callJson("fs://.post", "_id", myId).sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = json.getString("id");
+            assertEquals(myId, id);
+            json = c8o.callJson("fs://.get", "docid", id).sync();
+            id = json.getString("_id");
+            assertEquals(myId, id);
+            json = c8o.callJson("fs://.delete", "docid", id).sync();
+            assertTrue(json.getBoolean("ok"));
+            try {
+                c8o.callJson("fs://.get", "docid", id).sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            }
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsPostGetDeleteRev() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String id = "custom-" + System.currentTimeMillis();
+            json = c8o.callJson("fs://.post", "_id", id).sync();
+            assertTrue(json.getBoolean("ok"));
+            String rev = json.getString("rev");
+            try {
+                c8o.callJson("fs://.delete", "docid", id, "rev", "1-123456").sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            }
+            json = c8o.callJson("fs://.delete", "docid", id).sync();
+            assertTrue(json.getBoolean("ok"));
+            try {
+                c8o.callJson("fs://.get", "docid", id).sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            }
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsPostGetDestroyCreate() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS);
@@ -634,7 +689,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             json = c8o.callJson("fs://.create").sync();
             assertTrue(json.getBoolean("ok"));
             try {
-                json = c8o.callJson("fs://.get", "docid", id).sync();
+                c8o.callJson("fs://.get", "docid", id).sync();
                 assertTrue("not possible", false);
             } catch (Exception e) {
                 assertEquals(C8oRessourceNotFoundException.class, e.getClass());
@@ -642,6 +697,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         }
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsPostReset() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS);
@@ -654,7 +710,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             json = c8o.callJson("fs://.reset").sync();
             assertTrue(json.getBoolean("ok"));
             try {
-                json = c8o.callJson("fs://.get", "docid", id).sync();
+                c8o.callJson("fs://.get", "docid", id).sync();
                 assertTrue("not possible", false);
             } catch (Exception e) {
                 assertEquals(C8oRessourceNotFoundException.class, e.getClass());
@@ -662,6 +718,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         }
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsPostExisting() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS);
@@ -672,7 +729,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             assertTrue(json.getBoolean("ok"));
             String id = json.getString("id");
             try {
-                json = c8o.callJson("fs://.post", "_id", id).sync();
+                c8o.callJson("fs://.post", "_id", id).sync();
                 assertTrue("not possible", false);
             } catch (Exception e) {
                 assertEquals(C8oCouchbaseLiteException.class, e.getClass());
@@ -680,6 +737,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         }
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsPostExistingPolicyNone() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS);
@@ -690,7 +748,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             assertTrue(json.getBoolean("ok"));
             String id = json.getString("id");
             try {
-                json = c8o.callJson("fs://.post",
+                c8o.callJson("fs://.post",
                     C8o.FS_POLICY, C8o.FS_POLICY_NONE,
                      "_id", id
                 ).sync();
@@ -701,6 +759,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         }
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsPostExistingPolicyCreate() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS);
@@ -722,6 +781,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         }
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsPostExistingPolicyOverride() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS);
@@ -754,6 +814,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         }
     }
 
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsPostExistingPolicyMerge() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS);
