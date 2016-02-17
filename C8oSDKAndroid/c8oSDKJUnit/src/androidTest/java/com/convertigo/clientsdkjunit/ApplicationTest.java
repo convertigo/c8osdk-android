@@ -14,6 +14,9 @@ import com.convertigo.clientsdk.C8oPromise;
 import com.convertigo.clientsdk.C8oSettings;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
+import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
+
+import junit.framework.Assert;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -58,6 +61,17 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             @Override
             Object get() throws Throwable {
                 return C8O.get();
+            }
+        },
+        C8O_FS {
+            @Override
+            Object get() throws Throwable {
+                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH, new C8oSettings()
+                    .setDefaultDatabaseName("clientsdktesting")
+                );
+                c8o.setLogRemote(false);
+                c8o.setLogLevelLocal(Log.ERROR);
+                return c8o;
             }
         },
         SetGetInSession {
@@ -572,7 +586,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
-    public void C8oSslTrustFail() throws Throwable {
+    public void C8oSslTrust1Fail() throws Throwable {
         Throwable exception = null;
         try {
             C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH);
@@ -595,11 +609,34 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
-    public void C8oSslTrustAll() throws Throwable {
+    public void C8oSslTrust2All() throws Throwable {
         C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
         Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
         String value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
+    }
+
+    @Test
+    public void C8oFsPostGetDestroyCreate() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        JSONObject json = c8o.callJson("fs://.reset").sync();
+        assertTrue(json.getBoolean("ok"));
+        String ts = "ts=" + System.currentTimeMillis();
+        json = c8o.callJson("fs://.post", "ts", ts).sync();
+        assertTrue(json.getBoolean("ok"));
+        String id = json.getString("id");
+        json = c8o.callJson("fs://.get", "docid", id).sync();
+        assertEquals(ts, json.getString("ts"));
+        json = c8o.callJson("fs://.destroy").sync();
+        assertTrue(json.getBoolean("ok"));
+        json = c8o.callJson("fs://.create").sync();
+        assertTrue(json.getBoolean("ok"));
+        try {
+            json = c8o.callJson("fs://.get", "docid", id).sync();
+            assertEquals("not possible", json.getString("ts"));
+        } catch (Exception e) {
+            assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+        }
     }
 
     //@Test

@@ -89,6 +89,8 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
             try {
 				Object fullSyncResult = c8o.c8oFullSync.handleFullSyncRequest(parameters, c8oResponseListener);
 				return fullSyncResult;
+            } catch (C8oException e) {
+                throw e;
             } catch (Throwable e) {
                 throw new C8oException(C8oExceptionMessage.handleFullSyncRequest(), e);
             }

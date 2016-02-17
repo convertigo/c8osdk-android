@@ -242,6 +242,10 @@ class C8oExceptionMessage {
 	public static String wrongResult(Object result) {
 		return "The response class " + C8oUtils.getObjectClassName(result) + " is not handled";
 	}
+
+    public static String ressourceNotFound(String ressourceName) {
+        return "The " + ressourceName + " was not found";
+    }
 	
 	public static String toDo() {
 		return "todo";

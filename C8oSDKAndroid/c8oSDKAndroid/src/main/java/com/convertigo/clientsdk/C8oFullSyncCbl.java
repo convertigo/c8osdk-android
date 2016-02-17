@@ -183,6 +183,8 @@ class C8oFullSyncCbl extends C8oFullSync {
                     attachmentDesc.put(ATTACHMENT_PROPERTY_KEY_CONTENT_URL, URLDecoder.decode(url.toString()));
                 }
             }
+        } else {
+            throw new C8oRessourceNotFoundException(C8oExceptionMessage.ressourceNotFound("requested document \"" + docid + "\""));
         }
         return document;
     }
@@ -361,14 +363,8 @@ class C8oFullSyncCbl extends C8oFullSync {
 
     @Override
     FullSyncDefaultResponse handleResetDatabaseRequest(String databaseName) throws C8oException {
-        try {
-            C8oFullSyncDatabase fullSyncDatabase = getOrCreateFullSyncDatabase(databaseName);
-            fullSyncDatabase.getDatabase().delete();
-            fullSyncDatabases.remove(fullSyncDatabase.getDatabaseName());
-        } catch (CouchbaseLiteException e) {
-            throw new C8oException(C8oExceptionMessage.couchRequestResetDatabase(), e);
-        }
-        return new FullSyncDefaultResponse(true);
+        handleDestroyDatabaseRequest(databaseName);
+        return handleCreateDatabaseRequest(databaseName);
     }
 
     @Override
@@ -379,6 +375,11 @@ class C8oFullSyncCbl extends C8oFullSync {
 
     @Override
     FullSyncDefaultResponse handleDestroyDatabaseRequest(String databaseName) throws C8oException {
+        String localDatabaseName = databaseName + localSuffix;
+        if (fullSyncDatabases.containsKey(localDatabaseName)) {
+            fullSyncDatabases.remove(localDatabaseName);
+        }
+
         try {
             Database db = manager.getDatabase(databaseName + localSuffix);
             if (db != null) {

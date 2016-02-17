@@ -82,8 +82,8 @@ abstract class C8oFullSync {
 		Object response;
 		try {
 			response = fullSyncRequestable.handleFullSyncRequest(this, databaseName, parameters, listener);
-		} catch (C8oRessourceNotFoundException e) {
-			throw new C8oException(C8oExceptionMessage.fullSyncHandleRequest(fullSyncRequestableValue, databaseName, parameters), e);
+		} catch (C8oException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new C8oException(C8oExceptionMessage.fullSyncHandleRequest(fullSyncRequestableValue, databaseName, parameters), e);
 		}
@@ -93,12 +93,8 @@ abstract class C8oFullSync {
 		}
 		
 		// Handles the result depending to the C8oresponseListener
-		try {
-			response = handleFullSyncResponse(response, listener);
-			return response;
-		} catch (C8oException e) {
-			throw new C8oException(C8oExceptionMessage.fullSyncHandleResponse(), e);
-		}
+		response = handleFullSyncResponse(response, listener);
+		return response;
 	}
 
     /**
