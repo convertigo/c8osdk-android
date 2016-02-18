@@ -75,7 +75,7 @@ abstract class C8oFullSync {
 		if (databaseName.length() < 1) {
 			databaseName = c8o.getDefaultDatabaseName();
 			if (databaseName == null) {
-				throw new IllegalArgumentException(C8oExceptionMessage.invalidParamterValue(C8o.ENGINE_PARAMETER_PROJECT, null));
+				throw new IllegalArgumentException(C8oExceptionMessage.invalidParameterValue(C8o.ENGINE_PARAMETER_PROJECT, null));
 			}
 		}
 		

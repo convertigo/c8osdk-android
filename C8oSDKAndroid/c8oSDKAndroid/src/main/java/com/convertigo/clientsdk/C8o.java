@@ -249,7 +249,7 @@ public class C8o extends C8oBase {
             Matcher matches = RE_REQUESTABLE.matcher(requestable);
             if (!matches.find()) {
                 // The requestable is not correct so the default transaction of the default connector will be called
-                throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidRequestalbe(requestable));
+                throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidRequestable(requestable));
             }
 
             // If the project name is specified

@@ -39,7 +39,7 @@ class C8oExceptionMessage {
 		return "'" + endpoint + "' is not a valid Convertigo endpoint";
 	}
 	
-	public static String illegalArgumentInvalidRequestalbe(String requestable) {
+	public static String illegalArgumentInvalidRequestable(String requestable) {
 		return "'" + requestable + "' is not a valid requestable.";
 	}
 	
@@ -55,7 +55,7 @@ class C8oExceptionMessage {
 		return parameterName + " must be not null";
 	}
 	
-	public static String invalidParamterValue(String parameterName, String details) {
+	public static String invalidParameterValue(String parameterName, String details) {
 		String errorMessage = "The parameter '" + parameterName + "' is invalid";
         if (details != null && details.isEmpty()) 
         {

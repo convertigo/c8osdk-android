@@ -28,7 +28,9 @@ import com.couchbase.lite.SavedRevision;
 import com.couchbase.lite.View;
 import com.couchbase.lite.android.AndroidContext;
 import com.couchbase.lite.internal.RevisionInternal;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -39,6 +41,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
@@ -240,8 +243,19 @@ class C8oFullSyncCbl extends C8oFullSync {
 
             Object objectParameterValue = parameter.getValue();
 
+            try {
+                if (objectParameterValue instanceof JSONObject) {
+                        objectParameterValue = new ObjectMapper().readValue(objectParameterValue.toString(), LinkedHashMap.class);
+                } else if (objectParameterValue instanceof JSONArray) {
+                        objectParameterValue = new ObjectMapper().readValue(objectParameterValue.toString(), ArrayList.class);
+                }
+            } catch (Exception e) {
+                throw new C8oException(C8oExceptionMessage.invalidParameterValue(parameterName, objectParameterValue.toString()), e);
+            }
+
             // Checks if the parameter name is splittable
             String[] paths = parameterName.split(Pattern.quote(subkeySeparatorParameterValue));
+
             if (paths.length > 1) {
                 // The first substring becomes the key
                 parameterName = paths[0];
@@ -252,6 +266,10 @@ class C8oFullSyncCbl extends C8oFullSync {
                     tmpObject.put(paths[count], objectParameterValue);
                     objectParameterValue = tmpObject;
                     count--;
+                }
+                Object existProperty = newProperties.get(parameterName);
+                if (existProperty != null && existProperty instanceof Map) {
+                    mergeProperties((Map) objectParameterValue, (Map) existProperty);
                 }
             }
 

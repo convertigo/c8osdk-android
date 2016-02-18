@@ -624,7 +624,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         synchronized (c8o) {
             JSONObject json = c8o.callJson("fs://.reset").sync();
             assertTrue(json.getBoolean("ok"));
-            String myId = "custom-" + System.currentTimeMillis();
+            String myId = "C8oFsPostGetDelete-" + System.currentTimeMillis();
             json = c8o.callJson("fs://.post", "_id", myId).sync();
             assertTrue(json.getBoolean("ok"));
             String id = json.getString("id");
@@ -650,7 +650,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         synchronized (c8o) {
             JSONObject json = c8o.callJson("fs://.reset").sync();
             assertTrue(json.getBoolean("ok"));
-            String id = "custom-" + System.currentTimeMillis();
+            String id = "C8oFsPostGetDeleteRev-" + System.currentTimeMillis();
             json = c8o.callJson("fs://.post", "_id", id).sync();
             assertTrue(json.getBoolean("ok"));
             String rev = json.getString("rev");
@@ -660,7 +660,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             } catch (Exception e) {
                 assertEquals(C8oRessourceNotFoundException.class, e.getClass());
             }
-            json = c8o.callJson("fs://.delete", "docid", id).sync();
+            json = c8o.callJson("fs://.delete", "docid", id, "rev", rev).sync();
             assertTrue(json.getBoolean("ok"));
             try {
                 c8o.callJson("fs://.get", "docid", id).sync();
@@ -679,11 +679,21 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             JSONObject json = c8o.callJson("fs://.reset").sync();
             assertTrue(json.getBoolean("ok"));
             String ts = "ts=" + System.currentTimeMillis();
+            String ts2 = ts + "@test";
             json = c8o.callJson("fs://.post", "ts", ts).sync();
             assertTrue(json.getBoolean("ok"));
             String id = json.getString("id");
+            String rev = json.getString("rev");
+            json = c8o.callJson("fs://.post",
+                "_id", id,
+                "_rev", rev,
+                "ts", ts,
+                "ts2", ts2
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
             json = c8o.callJson("fs://.get", "docid", id).sync();
             assertEquals(ts, json.getString("ts"));
+            assertEquals(ts2, json.getString("ts2"));
             json = c8o.callJson("fs://.destroy").sync();
             assertTrue(json.getBoolean("ok"));
             json = c8o.callJson("fs://.create").sync();
@@ -766,7 +776,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         synchronized (c8o) {
             JSONObject json = c8o.callJson("fs://.reset").sync();
             assertTrue(json.getBoolean("ok"));
-            String myId = "custom-" + System.currentTimeMillis();
+            String myId = "C8oFsPostExistingPolicyCreate-" + System.currentTimeMillis();
             json = c8o.callJson("fs://.post", "_id", myId).sync();
             assertTrue(json.getBoolean("ok"));
             String id = json.getString("id");
@@ -788,7 +798,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         synchronized (c8o) {
             JSONObject json = c8o.callJson("fs://.reset").sync();
             assertTrue(json.getBoolean("ok"));
-            String myId = "custom-" + System.currentTimeMillis();
+            String myId = "C8oFsPostExistingPolicyOverride-" + System.currentTimeMillis();
             json = c8o.callJson("fs://.post",
                     C8o.FS_POLICY, C8o.FS_POLICY_OVERRIDE,
                     "_id", myId,
@@ -821,7 +831,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         synchronized (c8o) {
             JSONObject json = c8o.callJson("fs://.reset").sync();
             assertTrue(json.getBoolean("ok"));
-            String myId = "custom-" + System.currentTimeMillis();
+            String myId = "C8oFsPostExistingPolicyMerge-" + System.currentTimeMillis();
             json = c8o.callJson("fs://.post",
                 C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
                 "_id", myId,
@@ -844,6 +854,51 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             assertEquals(3, json.getInt("a"));
             assertEquals(2, json.getInt("b"));
             assertEquals(4, json.getInt("c"));
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsPostExistingPolicyMergeSub() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String myId = "C8oFsPostExistingPolicyMergeSub-" + System.currentTimeMillis();
+            JSONObject sub_c = new JSONObject();
+            JSONObject sub_f = new JSONObject();
+            sub_c.put("d", 3);
+            sub_c.put("e", "four");
+            sub_c.put("f", sub_f);
+            sub_f.put("g", true);
+            sub_f.put("h", new JSONArray().put("one").put("two").put("three").put("four"));
+            json = c8o.callJson("fs://.post",
+                    "_id", myId,
+                    "a", 1,
+                    "b", -2,
+                    "c", sub_c
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.post",
+                    C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                    "_id", myId,
+                    "i", new JSONArray().put("5").put(6).put(7.1).put(null),
+                    "c.f.j", "good",
+                    "c.f.h", new JSONArray().put(true).put(false)
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.post",
+                    C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                    C8o.FS_SUBKEY_SEPARATOR, "<>",
+                    "_id", myId,
+                    "c<>i-j", "great"
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.get", "docid", myId).sync();
+            json.remove("_rev");
+            assertEquals(myId, json.remove("_id"));
+            String sJson = json.toString();
+            assertEquals("{\"a\":1,\"i\":[\"5\",6,7.1,null],\"b\":-2,\"c\":{\"d\":3,\"i-j\":\"great\",\"f\":{\"j\":\"good\",\"g\":true,\"h\":[true,false,\"three\",\"four\"]},\"e\":\"four\"}}", sJson);
         }
     }
 
