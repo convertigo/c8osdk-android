@@ -6,9 +6,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Created by nicolasa on 16/11/2015.
- */
 public class C8oPromise<T> implements C8oPromiseFailSync {
     private C8o c8o;
     private final List<Pair<C8oOnResponse<T>, Boolean>> c8oOnResponses = new LinkedList<Pair<C8oOnResponse<T>, Boolean>>();
@@ -39,21 +36,25 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
 
     public C8oPromiseFailSync<T> progress(C8oOnProgress c8oOnProgress) {
         c8oProgress = new Pair<C8oOnProgress, Boolean>(c8oOnProgress, false);
+        //noinspection unchecked
         return this;
     }
 
     public C8oPromiseFailSync<T> progressUI(C8oOnProgress c8oOnProgress) {
         c8oProgress = new Pair<C8oOnProgress, Boolean>(c8oOnProgress, true);
+        //noinspection unchecked
         return this;
     }
 
     public C8oPromiseSync<T> fail(C8oOnFail c8oOnFail) {
         c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, false);
+        //noinspection unchecked
         return this;
     }
 
     public C8oPromiseSync<T> failUI(C8oOnFail c8oOnFail) {
         c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, true);
+        //noinspection unchecked
         return this;
     }
 
@@ -88,6 +89,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
 
                 if (handler.second) {
                     final Throwable[] throwable = new Throwable[1];
+                    //noinspection SynchronizationOnLocalVariableOrMethodParameter
                     synchronized (promise) {
                         c8o.runUI(new Runnable() {
                             @Override
@@ -119,6 +121,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
                     if (promise[0].c8oProgress == null) {
                         promise[0].c8oProgress = c8oProgress;
                     }
+                    //noinspection unchecked
                     promise[0].then(new C8oOnResponse<T>() {
                         @Override
                         public C8oPromise<T> run(T response, Map<String, Object> parameters) {
@@ -140,6 +143,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
         if (c8oProgress != null) {
             if (c8oProgress.second) {
                 final Object locker = new Object();
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
                 synchronized (locker) {
                     c8o.runUI(new Runnable() {
                         @Override
@@ -164,11 +168,6 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
                 c8oProgress.first.run(progress);
             }
         }
-
-        synchronized (syncMutex)
-        {
-            syncMutex.notify();
-        }
     }
 
     synchronized void onFailure(final Throwable throwable, final Map<String, Object> parameters) {
@@ -177,6 +176,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
         if (c8oFail != null) {
             if (c8oFail.second) {
                 final Object locker = new Object();
+                //noinspection SynchronizationOnLocalVariableOrMethodParameter
                 synchronized (locker) {
                     c8o.runUI(new Runnable() {
                         @Override

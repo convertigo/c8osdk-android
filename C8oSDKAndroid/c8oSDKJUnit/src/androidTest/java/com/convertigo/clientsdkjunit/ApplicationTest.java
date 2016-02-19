@@ -75,6 +75,19 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 return c8o;
             }
         },
+        C8O_FS_REMOTE {
+            @Override
+            Object get() throws Throwable {
+                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH, new C8oSettings()
+                        .setDefaultDatabaseName("client_sdk_testing_fullsync")
+                );
+                c8o.setLogRemote(false);
+                c8o.setLogLevelLocal(Log.ERROR);
+                JSONObject json = c8o.callJson(".InitFS").sync();
+                assertTrue(json.getJSONObject("document").getBoolean("ok"));
+                return c8o;
+            }
+        },
         SetGetInSession {
             @Override
             Object get() throws Throwable {
@@ -131,7 +144,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void setUp() throws Exception {
         super.setUp();
         injectInstrumentation(InstrumentationRegistry.getInstrumentation());
-        context = getActivity();
+        context = getActivity().getApplicationContext();
     }
 
     @Test
@@ -902,6 +915,68 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             ).toString();
             String sJson = json.toString();
             assertEquals(expectedJson, sJson);
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsPostGetMultibase() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://notdefault.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String myId = "C8oFsPostGetMultibase-" + System.currentTimeMillis();
+            json = c8o.callJson("fs://.post", "_id", myId).sync();
+            assertTrue(json.getBoolean("ok"));
+            try {
+                c8o.callJson("fs://.get", "docid", myId).sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            }
+            json = c8o.callJson("fs://notdefault.post", "_id", myId).sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.get", "docid", myId).sync();
+            String id = json.getString("_id");
+            assertEquals(myId, id);
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsReplicateAnoAndAuth() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS_REMOTE);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            try {
+                c8o.callJson("fs://.get", "docid", "258").sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            }
+            json = c8o.callJson("fs://.replicate_pull").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.get", "docid", "258").sync();
+            String value = json.getString("data");
+            assertEquals("258", value);
+            try {
+                c8o.callJson("fs://.get", "docid", "456").sync();
+                assertTrue("not possible", false);
+            } catch (Exception e) {
+                assertEquals(C8oRessourceNotFoundException.class, e.getClass());
+            }
+            json = c8o.callJson(".LoginTesting").sync();
+            value = json.getJSONObject("document").getString("authenticatedUserID");
+            assertEquals("testing_user", value);
+            json = c8o.callJson("fs://.replicate_pull").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.get", "docid", "456").sync();
+            value = json.getString("data");
+            assertEquals("456", value);
+            c8o.callJson(".LogoutTesting").sync();
         }
     }
 
