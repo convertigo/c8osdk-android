@@ -897,8 +897,11 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             json = c8o.callJson("fs://.get", "docid", myId).sync();
             json.remove("_rev");
             assertEquals(myId, json.remove("_id"));
+            String expectedJson = new JSONObject(
+                "{\"a\":1,\"i\":[\"5\",6,7.1,null],\"b\":-2,\"c\":{\"d\":3,\"i-j\":\"great\",\"f\":{\"j\":\"good\",\"g\":true,\"h\":[true,false,\"three\",\"four\"]},\"e\":\"four\"}}"
+            ).toString();
             String sJson = json.toString();
-            assertEquals("{\"a\":1,\"i\":[\"5\",6,7.1,null],\"b\":-2,\"c\":{\"d\":3,\"i-j\":\"great\",\"f\":{\"j\":\"good\",\"g\":true,\"h\":[true,false,\"three\",\"four\"]},\"e\":\"four\"}}", sJson);
+            assertEquals(expectedJson, sJson);
         }
     }
 

@@ -234,46 +234,41 @@ class C8oFullSyncCbl extends C8oFullSync {
             String parameterName = parameter.getKey();
 
             // Ignores parameters beginning with "__" or "_use_"
-            if (parameterName.startsWith("__")) {
-                continue;
-            }
-            if (parameterName.startsWith("_use_")) {
-                continue;
-            }
+            if (!parameterName.startsWith("__") && !parameterName.startsWith("_use_")) {
+                Object objectParameterValue = parameter.getValue();
 
-            Object objectParameterValue = parameter.getValue();
-
-            try {
-                if (objectParameterValue instanceof JSONObject) {
+                try {
+                    if (objectParameterValue instanceof JSONObject) {
                         objectParameterValue = new ObjectMapper().readValue(objectParameterValue.toString(), LinkedHashMap.class);
-                } else if (objectParameterValue instanceof JSONArray) {
+                    } else if (objectParameterValue instanceof JSONArray) {
                         objectParameterValue = new ObjectMapper().readValue(objectParameterValue.toString(), ArrayList.class);
+                    }
+                } catch (Exception e) {
+                    throw new C8oException(C8oExceptionMessage.invalidParameterValue(parameterName, objectParameterValue.toString()), e);
                 }
-            } catch (Exception e) {
-                throw new C8oException(C8oExceptionMessage.invalidParameterValue(parameterName, objectParameterValue.toString()), e);
+
+                // Checks if the parameter name is splittable
+                String[] paths = parameterName.split(Pattern.quote(subkeySeparatorParameterValue));
+
+                if (paths.length > 1) {
+                    // The first substring becomes the key
+                    parameterName = paths[0];
+                    // Next substrings create a hierarchy which will becomes json subkeys
+                    int count = paths.length - 1;
+                    while (count > 0) {
+                        Map<String, Object> tmpObject = new HashMap<String, Object>();
+                        tmpObject.put(paths[count], objectParameterValue);
+                        objectParameterValue = tmpObject;
+                        count--;
+                    }
+                    Object existProperty = newProperties.get(parameterName);
+                    if (existProperty != null && existProperty instanceof Map) {
+                        mergeProperties((Map) objectParameterValue, (Map) existProperty);
+                    }
+                }
+
+                newProperties.put(parameterName, objectParameterValue);
             }
-
-            // Checks if the parameter name is splittable
-            String[] paths = parameterName.split(Pattern.quote(subkeySeparatorParameterValue));
-
-            if (paths.length > 1) {
-                // The first substring becomes the key
-                parameterName = paths[0];
-                // Next substrings create a hierarchy which will becomes json subkeys
-                int count = paths.length - 1;
-                while (count > 0) {
-                    Map<String, Object> tmpObject =  new HashMap<String, Object>();
-                    tmpObject.put(paths[count], objectParameterValue);
-                    objectParameterValue = tmpObject;
-                    count--;
-                }
-                Object existProperty = newProperties.get(parameterName);
-                if (existProperty != null && existProperty instanceof Map) {
-                    mergeProperties((Map) objectParameterValue, (Map) existProperty);
-                }
-            }
-
-            newProperties.put(parameterName, objectParameterValue);
         }
 
         // Execute the query depending to the policy
