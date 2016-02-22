@@ -931,14 +931,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             json = c8o.callJson("fs://.post", "_id", myId).sync();
             assertTrue(json.getBoolean("ok"));
             try {
-                c8o.callJson("fs://.get", "docid", myId).sync();
+                c8o.callJson("fs://notdefault.get", "docid", myId).sync();
                 assertTrue("not possible", false);
             } catch (Exception e) {
                 assertEquals(C8oRessourceNotFoundException.class, e.getClass());
             }
             json = c8o.callJson("fs://notdefault.post", "_id", myId).sync();
             assertTrue(json.getBoolean("ok"));
-            json = c8o.callJson("fs://.get", "docid", myId).sync();
+            json = c8o.callJson("fs://notdefault.get", "docid", myId).sync();
             String id = json.getString("_id");
             assertEquals(myId, id);
         }
