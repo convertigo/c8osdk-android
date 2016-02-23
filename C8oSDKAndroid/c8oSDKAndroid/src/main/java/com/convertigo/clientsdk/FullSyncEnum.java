@@ -39,7 +39,7 @@ class FullSyncEnum {
 		},
 		DELETE("delete") {
 			@Override
-			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException	{
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
 				String docid = C8oUtils.peekParameterStringValue(parameters, FullSyncGetDocumentParameter.DOCID.name, true);
 				return c8oFullSync.handleDeleteDocumentRequest(databaseName, docid, parameters);
 			}
@@ -64,7 +64,7 @@ class FullSyncEnum {
 		},
 		VIEW("view") {
 			@Override
-			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException {
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
 				// Gets the design doc parameter value
 				String ddoc = C8oUtils.peekParameterStringValue(parameters, FullSyncGetViewParameter.DDOC.name, false);
 				// Gets the view name parameter value
@@ -79,7 +79,8 @@ class FullSyncEnum {
                 final Object mutex = new Object();
                 final boolean[] pullFinish = {false};
                 final boolean[] pushFinish = {false};
-                synchronized (mutex)
+				//noinspection SynchronizationOnLocalVariableOrMethodParameter
+				synchronized (mutex)
                 {
                     c8oFullSync.handleSyncRequest(databaseName, parameters, new C8oResponseProgressListener() {
 
@@ -112,7 +113,7 @@ class FullSyncEnum {
                         mutex.wait();
                         response.put("ok", true);
                     } catch (Exception e) {
-                        new C8oException("TODO", e);
+                        throw new C8oException("TODO", e);
                     }
                     return response;
                 }
@@ -122,7 +123,8 @@ class FullSyncEnum {
 			@Override
 			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
 				final Object mutex = new Object();
-                synchronized (mutex)
+				//noinspection SynchronizationOnLocalVariableOrMethodParameter
+				synchronized (mutex)
                 {
                     c8oFullSync.handleReplicatePullRequest(databaseName, parameters, new C8oResponseProgressListener() {
 
@@ -147,7 +149,7 @@ class FullSyncEnum {
                         mutex.wait();
                         response.put("ok", true);
                     } catch (Exception e) {
-                        new C8oException("TODO", e);
+						throw new C8oException("TODO", e);
                     }
                     return response;
                 }
@@ -157,7 +159,8 @@ class FullSyncEnum {
 			@Override
 			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
                 final Object mutex = new Object();
-                synchronized (mutex)
+				//noinspection SynchronizationOnLocalVariableOrMethodParameter
+				synchronized (mutex)
                 {
                     c8oFullSync.handleReplicatePushRequest(databaseName, parameters, new C8oResponseProgressListener() {
 
@@ -182,7 +185,7 @@ class FullSyncEnum {
                         mutex.wait();
                         response.put("ok", true);
                     } catch (Exception e) {
-                        new C8oException("TODO", e);
+						throw new C8oException("TODO", e);
                     }
                     return response;
                 }
@@ -213,7 +216,7 @@ class FullSyncEnum {
 			this.value = value;
 		}
 		
-		abstract Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException, C8oRessourceNotFoundException;
+		abstract Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException;
 	
 		static FullSyncRequestable getFullSyncRequestable(String value) {
 			FullSyncRequestable[] fullSyncRequestableValues = FullSyncRequestable.values();
@@ -327,11 +330,21 @@ class FullSyncEnum {
 				}
 			}
 		},
-		MAP_ONLY("map_only", true) {
+		REDUCE("reduce", true) {
 			@Override
 			void addToQuery(Query query, Object parameter) {
 				if (parameter instanceof Boolean) {
-					query.setMapOnly((Boolean) parameter);
+					query.setMapOnly(! (Boolean) parameter);
+				} else {
+					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
+				}
+			}
+		},
+		GROUP("group", true) {
+			@Override
+			void addToQuery(Query query, Object parameter) {
+				if (parameter instanceof Boolean) {
+					query.setGroupLevel((Boolean) parameter ? 99 : 0);
 				} else {
 					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
 				}
@@ -470,6 +483,7 @@ class FullSyncEnum {
 			@Override
 			void setReplication(Replication replication, Object parameter) {
 				if (parameter instanceof List) {
+                    //noinspection unchecked
 					replication.setDocIds((List<String>) parameter);
 				} else {
 					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, List.class.getName(), parameter.getClass().getName()));
@@ -578,7 +592,6 @@ class FullSyncEnum {
                     // Creates a new document or get an existing one (if the ID is specified)
                     if (documentId == null) {
                         createdDocument = database.createDocument();
-                        documentId = createdDocument.getId();
                     } else {
                         createdDocument = database.getDocument(documentId);
                     }

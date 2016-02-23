@@ -9,7 +9,9 @@ import android.util.Log;
 
 import com.convertigo.clientsdk.C8o;
 import com.convertigo.clientsdk.C8oOnFail;
+import com.convertigo.clientsdk.C8oOnProgress;
 import com.convertigo.clientsdk.C8oOnResponse;
+import com.convertigo.clientsdk.C8oProgress;
 import com.convertigo.clientsdk.C8oPromise;
 import com.convertigo.clientsdk.C8oSettings;
 import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
@@ -83,8 +85,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 );
                 c8o.setLogRemote(false);
                 c8o.setLogLevelLocal(Log.ERROR);
-                JSONObject json = c8o.callJson(".InitFS").sync();
-                assertTrue(json.getJSONObject("document").getBoolean("ok"));
+                //JSONObject json = c8o.callJson(".InitFS").sync();
+                //assertTrue(json.getJSONObject("document").getBoolean("ok"));
                 return c8o;
             }
         },
@@ -600,7 +602,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
-    public void C8oSsl1TrustFail() throws Throwable {
+    public void C8o0Ssl1TrustFail() throws Throwable {
         Throwable exception = null;
         try {
             C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH);
@@ -972,11 +974,151 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             value = json.getJSONObject("document").getString("authenticatedUserID");
             assertEquals("testing_user", value);
             json = c8o.callJson("fs://.replicate_pull").sync();
+            c8o.callJson(".LogoutTesting").sync();
             assertTrue(json.getBoolean("ok"));
             json = c8o.callJson("fs://.get", "docid", "456").sync();
             value = json.getString("data");
             assertEquals("456", value);
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsReplicatePullProgress() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS_REMOTE);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson(".LoginTesting").sync();
+            Object value = json.getJSONObject("document").getString("authenticatedUserID");
+            assertEquals("testing_user", value);
+            final int count[] = {0};
+            final String first[] = {null};
+            final String last[] = {null};
+            final boolean uiThread[] = {false};
+            json = c8o.callJson("fs://.replicate_pull").progress(new C8oOnProgress() {
+                @Override
+                public void run(C8oProgress progress) {
+                    count[0]++;
+                    uiThread[0] |= Looper.getMainLooper() == Looper.myLooper();
+                    if (first[0] == null) {
+                        first[0] = progress.toString();
+                    }
+                    last[0] = progress.toString();
+                }
+            }).sync();
             c8o.callJson(".LogoutTesting").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.get", "docid", "456").sync();
+            value = json.getString("data");
+            assertEquals("456", value);
+            assertFalse("uiThread must be False", uiThread[0]);
+            assertEquals("pull: 0/0 (running)", first[0]);
+            assertEquals("pull: 8/8 (done)", last[0]);
+            assertTrue("count > 5", count[0] > 5);
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsReplicatePullProgressUI() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS_REMOTE);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson(".LoginTesting").sync();
+            Object value = json.getJSONObject("document").getString("authenticatedUserID");
+            assertEquals("testing_user", value);
+            final int count[] = {0};
+            final String first[] = {null};
+            final String last[] = {null};
+            final boolean uiThread[] = {true};
+            json = c8o.callJson("fs://.replicate_pull").progressUI(new C8oOnProgress() {
+                @Override
+                public void run(C8oProgress progress) {
+                    count[0]++;
+                    uiThread[0] &= Looper.getMainLooper() == Looper.myLooper();
+                    if (first[0] == null) {
+                        first[0] = progress.toString();
+                    }
+                    last[0] = progress.toString();
+                }
+            }).sync();
+            c8o.callJson(".LogoutTesting").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.get", "docid", "456").sync();
+            value = json.getString("data");
+            assertEquals("456", value);
+            assertTrue("uiThread must be True", uiThread[0]);
+            assertEquals("pull: 0/0 (running)", first[0]);
+            assertEquals("pull: 8/8 (done)", last[0]);
+            assertTrue("count > 5", count[0] > 5);
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsReplicatePullAnoAndAuthView() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS_REMOTE);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.replicate_pull").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.view",
+                "ddoc", "design",
+                "view", "reverse"
+            ).sync();
+            Object value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
+            assertEquals(774.0, value);
+            json = c8o.callJson("fs://.view",
+                    "ddoc", "design",
+                    "view", "reverse",
+                    "reduce", false
+            ).sync();
+            value = json.getInt("count");
+            assertEquals(3, value);
+            value = json.getJSONArray("rows").getJSONObject(1).getString("key");
+            assertEquals("852", value);
+            json = c8o.callJson("fs://.view",
+                    "ddoc", "design",
+                    "view", "reverse",
+                    "startkey", "0",
+                    "endkey", "9"
+            ).sync();
+            value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
+            assertEquals(405.0, value);
+            json = c8o.callJson(".LoginTesting").sync();
+            value = json.getJSONObject("document").getString("authenticatedUserID");
+            assertEquals("testing_user", value);
+            json = c8o.callJson("fs://.replicate_pull").sync();
+            c8o.callJson(".LogoutTesting").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.view",
+                    "ddoc", "design",
+                    "view", "reverse"
+            ).sync();
+            value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
+            assertEquals(2142.0, value);
+            json = c8o.callJson("fs://.view",
+                    "ddoc", "design",
+                    "view", "reverse",
+                    "reduce", false
+            ).sync();
+            value = json.getInt("count");
+            assertEquals(6, value);
+            value = json.getJSONArray("rows").getJSONObject(1).getString("key");
+            assertEquals("654", value);
+            json = c8o.callJson("fs://.post", "_id", "111", "data", "16").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.view",
+                    "ddoc", "design",
+                    "view", "reverse",
+                    "startkey", "0",
+                    "endkey", "9"
+            ).sync();
+            value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
+            assertEquals(1000.0, value);
         }
     }
 
