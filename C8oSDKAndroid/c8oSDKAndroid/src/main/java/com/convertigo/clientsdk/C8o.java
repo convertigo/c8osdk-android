@@ -35,11 +35,14 @@ import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
 
 import org.apache.http.client.CookieStore;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Document;
 
 import java.security.InvalidParameterException;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -356,6 +359,19 @@ public class C8o extends C8oBase {
 
     public C8oPromise<JSONObject> callJson(String requestable, Object... parameters) {
         return callJson(requestable, toParameters(parameters));
+    }
+
+    public C8oPromise<JSONObject> callJson(String requestable, JSONObject parameters) {
+        Map<String, Object> map = new LinkedHashMap<String, Object>(parameters.length());
+        for (Iterator i = parameters.keys(); i.hasNext();) {
+            String key = (String) i.next();
+            try {
+                map.put(key, parameters.get(key));
+            } catch (JSONException ex) {
+                throw new IllegalArgumentException("Something wrong with this parameter", ex);
+            }
+        }
+        return callJson(requestable, map);
     }
 
     public C8oPromise<Document> callXml(String requestable, final Map<String, Object> parameters) {

@@ -242,14 +242,12 @@ class C8oFullSyncDatabase {
                         public void changed(ChangeEvent changeEvent) {
                             long total = changeEvent.getChangeCount();
                             if (stat[0] == 0) {
-                                c8o.log.warn("total >= lastCurrent ? " + total + " >= " + lastCurrent);
                                 if (lastCurrent == 0 || total > 0) {
                                     stat[0] = 1;
                                 }
                             }
 
                             if (stat[0] == 1) {
-                                c8o.log.warn("total == 0 ? " + total);
                                 if (total == 0) {
                                     stat[0] = 2;
                                 }

@@ -29,6 +29,7 @@ import org.w3c.dom.Element;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
@@ -81,7 +82,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 );
                 c8o.setLogRemote(false);
                 c8o.setLogLevelLocal(Log.ERROR);
-                JSONObject json = c8o.callJson(".InitFS").sync();
+                JSONObject json = c8o.callJson(".InitFsPull").sync();
                 assertTrue(json.getJSONObject("document").getBoolean("ok"));
                 return c8o;
             }
@@ -94,6 +95,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 );
                 c8o.setLogRemote(false);
                 c8o.setLogLevelLocal(Log.ERROR);
+                JSONObject json = c8o.callJson(".InitFsPush").sync();
+                assertTrue(json.getJSONObject("document").getBoolean("ok"));
                 return c8o;
             }
         },
@@ -191,8 +194,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void C8oDefaultPingTwoSingleValues() throws Throwable {
         C8o c8o = get(Stuff.C8O);
         Document doc = c8o.callXml(".Ping",
-            "var1", "value one",
-            "var2", "value two"
+                "var1", "value one",
+                "var2", "value two"
         ).sync();
         String value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
@@ -204,9 +207,9 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void C8oDefaultPingTwoSingleValuesOneMulti() throws Throwable {
         C8o c8o = get(Stuff.C8O);
         Document doc = c8o.callXml(".Ping",
-            "var1", "value one",
-            "var2", "value two",
-            "mvar1", new String[]{"mvalue one", "mvalue two", "mvalue three"}
+                "var1", "value one",
+                "var2", "value two",
+                "mvar1", new String[]{"mvalue one", "mvalue two", "mvalue three"}
         ).sync();
         Object value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
@@ -1186,8 +1189,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 String id = "C8oFsReplicatePushAuthProgress-" + System.currentTimeMillis();
                 for (int i = 0; i < 10; i++) {
                     json = c8o.callJson("fs://.post",
-                        "_id", id + "-" + i,
-                        "index", i
+                            "_id", id + "-" + i,
+                            "index", i
                     ).sync();
                     assertTrue(json.getBoolean("ok"));
                 }
@@ -1232,6 +1235,99 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertEquals("push: 0/0 (running)", first[0]);
                 assertEquals("push: 10/10 (done)", last[0]);
                 assertTrue("count > 3", count[0] > 3);
+            } finally {
+                c8o.callJson(".LogoutTesting").sync();
+            }
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsReplicateSyncContinuousProgress() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS_PUSH);
+        synchronized (c8o) {
+            try {
+                JSONObject json = c8o.callJson("fs://.reset").sync();
+                assertTrue(json.getBoolean("ok"));
+                String id = "C8oFsReplicateSyncContinuousProgress-" + System.currentTimeMillis();
+                for (int i = 0; i < 3; i++) {
+                    json = c8o.callJson("fs://.post",
+                            "_id", id + "-" + i,
+                            "index", i
+                    ).sync();
+                    assertTrue(json.getBoolean("ok"));
+                }
+                json = c8o.callJson(".LoginTesting").sync();
+                Object value = json.getJSONObject("document").getString("authenticatedUserID");
+                assertEquals("testing_user", value);
+                final String firstPush[] = {null};
+                final String lastPush[] = {null};
+                final String livePush[] = {null};
+                final String firstPull[] = {null};
+                final String lastPull[] = {null};
+                final String livePull[] = {null};
+                json = c8o.callJson("fs://.sync", "continuous", true).progress(new C8oOnProgress() {
+                    @Override
+                    public void run(C8oProgress progress) {
+                        if (progress.isContinuous()) {
+                            if (progress.isPush()) {
+                                livePush[0] = progress.toString();
+                            }
+                            if (progress.isPull()) {
+                                livePull[0] = progress.toString();
+                            }
+                        } else {
+                            if (progress.isPush()) {
+                                if (firstPush[0] == null) {
+                                    firstPush[0] = progress.toString();
+                                }
+                                lastPush[0] = progress.toString();
+                            }
+                            if (progress.isPull()) {
+                                if (firstPull[0] == null) {
+                                    firstPull[0] = progress.toString();
+                                }
+                                lastPull[0] = progress.toString();
+                            }
+                        }
+                    }
+                }).sync();
+                assertTrue(json.getBoolean("ok"));
+                assertEquals("push: 0/0 (running)", firstPush[0]);
+                assertTrue("push: \\d+/\\d+ \\(done\\)", Pattern.matches("push: \\d+/\\d+ \\(done\\)", lastPush[0]));
+                assertEquals("pull: 0/0 (running)", firstPull[0]);
+                assertTrue("pull: \\d+/\\d+ \\(done\\)", Pattern.matches("pull: \\d+/\\d+ \\(done\\)", lastPull[0]));
+                json = c8o.callJson(".qa_fs_push.AllDocs",
+                        "startkey", id,
+                        "endkey", id + "z"
+                ).sync();
+                JSONArray array = json
+                        .getJSONObject("document")
+                        .getJSONObject("couchdb_output")
+                        .getJSONObject("rows")
+                        .getJSONArray("item");
+                assertEquals(3, array.length());
+                for (int i = 0; i < 3; i++) {
+                    value = array.getJSONObject(i).getJSONObject("doc").getString("_id");
+                    assertEquals(id + "-" + i, value);
+                }
+                json = c8o.callJson("fs://.get", "docid", "def").sync();
+                value = json.getString("_id");
+                assertEquals("def", value);
+                json.put("custom", id);
+                json = c8o.callJson("fs://.post", json).sync();
+                assertTrue(json.getBoolean("ok"));
+                json = c8o.callJson(".qa_fs_push.PostDocument", "_id", "ghi", "custom", id).sync();
+                assertTrue(json.getJSONObject("document").getJSONObject("couchdb_output").getBoolean("ok"));
+                Thread.sleep(2000);
+                json = c8o.callJson("fs://.get", "docid", "ghi").sync();
+                value = json.getString("custom");
+                assertEquals(id, value);
+                json = c8o.callJson(".qa_fs_push.GetDocument", "_use_docid", "def").sync();
+                value = json.getJSONObject("document").getJSONObject("couchdb_output").getString("custom");
+                assertEquals(id, value);
+//                assertTrue("pull: \\d+/\\d+ \\(live\\)", Pattern.matches("pull: \\d+/\\d+ \\(live\\)", livePull[0]));
+//                assertTrue("push: \\d+/\\d+ \\(live\\)", Pattern.matches("push: \\d+/\\d+ \\(live\\)", lastPush[0]));
             } finally {
                 c8o.callJson(".LogoutTesting").sync();
             }
