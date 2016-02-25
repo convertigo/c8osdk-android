@@ -8,6 +8,7 @@ import android.test.ActivityInstrumentationTestCase2;
 import android.util.Log;
 
 import com.convertigo.clientsdk.C8o;
+import com.convertigo.clientsdk.C8oLocalCache;
 import com.convertigo.clientsdk.C8oOnFail;
 import com.convertigo.clientsdk.C8oOnProgress;
 import com.convertigo.clientsdk.C8oOnResponse;
@@ -97,6 +98,15 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 c8o.setLogLevelLocal(Log.ERROR);
                 JSONObject json = c8o.callJson(".InitFsPush").sync();
                 assertTrue(json.getJSONObject("document").getBoolean("ok"));
+                return c8o;
+            }
+        },
+        C8O_LC {
+            @Override
+            Object get() throws Throwable {
+                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+                c8o.setLogRemote(false);
+                c8o.setLogLevelLocal(Log.ERROR);
                 return c8o;
             }
         },
@@ -1101,10 +1111,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 value = json.getJSONArray("rows").getJSONObject(1).getString("key");
                 assertEquals("852", value);
                 json = c8o.callJson("fs://.view",
-                        "ddoc", "design",
-                        "view", "reverse",
-                        "startkey", "0",
-                        "endkey", "9"
+                    "ddoc", "design",
+                    "view", "reverse",
+                    "startkey", "0",
+                    "endkey", "9"
                 ).sync();
                 value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
                 assertEquals(405.0, value);
@@ -1154,10 +1164,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertTrue(json.getBoolean("ok"));
                 String id = "C8oFsReplicatePushAnoAndAuth-" + System.currentTimeMillis();
                 json = c8o.callJson("fs://.post",
-                        "_id", id,
-                        "data", "777",
-                        "bool", true,
-                        "int", 777
+                    "_id", id,
+                    "data", "777",
+                    "bool", true,
+                    "int", 777
                 ).sync();
                 assertTrue(json.getBoolean("ok"));
                 json = c8o.callJson(".LoginTesting").sync();
@@ -1189,8 +1199,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 String id = "C8oFsReplicatePushAuthProgress-" + System.currentTimeMillis();
                 for (int i = 0; i < 10; i++) {
                     json = c8o.callJson("fs://.post",
-                            "_id", id + "-" + i,
-                            "index", i
+                        "_id", id + "-" + i,
+                        "index", i
                     ).sync();
                     assertTrue(json.getBoolean("ok"));
                 }
@@ -1218,10 +1228,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                         "endkey", id + "z"
                 ).sync();
                 JSONArray array = json
-                        .getJSONObject("document")
-                        .getJSONObject("couchdb_output")
-                        .getJSONObject("rows")
-                        .getJSONArray("item");
+                    .getJSONObject("document")
+                    .getJSONObject("couchdb_output")
+                    .getJSONObject("rows")
+                    .getJSONArray("item");
                 assertEquals(10, array.length());
                 for (int i = 0; i < 10; i++) {
                     value = array.getJSONObject(i).getJSONObject("doc").getString("_id");
@@ -1252,8 +1262,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 String id = "C8oFsReplicateSyncContinuousProgress-" + System.currentTimeMillis();
                 for (int i = 0; i < 3; i++) {
                     json = c8o.callJson("fs://.post",
-                            "_id", id + "-" + i,
-                            "index", i
+                        "_id", id + "-" + i,
+                        "index", i
                     ).sync();
                     assertTrue(json.getBoolean("ok"));
                 }
@@ -1298,14 +1308,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertEquals("pull: 0/0 (running)", firstPull[0]);
                 assertTrue("pull: \\d+/\\d+ \\(done\\)", Pattern.matches("pull: \\d+/\\d+ \\(done\\)", lastPull[0]));
                 json = c8o.callJson(".qa_fs_push.AllDocs",
-                        "startkey", id,
-                        "endkey", id + "z"
+                    "startkey", id,
+                    "endkey", id + "z"
                 ).sync();
                 JSONArray array = json
-                        .getJSONObject("document")
-                        .getJSONObject("couchdb_output")
-                        .getJSONObject("rows")
-                        .getJSONArray("item");
+                    .getJSONObject("document")
+                    .getJSONObject("couchdb_output")
+                    .getJSONObject("rows")
+                    .getJSONArray("item");
                 assertEquals(3, array.length());
                 for (int i = 0; i < 3; i++) {
                     value = array.getJSONObject(i).getJSONObject("doc").getString("_id");
@@ -1332,6 +1342,86 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 c8o.callJson(".LogoutTesting").sync();
             }
         }
+    }
+
+    @Test
+    public void C8oLocalCacheXmlPriorityLocal() throws Throwable {
+        C8o c8o = get(Stuff.C8O_LC);
+        String id = "C8oLocalCacheXmlPriorityLocal-" + System.currentTimeMillis();
+        Document doc = c8o.callXml(".Ping",
+                C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
+                "var1", id
+        ).sync();
+        String value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals(id, value);
+        String signature = xpath.evaluate("/document/@signature", doc);
+        Thread.sleep(500);
+        doc = c8o.callXml(".Ping",
+                C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
+                "var1", id + "bis"
+        ).sync();
+        value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals(id + "bis", value);
+        String signature2 = xpath.evaluate("/document/@signature", doc);
+        assertNotSame(signature, signature2);
+        Thread.sleep(500);
+        doc = c8o.callXml(".Ping",
+                C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
+                "var1", id
+        ).sync();
+        value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals(id, value);
+        signature2 = xpath.evaluate("/document/@signature", doc);
+        assertEquals(signature, signature2);
+        Thread.sleep(2500);
+        doc = c8o.callXml(".Ping",
+                C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
+                "var1", id
+        ).sync();
+        value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals(id, value);
+        signature2 = xpath.evaluate("/document/@signature", doc);
+        assertNotSame(signature, signature2);
+    }
+
+    @Test
+    public void C8oLocalCacheJsonPriorityLocal() throws Throwable {
+        C8o c8o = get(Stuff.C8O_LC);
+        String id = "C8oLocalCacheJsonPriorityLocal-" + System.currentTimeMillis();
+        JSONObject json = c8o.callJson(".Ping",
+                C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
+                "var1", id
+        ).sync();
+        String value = json.getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals(id, value);
+        String signature = json.getJSONObject("document").getJSONObject("attr").getString("signature");
+        Thread.sleep(500);
+        json = c8o.callJson(".Ping",
+                C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
+                "var1", id + "bis"
+        ).sync();
+        value = json.getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals(id + "bis", value);
+        String signature2 = json.getJSONObject("document").getJSONObject("attr").getString("signature");
+        assertNotSame(signature, signature2);
+        Thread.sleep(500);
+        json = c8o.callJson(".Ping",
+                C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
+                "var1", id
+        ).sync();
+        value = json.getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals(id, value);
+        signature2 = json.getJSONObject("document").getJSONObject("attr").getString("signature");
+        assertEquals(signature, signature2);
+        Thread.sleep(2500);
+        json = c8o.callJson(".Ping",
+                C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
+                "var1", id
+        ).sync();
+        value = json.getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals(id, value);
+        signature2 = json.getJSONObject("document").getJSONObject("attr").getString("signature");
+        assertNotSame(signature, signature2);
     }
 
     //@Test

@@ -192,14 +192,10 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
             String responseString = null;
             if (c8oResponseListener instanceof C8oResponseXmlListener) {
                 try {
-                    if (localCacheEnabled) {
-                        try {
-                            responseString = C8oTranslator.inputStreamToString(responseStream);
-                        } catch (C8oException e) {
-                            return new C8oException(C8oExceptionMessage.parseInputStreamToString(), e);
-                        }
-                    }
                     response = C8oTranslator.inputStreamToXMLAndClose(responseStream, c8o.getDocumentBuilder());
+                    if (localCacheEnabled) {
+                        responseString = C8oTranslator.xmlToString((Document) response);
+                    }
                 } catch (C8oException e) {
                     return new C8oException(C8oExceptionMessage.inputStreamToXML(), e);
                 }
