@@ -94,6 +94,8 @@ public class C8oLogger {
 	 * It is set out of the constructor.
 	 */
 	private C8o c8o;
+
+	private String env;
 	
 	C8oLogger(C8o c8o) {
 		this.c8o = c8o;
@@ -108,6 +110,14 @@ public class C8oLogger {
 		startTimeRemoteLog = currentTime;
 		uidRemoteLogs = Long.toString(currentTime, 16);
 		logTimeFormat = new DecimalFormat(".###");
+		try {
+			env = new JSONObject()
+                .put("uid", uidRemoteLogs)
+                .put("uuid", c8o.getDeviceUUID())
+                .put("project", c8o.getEndpointProject()).toString();
+		} catch (Exception e) {
+			// couldn't happen
+		}
 	}
 	
 	private boolean isLoggableRemote(int logLevel) {
@@ -337,8 +347,7 @@ public class C8oLogger {
 						// Http request sending logs
 						HttpPost request = new HttpPost(remoteLogUrl);
 						parameters.add(new BasicNameValuePair(JSON_KEY_LOGS, logsArray.toString()));
-						parameters.add(new BasicNameValuePair(JSON_KEY_ENV, "{\"uid\":\"" + uidRemoteLogs + "\"}"));
-						parameters.add(new BasicNameValuePair(C8o.ENGINE_PARAMETER_DEVICE_UUID, c8o.getDeviceUUID()));
+						parameters.add(new BasicNameValuePair(JSON_KEY_ENV, env));
 						try {
 							request.setEntity(new UrlEncodedFormEntity(parameters));
 						} catch (UnsupportedEncodingException e) {

@@ -83,7 +83,7 @@ public class C8o extends C8oBase {
 	/**
 	 * The regex used to get the part of the endpoint before '/projects/...'
 	 */
-	private static final Pattern RE_ENDPOINT = Pattern.compile("^(http(s)?://([^:]+)(:[0-9]+)?/?.*?)/projects/[^/]+$");
+	private static final Pattern RE_ENDPOINT = Pattern.compile("^(http(s)?://([^:]+)(:[0-9]+)?/?.*?)/projects/([^/]+)$");
 	
 	//*** Engine reserved parameters ***//
 	
@@ -130,6 +130,7 @@ public class C8o extends C8oBase {
     private boolean endpointIsSecure;
     private String endpointHost;
     private String endpointPort;
+    private String endpointProject;
 
     private String deviceUUID;
 
@@ -197,6 +198,7 @@ public class C8o extends C8oBase {
         endpointIsSecure = matches.group(2) != null;
         endpointHost = matches.group(3);
         endpointPort = matches.group(4);
+        endpointProject = matches.group(5);
 
         deviceUUID = Settings.Secure.getString(context.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
 
@@ -464,6 +466,10 @@ public class C8o extends C8oBase {
 
     public String getEndpointPort() {
         return  endpointPort;
+    }
+
+    public String getEndpointProject() {
+        return  endpointProject;
     }
 
     public String getDeviceUUID() {
