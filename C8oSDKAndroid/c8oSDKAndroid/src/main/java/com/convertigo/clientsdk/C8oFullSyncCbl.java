@@ -298,13 +298,6 @@ class C8oFullSyncCbl extends C8oFullSync {
             throw new C8oException(C8oExceptionMessage.couchRequestAllDocuments(), e);
         }
 
-        JSONObject obj = C8oFullSyncTranslator.queryEnumeratorToJson(result);
-        try {
-            obj.put("total_rows", fullSyncDatabase.getDatabase().getDocumentCount());
-        } catch (JSONException e) {
-            throw new C8oException("TODO", e);
-        }
-
         return result;
     }
 
@@ -455,6 +448,7 @@ class C8oFullSyncCbl extends C8oFullSync {
             // No TouchDB view is defined, or it hasn't had a map block assigned
             // Searches in the design document if there is a CouchDB view definition we can compile
             RevisionInternal rev = database.getDocumentWithIDAndRev(String.format("_design/%s", ddocName), null, EnumSet.noneOf(Database.TDContentOptions.class));
+            //RevisionInternal rev = database.getDocument("_design/" + ddocName, null, true);
             if (rev == null) {
                 // C8oLogger.log("Document : " + designDoc + " not found", Log.ERROR);
                 return null;

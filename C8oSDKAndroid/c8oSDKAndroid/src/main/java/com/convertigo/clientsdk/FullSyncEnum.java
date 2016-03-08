@@ -324,7 +324,7 @@ class FullSyncEnum {
 			@Override
 			void addToQuery(Query query, Object parameter) {
 				if (parameter instanceof Boolean) {
-					// TODO
+					query.setPrefetch((Boolean) parameter);
 				} else {
 					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
 				}
@@ -345,16 +345,6 @@ class FullSyncEnum {
 			void addToQuery(Query query, Object parameter) {
 				if (parameter instanceof Boolean) {
 					query.setGroupLevel((Boolean) parameter ? 99 : 0);
-				} else {
-					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
-				}
-			}
-		},
-		PREFETCH("prefetch", true) {
-			@Override
-			void addToQuery(Query query, Object parameter) {
-				if (parameter instanceof Boolean) {
-					query.setPrefetch((Boolean) parameter);
 				} else {
 					throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidParameterType(name, Boolean.class.getName(), parameter.getClass().getName()));
 				}

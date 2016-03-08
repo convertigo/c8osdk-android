@@ -36,6 +36,13 @@ import java.util.HashMap;
  */
 public class C8oSettings extends C8oBase {
 
+	public C8oSettings() {
+	}
+
+	public C8oSettings(C8o c8o) {
+		copy(c8o);
+	}
+
 	/**
 	 * Sets the connection timeout to Convertigo in milliseconds. A value of zero means the timeout is not used.<br/>
 	 * Default is <b>0</b>.
