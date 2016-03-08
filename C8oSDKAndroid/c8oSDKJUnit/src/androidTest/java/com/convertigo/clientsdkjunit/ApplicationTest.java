@@ -1156,6 +1156,53 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
+    public void C8oFsReplicatePullGetAll() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS_PULL);
+        synchronized (c8o) {
+            try {
+                JSONObject json = c8o.callJson("fs://.reset").sync();
+                assertTrue(json.getBoolean("ok"));
+                json = c8o.callJson(".LoginTesting").sync();
+                Object value = json.getJSONObject("document").getString("authenticatedUserID");
+                assertEquals("testing_user", value);
+                json = c8o.callJson("fs://.replicate_pull").sync();
+                assertTrue(json.getBoolean("ok"));
+                json = c8o.callJson("fs://.all").sync();
+                assertEquals(8, json.getInt("count"));
+                assertEquals(8, json.getJSONArray("rows").length());
+                assertEquals("789", json.getJSONArray("rows").getJSONObject(5).getString("key"));
+                assertFalse(json.getJSONArray("rows").getJSONObject(5).has("doc"));
+                json = c8o.callJson("fs://.all",
+                    "include_docs", true
+                ).sync();
+                assertEquals(8, json.getInt("count"));
+                assertEquals(8, json.getJSONArray("rows").length());
+                assertEquals("789", json.getJSONArray("rows").getJSONObject(5).getString("key"));
+                assertEquals("testing_user", json.getJSONArray("rows").getJSONObject(5).getJSONObject("doc").getString("~c8oAcl"));
+                json = c8o.callJson("fs://.all",
+                    "limit", 2
+                ).sync();
+                assertEquals(2, json.getInt("count"));
+                assertEquals(2, json.getJSONArray("rows").length());
+                assertEquals("147", json.getJSONArray("rows").getJSONObject(1).getString("key"));
+                assertFalse(json.getJSONArray("rows").getJSONObject(1).has("doc"));
+                json = c8o.callJson("fs://.all",
+                    "include_docs", true,
+                    "limit", 3,
+                    "skip", 2
+                ).sync();
+                assertEquals(3, json.getInt("count"));
+                assertEquals(3, json.getJSONArray("rows").length());
+                assertEquals("369", json.getJSONArray("rows").getJSONObject(1).getString("key"));
+                assertEquals("doc", json.getJSONArray("rows").getJSONObject(1).getJSONObject("doc").getString("type"));
+            } finally {
+                c8o.callJson(".LogoutTesting").sync();
+            }
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
     public void C8oFsReplicatePushAuth() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS_PUSH);
         synchronized (c8o) {
