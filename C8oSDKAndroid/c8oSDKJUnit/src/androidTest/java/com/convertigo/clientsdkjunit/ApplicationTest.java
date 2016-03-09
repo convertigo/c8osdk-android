@@ -1402,7 +1402,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         String value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals(id, value);
         String signature = xpath.evaluate("/document/@signature", doc);
-        Thread.sleep(500);
+        Thread.sleep(100);
         doc = c8o.callXml(".Ping",
                 C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
                 "var1", id + "bis"
@@ -1411,7 +1411,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals(id + "bis", value);
         String signature2 = xpath.evaluate("/document/@signature", doc);
         assertNotSame(signature, signature2);
-        Thread.sleep(500);
+        Thread.sleep(100);
         doc = c8o.callXml(".Ping",
                 C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
                 "var1", id
@@ -1420,7 +1420,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals(id, value);
         signature2 = xpath.evaluate("/document/@signature", doc);
         assertEquals(signature, signature2);
-        Thread.sleep(2500);
+        Thread.sleep(2800);
         doc = c8o.callXml(".Ping",
                 C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
                 "var1", id
@@ -1442,7 +1442,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         String value = json.getJSONObject("document").getJSONObject("pong").getString("var1");
         assertEquals(id, value);
         String signature = json.getJSONObject("document").getJSONObject("attr").getString("signature");
-        Thread.sleep(500);
+        Thread.sleep(100);
         json = c8o.callJson(".Ping",
                 C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
                 "var1", id + "bis"
@@ -1451,7 +1451,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals(id + "bis", value);
         String signature2 = json.getJSONObject("document").getJSONObject("attr").getString("signature");
         assertNotSame(signature, signature2);
-        Thread.sleep(500);
+        Thread.sleep(100);
         json = c8o.callJson(".Ping",
                 C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
                 "var1", id
@@ -1460,7 +1460,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals(id, value);
         signature2 = json.getJSONObject("document").getJSONObject("attr").getString("signature");
         assertEquals(signature, signature2);
-        Thread.sleep(2500);
+        Thread.sleep(2800);
         json = c8o.callJson(".Ping",
                 C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.LOCAL, 3000),
                 "var1", id
