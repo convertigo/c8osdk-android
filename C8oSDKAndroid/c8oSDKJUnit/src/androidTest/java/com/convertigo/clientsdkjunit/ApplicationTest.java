@@ -193,6 +193,37 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
+    public void C8oUnknownHostCallAndLog() throws Throwable {
+        Throwable exception = null;
+        final Throwable[] exceptionLog = {null};
+        C8o c8o = new C8o(context, "http://" + HOST + "ee:28080" + PROJECT_PATH, new C8oSettings()
+            .setLogOnFail(new C8oOnFail() {
+                @Override
+                public void run(Throwable throwable, Map<String, Object> parameters) {
+                    exceptionLog[0] = throwable;
+                }
+            })
+        );
+        try {
+           c8o.callXml(".Ping").sync();
+        } catch (Exception ex) {
+            exception = ex;
+        }
+        assertNotNull(exception);
+        assertEquals(C8oException.class, exception.getClass());
+        exception = exception.getCause();
+        assertEquals(com.convertigo.clientsdk.exception.C8oHttpRequestException.class, exception.getClass());
+        exception = exception.getCause();
+        assertEquals(java.net.UnknownHostException.class, exception.getClass());
+        assertNotNull(exceptionLog[0]);
+        assertEquals(C8oException.class, exceptionLog[0].getClass());
+        exceptionLog[0] = exceptionLog[0].getCause();
+        assertEquals(com.convertigo.clientsdk.exception.C8oHttpRequestException.class, exceptionLog[0].getClass());
+        exceptionLog[0] = exceptionLog[0].getCause();
+        assertEquals(java.net.UnknownHostException.class, exceptionLog[0].getClass());
+    }
+
+    @Test
     public void C8oDefaultPingOneSingleValue() throws Throwable {
         C8o c8o = get(Stuff.C8O);
         Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
