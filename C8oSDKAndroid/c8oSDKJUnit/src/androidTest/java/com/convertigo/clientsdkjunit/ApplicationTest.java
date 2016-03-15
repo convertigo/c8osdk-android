@@ -193,6 +193,16 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
+    public void C8oDefaultPingWait() throws Throwable {
+        C8o c8o = get(Stuff.C8O);
+        C8oPromise<Document> promise = c8o.callXml(".Ping");
+        Thread.sleep(500);
+        Document doc = promise.sync();
+        Element pong = (Element) xpath.evaluate("/document/pong", doc, XPathConstants.NODE);
+        assertNotNull(pong);
+    }
+
+    @Test
     public void C8oUnknownHostCallAndLog() throws Throwable {
         Throwable exception = null;
         final Throwable[] exceptionLog = {null};
@@ -221,6 +231,25 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals(com.convertigo.clientsdk.exception.C8oHttpRequestException.class, exceptionLog[0].getClass());
         exceptionLog[0] = exceptionLog[0].getCause();
         assertEquals(java.net.UnknownHostException.class, exceptionLog[0].getClass());
+    }
+
+    @Test
+    public void C8oUnknownHostCallWait() throws Throwable {
+        Throwable exception = null;
+        C8o c8o = new C8o(context, "http://" + HOST + "ee:28080" + PROJECT_PATH);
+        try {
+            C8oPromise<Document> promise = c8o.callXml(".Ping");
+            Thread.sleep(500);
+            promise.sync();
+        } catch (Exception ex) {
+            exception = ex;
+        }
+        assertNotNull(exception);
+        assertEquals(C8oException.class, exception.getClass());
+        exception = exception.getCause();
+        assertEquals(com.convertigo.clientsdk.exception.C8oHttpRequestException.class, exception.getClass());
+        exception = exception.getCause();
+        assertEquals(java.net.UnknownHostException.class, exception.getClass());
     }
 
     @Test
@@ -556,7 +585,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void C8oDefaultPromiseFailUI() throws Throwable {
         final C8o c8o = get(Stuff.C8O);
         final JSONObject[] xjson = new JSONObject[3];
-        final Throwable[] xfail = new Throwable[3];
+        final Throwable[] xfail = new Throwable[1];
         final Map<String, Object>[] xparam = new Map[1];
         final Looper[] xthread = new Looper[1];
 
@@ -650,6 +679,175 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertNull(xjson[1]);
         assertNotNull(exception);
         assertEquals("random failure", exception.getMessage());
+    }
+
+    @Test
+    public void C8oDefaultPromiseNested() throws Throwable {
+        final C8o c8o = get(Stuff.C8O);
+        final JSONObject[] xjson = new JSONObject[6];
+        xjson[5] = c8o.callJson(".Ping", "var1", "step 1").then(new C8oOnResponse<JSONObject>() {
+            @Override
+            public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                xjson[0] = json;
+                return c8o.callJson(".Ping", "var1", "step 2").then(new C8oOnResponse<JSONObject>() {
+                    @Override
+                    public C8oPromise<JSONObject> run(JSONObject json2, Map<String, Object> param) throws Throwable {
+                        xjson[1] = json2;
+                        return c8o.callJson(".Ping", "var1", "step 3").then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject json3, Map<String, Object> param) throws Throwable {
+                                xjson[2] = json3;
+                                return c8o.callJson(".Ping", "var1", "step 4");
+                            }
+                        });
+                    }
+                });
+            }
+        }).then(new C8oOnResponse<JSONObject>() {
+            @Override
+            public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                xjson[3] = json;
+                return c8o.callJson(".Ping", "var1", "step 5").then(new C8oOnResponse<JSONObject>() {
+                    @Override
+                    public C8oPromise<JSONObject> run(JSONObject json2, Map<String, Object> param) throws Throwable {
+                        xjson[4] = json2;
+                        return null;
+                    }
+                });
+            }
+        }).sync();
+        Object value = xjson[0].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 1", value);
+        value = xjson[1].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 2", value);
+        value = xjson[2].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 3", value);
+        value = xjson[3].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 4", value);
+        value = xjson[4].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 5", value);
+        value = xjson[5].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 5", value);
+    }
+
+    @Test
+    public void C8oDefaultPromiseNestedFail() throws Throwable {
+        final C8o c8o = get(Stuff.C8O);
+        final JSONObject[] xjson = new JSONObject[6];
+        final Throwable[] xfail = new Throwable[2];
+        try {
+            xjson[5] = c8o.callJson(".Ping", "var1", "step 1").then(new C8oOnResponse<JSONObject>() {
+                @Override
+                public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                    xjson[0] = json;
+                    return c8o.callJson(".Ping", "var1", "step 2").then(new C8oOnResponse<JSONObject>() {
+                        @Override
+                        public C8oPromise<JSONObject> run(JSONObject json2, Map<String, Object> param) throws Throwable {
+                            xjson[1] = json2;
+                            return c8o.callJson(".Ping", "var1", "step 3").then(new C8oOnResponse<JSONObject>() {
+                                @Override
+                                public C8oPromise<JSONObject> run(JSONObject json3, Map<String, Object> param) throws Throwable {
+                                    xjson[2] = json3;
+                                    throw new C8oException("random failure");
+                                }
+                            });
+                        }
+                    });
+                }
+            }).then(new C8oOnResponse<JSONObject>() {
+                @Override
+                public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                    xjson[3] = json;
+                    return c8o.callJson(".Ping", "var1", "step 5").then(new C8oOnResponse<JSONObject>() {
+                        @Override
+                        public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                            xjson[0] = json;
+                            return null;
+                        }
+                    });
+                }
+            }).fail(new C8oOnFail() {
+                @Override
+                public void run(Throwable throwable, Map<String, Object> parameters) {
+                    xfail[0] = throwable;
+                }
+            }).sync();
+        } catch (Throwable t) {
+            xfail[1] = t;
+        }
+        Object value = xjson[0].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 1", value);
+        value = xjson[1].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 2", value);
+        value = xjson[2].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 3", value);
+        value = xjson[3];
+        assertNull(value);
+        value = xjson[4];
+        assertNull(value);
+        value = xjson[5];
+        assertNull(value);
+        assertEquals("random failure", xfail[0].getMessage());
+        assertEquals(xfail[0], xfail[1]);
+    }
+
+    @Test
+    public void C8oDefaultPromiseInVar() throws Throwable {
+        final C8o c8o = get(Stuff.C8O);
+        final JSONObject[] xjson = new JSONObject[3];
+        C8oPromise<JSONObject> promise = c8o.callJson(".Ping", "var1", "step 1");
+        promise.then(new C8oOnResponse<JSONObject>() {
+            @Override
+            public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                xjson[0] = json;
+                return c8o.callJson(".Ping", "var1", "step 2");
+            }
+        });
+        promise.then(new C8oOnResponse<JSONObject>() {
+            @Override
+            public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                xjson[1] = json;
+                return c8o.callJson(".Ping", "var1", "step 3");
+            }
+        });
+        xjson[2] = promise.sync();
+        Object value = xjson[0].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 1", value);
+        value = xjson[1].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 2", value);
+        value = xjson[2].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 3", value);
+    }
+
+    @Test
+    public void C8oDefaultPromiseInVarSleep() throws Throwable {
+        final C8o c8o = get(Stuff.C8O);
+        final JSONObject[] xjson = new JSONObject[3];
+        C8oPromise<JSONObject> promise = c8o.callJson(".Ping", "var1", "step 1");
+        Thread.sleep(500);
+        promise.then(new C8oOnResponse<JSONObject>() {
+            @Override
+            public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                xjson[0] = json;
+                return c8o.callJson(".Ping", "var1", "step 2");
+            }
+        });
+        Thread.sleep(500);
+        promise.then(new C8oOnResponse<JSONObject>() {
+            @Override
+            public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> param) throws Throwable {
+                xjson[1] = json;
+                return c8o.callJson(".Ping", "var1", "step 3");
+            }
+        });
+        Thread.sleep(500);
+        xjson[2] = promise.sync();
+        Object value = xjson[0].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 1", value);
+        value = xjson[1].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 2", value);
+        value = xjson[2].getJSONObject("document").getJSONObject("pong").getString("var1");
+        assertEquals("step 3", value);
     }
 
     @Test

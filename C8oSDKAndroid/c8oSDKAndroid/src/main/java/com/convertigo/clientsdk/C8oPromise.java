@@ -2,144 +2,189 @@ package com.convertigo.clientsdk;
 
 import android.util.Pair;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 
 public class C8oPromise<T> implements C8oPromiseFailSync {
     private C8o c8o;
-    private final List<Pair<C8oOnResponse<T>, Boolean>> c8oOnResponses = new LinkedList<Pair<C8oOnResponse<T>, Boolean>>();
+    private Pair<C8oOnResponse<T>, Boolean> c8oResponse;
     private Pair<C8oOnProgress, Boolean> c8oProgress;
     private Pair<C8oOnFail, Boolean> c8oFail;
-    private final Object syncMutex = new Object();
+    private C8oPromise<T> nextPromise;
 
     private T lastResponse;
-    private Throwable lastThrowable;
+    private Throwable lastFailure;
+    private Map<String, Object> lastParameters;
 
     C8oPromise(C8o c8o) {
         this.c8o = c8o;
     }
 
-    public C8oPromise<T> then(C8oOnResponse<T> c8oOnResponse) {
-        synchronized (c8oOnResponses) {
-            c8oOnResponses.add(new Pair<C8oOnResponse<T>, Boolean>(c8oOnResponse, false));
+    private C8oPromise<T> then(C8oOnResponse<T> c8oOnResponse, boolean ui) {
+        if (nextPromise != null) {
+            return nextPromise.then(c8oOnResponse, ui);
+        } else {
+            c8oResponse = new Pair<C8oOnResponse<T>, Boolean>(c8oOnResponse, ui);
+            nextPromise = new C8oPromise<T>(c8o);
+            if (lastFailure != null) {
+                nextPromise.lastFailure = lastFailure;
+                nextPromise.lastParameters = lastParameters;
+            }
+            if (lastResponse != null) {
+                onResponse();
+            }
+            return nextPromise;
         }
-        return this;
+    }
+
+    public C8oPromise<T> then(C8oOnResponse<T> c8oOnResponse) {
+        return then(c8oOnResponse, false);
     }
 
     public C8oPromise<T> thenUI(C8oOnResponse<T> c8oOnResponse) {
-        synchronized (c8oOnResponses) {
-            c8oOnResponses.add(new Pair<C8oOnResponse<T>, Boolean>(c8oOnResponse, true));
+        return then(c8oOnResponse, true);
+    }
+
+    private C8oPromiseFailSync<T> progress(C8oOnProgress c8oOnProgress, boolean ui) {
+        if (nextPromise != null) {
+            return nextPromise.progress(c8oOnProgress, ui);
+        } else {
+            c8oProgress = new Pair<C8oOnProgress, Boolean>(c8oOnProgress, ui);
+            nextPromise = new C8oPromise<T>(c8o);
+            return nextPromise;
         }
-        return this;
     }
 
     public C8oPromiseFailSync<T> progress(C8oOnProgress c8oOnProgress) {
-        c8oProgress = new Pair<C8oOnProgress, Boolean>(c8oOnProgress, false);
-        //noinspection unchecked
-        return this;
+        return progress(c8oOnProgress, false);
     }
 
     public C8oPromiseFailSync<T> progressUI(C8oOnProgress c8oOnProgress) {
-        c8oProgress = new Pair<C8oOnProgress, Boolean>(c8oOnProgress, true);
-        //noinspection unchecked
-        return this;
+        return progress(c8oOnProgress, true);
+    }
+
+    private C8oPromiseSync<T> fail(C8oOnFail c8oOnFail, boolean ui) {
+        if (nextPromise != null) {
+            return nextPromise.fail(c8oOnFail, ui);
+        } else {
+            c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, ui);
+            nextPromise = new C8oPromise<T>(c8o);
+            if (lastFailure != null) {
+                onFailure(lastFailure, lastParameters);
+            }
+            return nextPromise;
+        }
     }
 
     public C8oPromiseSync<T> fail(C8oOnFail c8oOnFail) {
-        c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, false);
-        //noinspection unchecked
-        return this;
+        return fail(c8oOnFail, false);
     }
 
     public C8oPromiseSync<T> failUI(C8oOnFail c8oOnFail) {
-        c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, true);
-        //noinspection unchecked
-        return this;
+        return fail(c8oOnFail, true);
     }
 
     @Override
     public T sync() throws Throwable {
+        final boolean[] syncMutex = new boolean[] { false };
         synchronized (syncMutex) {
             then(new C8oOnResponse<T>() {
                 @Override
-                public C8oPromise<T> run(T response, Map<String, Object> parameters) {
+                public C8oPromise<T> run(T response, Map<String, Object> parameters) throws Throwable {
                     synchronized (syncMutex) {
+                        syncMutex[0] = true;
                         lastResponse = response;
                         syncMutex.notify();
                     }
                     return null;
                 }
+            }).fail(new C8oOnFail() {
+                @Override
+                public void run(Throwable throwable, Map<String, Object> parameters) {
+                    synchronized (syncMutex) {
+                        syncMutex[0] = true;
+                        lastFailure = throwable;
+                        syncMutex.notify();
+                    }
+                }
             });
-            syncMutex.wait();
+            if (!syncMutex[0]) {
+                syncMutex.wait();
+            }
         }
 
-        if (lastThrowable != null) {
-            throw lastThrowable;
+        if (lastFailure != null) {
+            throw lastFailure;
         }
 
         return lastResponse;
     }
 
-    synchronized void onResponse(final T response, final Map<String, Object> parameters) {
+    private void onResponse() {
         try {
-            if (!c8oOnResponses.isEmpty()) {
-                final Pair<C8oOnResponse<T>, Boolean> handler = c8oOnResponses.remove(0);
-                final C8oPromise[] promise = new C8oPromise[1];
-
-                if (handler.second) {
-                    final Throwable[] throwable = new Throwable[1];
-                    //noinspection SynchronizationOnLocalVariableOrMethodParameter
+            if (c8oResponse != null) {
+                final C8oPromise<T>[] promise = new C8oPromise[1];
+                if (c8oResponse.second) {
+                    final Throwable[] failure = {null};
                     synchronized (promise) {
                         c8o.runUI(new Runnable() {
                             @Override
                             public void run() {
                                 synchronized (promise) {
                                     try {
-                                        promise[0] = handler.first.run(response, parameters);
-                                    } catch (Throwable t) {
-                                        throwable[0] = t;
-                                    } finally {
-                                        promise.notify();
+                                        promise[0] = c8oResponse.first.run(lastResponse, lastParameters);
+                                    } catch (Throwable e) {
+                                        failure[0] = e;
                                     }
+                                    promise.notify();
                                 }
                             }
                         });
                         promise.wait();
-                        if (throwable[0] != null) {
-                            throw throwable[0];
+                        if (failure[0] != null) {
+                            throw failure[0];
                         }
                     }
                 } else {
-                    promise[0] = handler.first.run(response, parameters);
+                    promise[0] = c8oResponse.first.run(lastResponse, lastParameters);
                 }
 
                 if (promise[0] != null) {
-                    if (promise[0].c8oFail == null) {
-                        promise[0].c8oFail = c8oFail;
-                    }
-                    if (promise[0].c8oProgress == null) {
-                        promise[0].c8oProgress = c8oProgress;
-                    }
-                    //noinspection unchecked
-                    promise[0].then(new C8oOnResponse<T>() {
-                        @Override
-                        public C8oPromise<T> run(T response, Map<String, Object> parameters) {
-                            onResponse(response, parameters);
-                            return null;
+                    if (nextPromise != null) {
+                        C8oPromise<T> lastPromise = promise[0];
+                        while (lastPromise.nextPromise != null) {
+                            lastPromise = lastPromise.nextPromise;
                         }
-                    });
-
+                        lastPromise.nextPromise = nextPromise;
+                    }
+                    nextPromise = promise[0];
+                } else if (nextPromise != null) {
+                    nextPromise.onResponse(lastResponse, lastParameters);
                 }
+            } else if (nextPromise != null) {
+                nextPromise.onResponse(lastResponse, lastParameters);
             } else {
-                lastResponse = response;
+                // Response received and no handler.
             }
-        } catch (Throwable throwable) {
-            onFailure(throwable, parameters);
+        } catch (Throwable failure) {
+            onFailure(failure, lastParameters);
         }
     }
 
-    synchronized void onProgress(final C8oProgress progress) {
+    void onResponse(final T response, final Map<String, Object> parameters) {
+        if (lastResponse != null) {
+            if (nextPromise != null) {
+                nextPromise.onResponse(response, parameters);
+            } else {
+                c8o.log._trace("Another response received.");
+            }
+        } else {
+            lastResponse = response;
+            lastParameters = parameters;
+            onResponse();
+        }
+    }
+
+    void onProgress(final C8oProgress progress) {
         if (c8oProgress != null) {
             if (c8oProgress.second) {
                 final Object locker = new Object();
@@ -167,11 +212,14 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
             } else {
                 c8oProgress.first.run(progress);
             }
+        } else if (nextPromise != null) {
+            nextPromise.onProgress(progress);
         }
     }
 
-    synchronized void onFailure(final Throwable throwable, final Map<String, Object> parameters) {
-        lastThrowable = throwable;
+    void onFailure(Throwable throwable, final Map<String, Object> parameters) {
+        lastFailure = throwable;
+        lastParameters = parameters;
 
         if (c8oFail != null) {
             if (c8oFail.second) {
@@ -183,7 +231,9 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
                         public void run() {
                             synchronized (locker) {
                                 try {
-                                    c8oFail.first.run(throwable, parameters);
+                                    c8oFail.first.run(lastFailure, parameters);
+                                } catch (Throwable t) {
+                                    lastFailure = t;
                                 } finally {
                                     locker.notify();
                                 }
@@ -198,13 +248,11 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
                     }
                 }
             } else {
-                c8oFail.first.run(throwable, parameters);
+                c8oFail.first.run(lastFailure, parameters);
             }
         }
-
-        synchronized (syncMutex)
-        {
-            syncMutex.notify();
+        if (nextPromise != null) {
+            nextPromise.onFailure(lastFailure, parameters);
         }
     }
 }
