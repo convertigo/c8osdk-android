@@ -117,7 +117,7 @@ public class C8o extends C8oBase {
 	public static final String RESPONSE_TYPE_JSON = "json";
 
     public static String getSdkVersion() {
-        return "2.0.3";
+        return "2.0.4";
     }
 
 	//*** Network ***//

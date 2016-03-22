@@ -1,1 +1,1 @@
-include ':c8oSDKAndroid', ':c8oSDKJUnit'
+include ':c8oSDKAndroid', ':c8oSDKJUnit', ':c8oSDKJUnit_aar'
