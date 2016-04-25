@@ -1,6 +1,7 @@
 package com.convertigo.clientsdkjunit;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Looper;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
@@ -203,6 +204,25 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
+    public void C8oCallInAsyncTask() throws Throwable {
+        final Document[] doc = {null};
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                try {
+                    C8o c8o = ApplicationTest.this.get(Stuff.C8O);
+                    doc[0] = c8o.callXml(".Ping").sync();
+                } catch (Throwable throwable) {
+                    throwable.printStackTrace();
+                }
+                return null;
+            }
+        }.execute().get();
+        Element pong = (Element) xpath.evaluate("/document/pong", doc[0], XPathConstants.NODE);
+        assertNotNull(pong);
+    }
+
+    @Test
     public void C8oUnknownHostCallAndLog() throws Throwable {
         Throwable exception = null;
         final Throwable[] exceptionLog = {null};
@@ -372,8 +392,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     public void CheckLogRemoteHelper(C8o c8o, String lvl, String msg) throws Throwable {
+        Thread.sleep(100);
         Document doc = c8o.callXml(".GetLogs").sync();
-        JSONArray line = new JSONArray(xpath.evaluate("/document/line/text()", doc));
+        String sLine = xpath.evaluate("/document/line/text()", doc);
+        JSONArray line = new JSONArray(sLine);
         assertEquals(lvl, line.getString(2));
         String newMsg = line.getString(4);
         newMsg = newMsg.substring(newMsg.indexOf("logID="));

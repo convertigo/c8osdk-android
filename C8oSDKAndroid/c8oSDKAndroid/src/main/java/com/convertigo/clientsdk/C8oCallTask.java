@@ -46,7 +46,7 @@ import java.util.Map;
  *    the result is returned by the method doInBackground(), and it is set as parameter called 'result' of the method onPostExecute()
  *    it can be Document (for XML response) or JSONObject (for JSON response) or Exception
  */
-class C8oCallTask extends AsyncTask<Void, Void, Object> {
+class C8oCallTask implements Runnable {
     private C8o c8o;
     private Map<String, Object> parameters;
     private C8oResponseListener c8oResponseListener;
@@ -64,7 +64,7 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
 
     // Perform background operations
     @Override
-    protected Object doInBackground(Void... params) {
+    public void run() {
         try {
             Object response = handleRequest();
             handleResponse(response);
@@ -72,13 +72,6 @@ class C8oCallTask extends AsyncTask<Void, Void, Object> {
             e.printStackTrace();
             this.c8oExceptionListener.onException(e, parameters);
         }
-        return null;
-    }
-
-    // Publish results after doInBackground()
-    @Override
-    protected void onPostExecute(Object result) {
-
     }
 
     private Object handleRequest() throws C8oException {

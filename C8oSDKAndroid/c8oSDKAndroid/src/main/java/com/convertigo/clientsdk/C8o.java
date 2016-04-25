@@ -24,6 +24,7 @@
 package com.convertigo.clientsdk;
 
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -44,6 +45,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -120,7 +125,13 @@ public class C8o extends C8oBase {
         return "2.0.4";
     }
 
-	//*** Network ***//
+    static final Executor executor;
+
+    static {
+        executor = new ThreadPoolExecutor(1, 100, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+    }
+
+    //*** Network ***//
 	
 	/**
 	 * The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt; (Example : http://127.0.0.1:18080/convertigo/projects/MyProject)
@@ -311,7 +322,7 @@ public class C8o extends C8oBase {
             // Creates C8oCallTask (extends android.os.AsyncTask)
             C8oCallTask task = new C8oCallTask(this, parameters, c8oResponseListener, c8oExceptionListener);
             // Performs the task
-            task.execute();
+            executor.execute(task);
         } catch (Exception e) {
             handleCallException(c8oExceptionListener, parameters, e);
         }
