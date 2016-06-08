@@ -28,8 +28,11 @@ import org.junit.runner.RunWith;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -234,6 +237,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 }
             })
         );
+        c8o.log.warn("must fail log");
+        Thread.sleep(100);
         try {
            c8o.callXml(".Ping").sync();
         } catch (Exception ex) {
@@ -392,9 +397,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     public void CheckLogRemoteHelper(C8o c8o, String lvl, String msg) throws Throwable {
-        Thread.sleep(100);
+        Thread.sleep(250);
         Document doc = c8o.callXml(".GetLogs").sync();
         String sLine = xpath.evaluate("/document/line/text()", doc);
+        assertTrue("sLine='" + sLine +"'", sLine != null && !sLine.isEmpty());
         JSONArray line = new JSONArray(sLine);
         assertEquals(lvl, line.getString(2));
         String newMsg = line.getString(4);
@@ -1191,6 +1197,92 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         }
     }
 
+    public class PlainObjectA {
+        public String name;
+        public List<PlainObjectB> bObjects;
+        public PlainObjectB bObject;
+    }
+
+    public class PlainObjectB {
+        public String name;
+        public int num;
+        public boolean enabled;
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsMergeObject() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            String myId = "C8oFsPostExistingPolicyMergeSub-" + System.currentTimeMillis();
+
+            PlainObjectA plainObjectA = new PlainObjectA();
+            plainObjectA.name = "plain A";
+            plainObjectA.bObjects = new LinkedList<>();
+
+            plainObjectA.bObject = new PlainObjectB();
+            plainObjectA.bObject.name = "plain B 1";
+            plainObjectA.bObject.num = 1;
+            plainObjectA.bObject.enabled = true;
+            plainObjectA.bObjects.add(plainObjectA.bObject);
+
+            plainObjectA.bObject = new PlainObjectB();
+            plainObjectA.bObject.name = "plain B 2";
+            plainObjectA.bObject.num = 2;
+            plainObjectA.bObject.enabled = false;
+            plainObjectA.bObjects.add(plainObjectA.bObject);
+
+            plainObjectA.bObject = new PlainObjectB();
+            plainObjectA.bObject.name = "plain B -777";
+            plainObjectA.bObject.num = -777;
+            plainObjectA.bObject.enabled = true;
+
+            c8o.callJson("fs://.post",
+                    "_id", myId,
+                    "a obj", plainObjectA
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+            plainObjectA.bObjects.get(1).name = "plain B 2 bis";
+
+            c8o.callJson("fs://.post",
+                    C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                    "_id", myId,
+                    "a obj.bObjects", plainObjectA.bObjects
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+
+            plainObjectA.bObject = new PlainObjectB();
+            plainObjectA.bObject.name = "plain B -666";
+            plainObjectA.bObject.num = -666;
+            plainObjectA.bObject.enabled = false;
+
+            c8o.callJson("fs://.post",
+                    C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                    "_id", myId,
+                    "a obj.bObject", plainObjectA.bObject
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+
+            c8o.callJson("fs://.post",
+                    C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                    "_id", myId,
+                    "a obj.bObject.enabled", true
+            ).sync();
+            assertTrue(json.getBoolean("ok"));
+
+            json = c8o.callJson("fs://.get", "docid", myId).sync();
+            json.remove("_rev");
+            assertEquals(myId, json.remove("_id"));
+            String expectedJson = new JSONObject(
+                    "{\"a obj\":{\"name\":\"plain A\",\"bObjects\":[{\"enabled\":true,\"name\":\"plain B 1\",\"num\":1},{\"enabled\":false,\"name\":\"plain B 2 bis\",\"num\":2}],\"bObject\":{\"name\":\"plain B -666\",\"enabled\":true,\"num\":-666}}}"
+            ).toString();
+            String sJson = json.toString();
+            assertEquals(expectedJson, sJson);
+        }
+    }
+
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsPostGetMultibase() throws Throwable {
@@ -1337,6 +1429,34 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    //@Test
+    public void Testing() throws Throwable {
+        C8o c8o = new C8o(context, "http://192.168.100.95:18080/convertigo/projects/xsd", new C8oSettings()
+                .setDefaultDatabaseName("hardkey_fullsync")
+        );
+        c8o.setLogRemote(false);
+        c8o.setLogLevelLocal(Log.ERROR);
+        synchronized (c8o) {
+            try {
+                JSONObject json = c8o.callJson("fs://.reset").sync();
+                assertTrue(json.getBoolean("ok"));
+                json = c8o.callJson("fs://.replicate_pull").sync();
+                assertTrue(json.getBoolean("ok"));
+
+                json = c8o.callJson("fs://.view",
+                        "ddoc", "design",
+                        "view", "doublekey",
+                        "keys", Arrays.asList(Arrays.asList("490615","ENCOURSREALS"),Arrays.asList("490615","VALIDE"))
+                ).sync();
+
+                String sJson = json.toString(2);
+                sJson.toString();
+            } finally {
+            }
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     @Test
     public void C8oFsReplicatePullAnoAndAuthView() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS_PULL);
@@ -1399,6 +1519,30 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 ).sync();
                 value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
                 assertEquals(1000.0, value);
+            } finally {
+                c8o.callJson(".LogoutTesting").sync();
+            }
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsViewArrayKey() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS_PULL);
+        synchronized (c8o) {
+            try {
+                JSONObject json = c8o.callJson("fs://.reset").sync();
+                assertTrue(json.getBoolean("ok"));
+                json = c8o.callJson(".LoginTesting").sync();
+                Object value = json.getJSONObject("document").getString("authenticatedUserID");
+                assertEquals("testing_user", value);
+                json = c8o.callJson("fs://.replicate_pull").sync();
+                assertTrue(json.getBoolean("ok"));
+                json = c8o.callJson("fs://.view",
+                        "ddoc", "design",
+                        "view", "array",
+                        "startkey", "[\"1\"]"
+                ).sync();
             } finally {
                 c8o.callJson(".LogoutTesting").sync();
             }
@@ -1553,6 +1697,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     @Test
     public void C8oFsReplicateSyncContinuousProgress() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS_PUSH);
+        c8o.setLogLevelLocal(Log.VERBOSE);
         synchronized (c8o) {
             try {
                 JSONObject json = c8o.callJson("fs://.reset").sync();
@@ -1600,11 +1745,12 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                         }
                     }
                 }).sync();
+                Log.i("FS", "C8oFsReplicateSyncContinuousProgress after sync");
                 assertTrue(json.getBoolean("ok"));
                 assertEquals("push: 0/0 (running)", firstPush[0]);
-                assertTrue("push: \\d+/\\d+ \\(done\\)", Pattern.matches("push: \\d+/\\d+ \\(done\\)", lastPush[0]));
+                assertTrue("push: \\d+/\\d+ \\(done\\) for " + lastPush[0], Pattern.matches("push: \\d+/\\d+ \\(done\\)", lastPush[0]));
                 assertEquals("pull: 0/0 (running)", firstPull[0]);
-                assertTrue("pull: \\d+/\\d+ \\(done\\)", Pattern.matches("pull: \\d+/\\d+ \\(done\\)", lastPull[0]));
+                assertTrue("pull: \\d+/\\d+ \\(done\\) for " + lastPull[0], Pattern.matches("pull: \\d+/\\d+ \\(done\\)", lastPull[0]));
                 json = c8o.callJson(".qa_fs_push.AllDocs",
                     "startkey", id,
                     "endkey", id + "z"
@@ -1628,14 +1774,17 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 json = c8o.callJson(".qa_fs_push.PostDocument", "_id", "ghi", "custom", id).sync();
                 assertTrue(json.getJSONObject("document").getJSONObject("couchdb_output").getBoolean("ok"));
                 Thread.sleep(2000);
+                Log.i("FS", "C8oFsReplicateSyncContinuousProgress after sleep");
                 json = c8o.callJson("fs://.get", "docid", "ghi").sync();
                 value = json.getString("custom");
                 assertEquals(id, value);
                 json = c8o.callJson(".qa_fs_push.GetDocument", "_use_docid", "def").sync();
                 value = json.getJSONObject("document").getJSONObject("couchdb_output").getString("custom");
                 assertEquals(id, value);
-//                assertTrue("pull: \\d+/\\d+ \\(live\\)", Pattern.matches("pull: \\d+/\\d+ \\(live\\)", livePull[0]));
-//                assertTrue("push: \\d+/\\d+ \\(live\\)", Pattern.matches("push: \\d+/\\d+ \\(live\\)", lastPush[0]));
+                Log.i("FS", "C8oFsReplicateSyncContinuousProgress livePull[0]: " + livePull[0]);
+                Log.i("FS", "C8oFsReplicateSyncContinuousProgress livePush[0]: " + livePush[0]);
+                assertTrue("pull: \\d+/\\d+ \\(live\\) for " + livePull[0], Pattern.matches("pull: \\d+/\\d+ \\(live\\)", livePull[0]));
+                assertTrue("push: \\d+/\\d+ \\(live\\) for " + livePush[0], Pattern.matches("push: \\d+/\\d+ \\(live\\)", livePush[0]));
             } finally {
                 c8o.callJson(".LogoutTesting").sync();
             }

@@ -33,3 +33,9 @@ dependencies {
     androidTestCompile 'com.android.support.test:rules:0.4.1'
     compile project(':c8oSDKAndroid')
 }
+
+repositories {
+    flatDir{
+        dirs '../c8oSDKAndroid/libs'
+    }
+}

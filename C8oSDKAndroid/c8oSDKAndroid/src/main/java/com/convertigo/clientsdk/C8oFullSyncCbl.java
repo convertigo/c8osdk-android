@@ -31,13 +31,13 @@ import com.couchbase.lite.internal.RevisionInternal;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -238,10 +238,16 @@ class C8oFullSyncCbl extends C8oFullSync {
                 Object objectParameterValue = parameter.getValue();
 
                 try {
-                    if (objectParameterValue instanceof JSONObject) {
+                    if (!isPlainObject(objectParameterValue)) {
+                        // does nothing
+                    } else if (objectParameterValue instanceof JSONObject) {
                         objectParameterValue = new ObjectMapper().readValue(objectParameterValue.toString(), LinkedHashMap.class);
                     } else if (objectParameterValue instanceof JSONArray) {
                         objectParameterValue = new ObjectMapper().readValue(objectParameterValue.toString(), ArrayList.class);
+                    } else if (objectParameterValue instanceof Collection) {
+                        objectParameterValue = new ObjectMapper().convertValue(objectParameterValue, ArrayList.class);
+                    } else {
+                        objectParameterValue = new ObjectMapper().convertValue(objectParameterValue, LinkedHashMap.class);
                     }
                 } catch (Exception e) {
                     throw new C8oException(C8oExceptionMessage.invalidParameterValue(parameterName, objectParameterValue.toString()), e);
@@ -667,6 +673,21 @@ class C8oFullSyncCbl extends C8oFullSync {
             localCacheDocument.putProperties(properties);
         } catch (Exception e) {
             throw new C8oException("TODO", e);
+        }
+    }
+
+    private static boolean isPlainObject(Object object) {
+        if (object == null
+                || object.getClass().isPrimitive()
+                || object instanceof Number
+                || object instanceof Boolean
+                || object instanceof Character
+                || object instanceof String
+                || object instanceof StringBuilder
+                || object instanceof StringBuffer) {
+            return false;
+        } else {
+            return true;
         }
     }
 }

@@ -2,7 +2,6 @@ package com.convertigo.clientsdk;
 
 import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
 import com.convertigo.clientsdk.exception.C8oException;
-import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
 import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
@@ -16,6 +15,7 @@ import com.couchbase.lite.replicator.Replication;
 
 import org.json.JSONObject;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -75,35 +75,43 @@ class FullSyncEnum {
 		},
 		SYNC("sync") {
 			@Override
-			Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
-                final Object mutex = new Object();
+			Object handleFullSyncRequest(final C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
+                final boolean[] mutex = {false};
                 final boolean[] pullFinish = {false};
                 final boolean[] pushFinish = {false};
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
+                c8oFullSync.c8o.log._debug("handleFullSyncRequest enter: " + databaseName);
 				synchronized (mutex)
                 {
                     c8oFullSync.handleSyncRequest(databaseName, parameters, new C8oResponseProgressListener() {
 
                         @Override
                         public void onProgressResponse(C8oProgress progress, Map<String, Object> parameters) {
-                            if (progress.isPull() && progress.isFinished()) {
-                                pullFinish[0] = true;
-                            }
+							if (!mutex[0]) {
+								if (!pullFinish[0] && progress.isPull() && progress.isFinished()) {
+									pullFinish[0] = true;
+                                    c8oFullSync.c8o.log._debug("handleFullSyncRequest pullFinish = true: " + progress);
+								}
 
-                            if (progress.isPush() && progress.isFinished()) {
-                                pushFinish[0] = true;
-                            }
-
-                            if (pullFinish[0] && pushFinish[0]) {
-                                synchronized (mutex) {
-                                    mutex.notify();
-                                }
-                            }
+								if (!pushFinish[0] && progress.isPush() && progress.isFinished()) {
+									pushFinish[0] = true;
+                                    c8oFullSync.c8o.log._debug("handleFullSyncRequest pushFinish = true: " + progress);
+								}
+							}
 
                             if (c8oResponseListener instanceof C8oResponseJsonListener) {
+                                c8oFullSync.c8o.log._trace("handleFullSyncRequest onJsonResponse: " + progress);
                                 ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
                             } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
                                 ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                            }
+
+                            if (!mutex[0] && pullFinish[0] && pushFinish[0]) {
+                                synchronized (mutex) {
+                                    mutex[0] = true;
+                                    c8oFullSync.c8o.log._debug("handleFullSyncRequest notify: " + progress);
+                                    mutex.notify();
+                                }
                             }
                         }
                     });
@@ -111,6 +119,7 @@ class FullSyncEnum {
                     JSONObject response = new JSONObject();
                     try {
                         mutex.wait();
+                        c8oFullSync.c8o.log._debug("handleFullSyncRequest after wait");
                         response.put("ok", true);
                     } catch (Exception e) {
                         throw new C8oException("TODO", e);
@@ -299,6 +308,13 @@ class FullSyncEnum {
 				}
 			}
 		},
+        KEY("key", true) {
+            @SuppressWarnings("unchecked")
+            @Override
+            void addToQuery(Query query, Object parameter) {
+                query.setKeys(Arrays.asList(parameter));
+            }
+        },
 		KEYS("keys", true) {
 			@SuppressWarnings("unchecked")
 			@Override

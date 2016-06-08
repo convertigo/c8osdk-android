@@ -151,14 +151,15 @@ class C8oFullSyncDatabase {
      * @param c8oResponseListener
      * @param parameters
      */
-    private void startReplication(FullSyncReplication fullSyncReplication, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
-		boolean continuous = false;
+    private void startReplication(final FullSyncReplication fullSyncReplication, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
+		final boolean continuous;
 		boolean cancel = false;
 
-		if (parameters.containsKey("continuous"))
-		{
+		if (parameters.containsKey("continuous")) {
 			continuous = parameters.get("continuous").toString().equalsIgnoreCase("true");
-		}
+		} else {
+            continuous = false;
+        }
 
 		if (parameters.containsKey("cancel"))
 		{
@@ -181,8 +182,6 @@ class C8oFullSyncDatabase {
 		progress.setRaw(rep);
 		progress.setPull(rep.isPull());
 
-		final Object mutex = new Object();
-
 		rep.addChangeListener(
 				fullSyncReplication.changeListener = new ChangeListener() {
 
@@ -195,12 +194,6 @@ class C8oFullSyncDatabase {
                         progress.setStatus("" + rep.getStatus());
                         progress.setFinished(rep.getStatus() != Replication.ReplicationStatus.REPLICATION_ACTIVE);
 
-                        if (progress.isFinished()) {
-                            synchronized (mutex) {
-                                mutex.notify();
-                            }
-                        }
-
                         if (progress.isChanged()) {
                             _progress[0] = new C8oProgress(progress);
 
@@ -210,89 +203,47 @@ class C8oFullSyncDatabase {
                                 ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, param);
                             }
                         }
+
+                        if (progress.isFinished()) {
+                            rep.stop();
+                            if (continuous) {
+                                final long lastCurrent = 0;//progress.getCurrent();
+                                final short[] stat = {0};
+                                final Replication replication = getReplication(fullSyncReplication);
+                                _progress[0].setRaw(replication);
+                                _progress[0].setContinuous(true);
+                                replication.setContinuous(true);
+                                replication.addChangeListener(
+                                        fullSyncReplication.changeListener = new ChangeListener() {
+
+                                            @Override
+                                            public void changed(ChangeEvent changeEvent) {
+                                                C8oProgress progress = _progress[0];
+                                                progress.setTotal(replication.getChangesCount());
+                                                progress.setCurrent(replication.getCompletedChangesCount());
+                                                progress.setTaskInfo("n/a");//changeEvent.getTransition().toString();
+                                                progress.setStatus("" + replication.getStatus());
+
+                                                //if (progress.getCurrent() > lastCurrent && progress.isChanged()) {
+                                                if (progress.isChanged()) {
+                                                    _progress[0] = new C8oProgress(progress);
+
+                                                    if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener) {
+                                                        param.put(C8o.ENGINE_PARAMETER_PROGRESS, progress);
+                                                        ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, param);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                );
+                                replication.start();
+                            }
+                        }
                     }
                 }
         );
 
-		synchronized (mutex)
-		{
-			// Finally starts the replication
-			rep.start();
-            try {
-                mutex.wait();
-            } catch (InterruptedException e) {
-                throw new C8oException("TODO", e);
-            }
-            rep.stop();
-		}
-
-		if (continuous)
-		{
-            progress = _progress[0];
-            final long lastCurrent = progress.getCurrent();
-            final short[] stat = {0};
-            Replication replication = getReplication(fullSyncReplication);
-            progress.setRaw(replication);
-            progress.setContinuous(true);
-            replication.setContinuous(true);
-            replication.addChangeListener(
-                    fullSyncReplication.changeListener = new ChangeListener() {
-
-                        @Override
-                        public void changed(ChangeEvent changeEvent) {
-                            long total = changeEvent.getChangeCount();
-                            if (stat[0] == 0) {
-                                if (lastCurrent == 0 || total > 0) {
-                                    stat[0] = 1;
-                                }
-                            }
-
-                            if (stat[0] == 1) {
-                                if (total == 0) {
-                                    stat[0] = 2;
-                                }
-                            }
-
-                            if (stat[0] == 2 && total > 0) {
-                                C8oProgress progress = _progress[0];
-                                progress.setTotal(total);
-                                progress.setCurrent(changeEvent.getCompletedChangeCount());
-                                progress.setTaskInfo("n/a");//changeEvent.getTransition().toString();
-                                progress.setStatus("" + rep.getStatus());
-
-                                if (progress.isChanged()) {
-                                    _progress[0] = new C8oProgress(progress);
-
-                                    if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener) {
-                                        param.put(C8o.ENGINE_PARAMETER_PROGRESS, progress);
-                                        ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, param);
-                                    }
-                                }
-                            }
-                        }
-                    }
-            );
-            replication.start();
-		}
-    }
-    
-    /**
-     * Stops and destroys pull and push replications.
-     */
-    public void destroyReplications() {
-    	if (pullFullSyncReplication.replication != null) {
-    		pullFullSyncReplication.replication.stop();
-    		pullFullSyncReplication.replication.deleteCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME);
-    		pullFullSyncReplication.replication = null;
-    	}
-    	pullFullSyncReplication = null;
-    	
-    	if (pushFullSyncReplication.replication != null) {
-    		pushFullSyncReplication.replication.stop();
-    		pushFullSyncReplication.replication.deleteCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME);
-    		pushFullSyncReplication.replication = null;
-    	}
-    	pushFullSyncReplication = null;
+        rep.start();
     }
     
     //*** TAG Getter / Setter ***//
