@@ -238,7 +238,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             })
         );
         c8o.log.warn("must fail log");
-        Thread.sleep(100);
+        Thread.sleep(250);
         try {
            c8o.callXml(".Ping").sync();
         } catch (Exception ex) {
