@@ -460,7 +460,7 @@ class C8oExceptionMessage {
 	}
 	
 	public static String handleC8oCallRequest() {
-		return "Failed while runnig the c8o call request";
+		return "Failed while running the c8o call request";
 	}
 	
 	public static String saveResponseToLocalCache() {

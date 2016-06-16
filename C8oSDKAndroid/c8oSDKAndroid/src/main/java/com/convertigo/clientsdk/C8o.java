@@ -24,7 +24,6 @@
 package com.convertigo.clientsdk;
 
 import android.content.Context;
-import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
@@ -322,7 +321,7 @@ public class C8o extends C8oBase {
             // Creates C8oCallTask (extends android.os.AsyncTask)
             C8oCallTask task = new C8oCallTask(this, parameters, c8oResponseListener, c8oExceptionListener);
             // Performs the task
-            executor.execute(task);
+            runBG(task);
         } catch (Exception e) {
             handleCallException(c8oExceptionListener, parameters, e);
         }
@@ -446,12 +445,20 @@ public class C8o extends C8oBase {
         this.logLevelLocal = logLevelLocal;
     }
 
+    public boolean isUI() {
+        return Looper.myLooper() == Looper.getMainLooper();
+    }
+
     public void runUI(Runnable code) {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
+        if (isUI()) {
             code.run();
         } else {
             mainLooperHandler.post(code);
         }
+    }
+
+    public void runBG(Runnable code) {
+        executor.execute(code);
     }
 
     @Override

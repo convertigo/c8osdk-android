@@ -30,7 +30,12 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
                 nextPromise.lastParameters = lastParameters;
             }
             if (lastResponse != null) {
-                onResponse();
+                c8o.runBG(new Runnable() {
+                    @Override
+                    public void run() {
+                        onResponse();
+                    }
+                });
             }
             return nextPromise;
         }
@@ -69,7 +74,12 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
             c8oFail = new Pair<C8oOnFail, Boolean>(c8oOnFail, ui);
             nextPromise = new C8oPromise<T>(c8o);
             if (lastFailure != null) {
-                onFailure(lastFailure, lastParameters);
+                c8o.runBG(new Runnable() {
+                    @Override
+                    public void run() {
+                        onFailure(lastFailure, lastParameters);
+                    }
+                });
             }
             return nextPromise;
         }
