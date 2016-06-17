@@ -31,6 +31,7 @@ import org.w3c.dom.Element;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -397,7 +398,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     public void CheckLogRemoteHelper(C8o c8o, String lvl, String msg) throws Throwable {
-        Thread.sleep(250);
+        Thread.sleep(500);
         Document doc = c8o.callXml(".GetLogs").sync();
         String sLine = xpath.evaluate("/document/line/text()", doc);
         assertTrue("sLine='" + sLine +"'", sLine != null && !sLine.isEmpty());
@@ -1189,11 +1190,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             json = c8o.callJson("fs://.get", "docid", myId).sync();
             json.remove("_rev");
             assertEquals(myId, json.remove("_id"));
-            String expectedJson = new JSONObject(
+            JSONObject expectedJson = new JSONObject(
                 "{\"a\":1,\"i\":[\"5\",6,7.1,null],\"b\":-2,\"c\":{\"d\":3,\"i-j\":\"great\",\"f\":{\"j\":\"good\",\"g\":true,\"h\":[true,false,\"three\",\"four\"]},\"e\":\"four\"}}"
-            ).toString();
-            String sJson = json.toString();
-            assertEquals(expectedJson, sJson);
+            );
+            assertEquals(expectedJson, json);
         }
     }
 
@@ -1275,11 +1275,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             json = c8o.callJson("fs://.get", "docid", myId).sync();
             json.remove("_rev");
             assertEquals(myId, json.remove("_id"));
-            String expectedJson = new JSONObject(
+            JSONObject expectedJson = new JSONObject(
                     "{\"a obj\":{\"name\":\"plain A\",\"bObjects\":[{\"enabled\":true,\"name\":\"plain B 1\",\"num\":1},{\"enabled\":false,\"name\":\"plain B 2 bis\",\"num\":2}],\"bObject\":{\"name\":\"plain B -666\",\"enabled\":true,\"num\":-666}}}"
-            ).toString();
-            String sJson = json.toString();
-            assertEquals(expectedJson, sJson);
+            );
+            assertEquals(expectedJson, json);
         }
     }
 
@@ -1904,5 +1903,49 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         Document doc = c8o.callXml(".Sleep2sec").sync();
         String value = xpath.evaluate("/document/element/text()", doc);
         assertEquals("ok", value);
+    }
+
+    private void assertEqualsJsonChild(Object expectedObject, Object actualObject) {
+        if (expectedObject != null) {
+            assertNotNull("must not be null", actualObject);
+            assertEquals(expectedObject.getClass(), actualObject.getClass());
+            if (expectedObject instanceof JSONObject) {
+                assertEquals((JSONObject) expectedObject, (JSONObject) actualObject);
+            } else if (expectedObject instanceof JSONArray) {
+                assertEquals((JSONArray) expectedObject, (JSONArray) actualObject);
+            } else {
+                assertEquals(expectedObject, actualObject);
+            }
+        } else {
+            assertNull("must be null", actualObject);
+        }
+    }
+
+    private void assertEquals(JSONObject expected, JSONObject actual) {
+        try {
+            JSONArray expectedNames = expected.names();
+            JSONArray actualNames = actual.names();
+            assertEquals("missing keys: " + expectedNames + " and " + actualNames, expectedNames.length(), actualNames.length());
+
+            for (Iterator<String> i = expected.keys(); i.hasNext(); ) {
+                String expectedName = i.next();
+                assertTrue("missing key: " + expectedName, actual.has(expectedName));
+                assertEqualsJsonChild(expected.get(expectedName), actual.get(expectedName));
+            }
+        } catch (Throwable t) {
+            assertTrue("exception: " + t, false);
+        }
+    }
+
+    private void assertEquals(JSONArray expected, JSONArray actual) {
+        try {
+            assertEquals("missing entries", expected.length(), actual.length());
+
+            for (int i = 0; i < expected.length(); i++) {
+                assertEqualsJsonChild(expected.get(i), actual.get(i));
+            }
+        } catch (Throwable t) {
+            assertTrue("exception: " + t, false);
+        }
     }
 }

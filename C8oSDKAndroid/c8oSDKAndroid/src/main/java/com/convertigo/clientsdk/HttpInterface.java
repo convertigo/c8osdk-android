@@ -111,7 +111,9 @@ class HttpInterface {
 	 * Use an array to synchronized on it before initialize a timestamp
 	 */
 	private long[] lastTs = {0};
-	
+
+    private boolean[] firstCall = {true};
+
 	//*** Constructors ***//
 
 	public HttpInterface(final C8o c8o) throws C8oException {
@@ -367,19 +369,20 @@ class HttpInterface {
 		} catch (UnsupportedEncodingException e) {
 			throw new C8oException(C8oExceptionMessage.urlEncode(), e);
 		}
-						
-		try {
-			return this.httpClient.execute(request, this.httpContext);
-		} catch (ClientProtocolException e) {
-			throw new C8oHttpRequestException(C8oExceptionMessage.runHttpRequest(), e);
-		} catch (IOException e) {
-			throw new C8oHttpRequestException(C8oExceptionMessage.runHttpRequest(), e);
-		}
+
+		return handleRequest(request);
 	}
 	
 	public HttpResponse handleRequest(HttpPost request) throws C8oHttpRequestException {
 		try {
-			return httpClient.execute(request, this.httpContext);
+            synchronized (firstCall) {
+                if (firstCall[0]) {
+                    HttpResponse response = httpClient.execute(request, httpContext);
+                    firstCall[0] = false;
+                    return response;
+                }
+            }
+            return httpClient.execute(request, httpContext);
 		} catch (ClientProtocolException e) {
 			throw new C8oHttpRequestException(C8oExceptionMessage.runHttpRequest(), e);
 		} catch (IOException e) {
@@ -404,14 +407,12 @@ class HttpInterface {
 				// Do the http request to get the public key
 				HttpResponse response = null;
 				try {
-					response = httpClient.execute(request, httpContext);
-				} catch (ClientProtocolException e) {
-					throw new C8oException(C8oExceptionMessage.retrieveRsaPublicKey(), e);
-				} catch (IOException e) {
-					throw new C8oException(C8oExceptionMessage.retrieveRsaPublicKey(), e);
-				}
-				
-				// Get the result first line (normally the public key)
+					response = handleRequest(request);
+				} catch (C8oHttpRequestException e) {
+                    throw new C8oException(C8oExceptionMessage.retrieveRsaPublicKey(), e);
+                }
+
+                // Get the result first line (normally the public key)
 				String publicKey;
 				BufferedReader bufferedReader;
 				try {
