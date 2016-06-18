@@ -1,5 +1,7 @@
 package com.convertigo.clientsdk;
 
+import android.os.Build;
+
 import com.convertigo.clientsdk.FullSyncResponse.FullSyncDefaultResponse;
 import com.convertigo.clientsdk.FullSyncResponse.FullSyncDocumentOperationResponse;
 import com.convertigo.clientsdk.exception.C8oException;
@@ -12,6 +14,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Element;
+
+import java.util.Iterator;
+import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 
@@ -75,7 +80,7 @@ class C8oFullSyncTranslator {
 	 * @return
 	 */
 	static JSONObject documentToJson(Document document) {
-		JSONObject json = new JSONObject(document.getProperties());
+		JSONObject json = dictionaryToJson(document.getProperties());
 		return json;
 	}
 	
@@ -100,7 +105,7 @@ class C8oFullSyncTranslator {
 	//*** DeleteDocument, PostDocument ***//
 	
 	static JSONObject fullSyncDocumentOperationResponseToJson(FullSyncDocumentOperationResponse fullSyncDocumentOperationResponse) {
-		JSONObject json = new JSONObject(fullSyncDocumentOperationResponse.getProperties());
+		JSONObject json = dictionaryToJson(fullSyncDocumentOperationResponse.getProperties());
 		return json;
 	}
 	
@@ -115,21 +120,48 @@ class C8oFullSyncTranslator {
 	//*** TAG QueryEnumerator ***//
 	//*** GetAllDocuments ***//
 
-	/**
-	 * Translates a QueryEnumerator instance to a JSON document.
-	 * 
-	 * @param queryEnumerator
-	 * @return
-	 * @throws C8oException
-	 */
+	static JSONObject dictionaryToJson(Map<String, Object> dictionary) {
+		JSONObject json = new JSONObject(dictionary);
+        if (Build.VERSION.SDK_INT <= 18 /** Android 4.3 */) {
+            json = dictionaryToJsonFixPreAPI18(json);
+        }
+        return json;
+	}
+
+    static JSONObject dictionaryToJsonFixPreAPI18(JSONObject json) {
+        for (Iterator<String> i = json.keys(); i.hasNext();) {
+            try {
+                String key = i.next();
+                Object value = json.get(key);
+                if (value instanceof Map) {
+                    value = new JSONObject((Map) value);
+                }
+                if (value instanceof JSONObject) {
+                    value = dictionaryToJsonFixPreAPI18((JSONObject) value);
+                    json.put(key, value);
+                }
+            } catch (JSONException e) {
+            }
+        }
+        return json;
+    }
+
+
+    /**
+     * Translates a QueryEnumerator instance to a JSON document.
+     *
+     * @param queryEnumerator
+     * @return
+     * @throws C8oException
+     */
 	static JSONObject queryEnumeratorToJson(QueryEnumerator queryEnumerator) throws C8oException {
 		JSONObject json = new JSONObject();
 		JSONArray rowsArray = new JSONArray();
 		
 		while (queryEnumerator.hasNext()) {
 			QueryRow queryRow = queryEnumerator.next();
-		    JSONObject jsonQueryRow = new JSONObject(queryRow.asJSONDictionary());
-		    rowsArray.put(jsonQueryRow);
+            JSONObject jsonQueryRow = dictionaryToJson(queryRow.asJSONDictionary());
+            rowsArray.put(jsonQueryRow);
 		}
 		
 		try {
@@ -164,7 +196,7 @@ class C8oFullSyncTranslator {
 	//*** Sync, ReplicatePull, ReplicatePush, Reset ***//
 	
 	static JSONObject fullSyncDefaultResponseToJson(FullSyncDefaultResponse fullSyncDefaultResponse) {
-		JSONObject json = new JSONObject(fullSyncDefaultResponse.getProperties());
+		JSONObject json = dictionaryToJson(fullSyncDefaultResponse.getProperties());
 		return json;
 	}
 	
