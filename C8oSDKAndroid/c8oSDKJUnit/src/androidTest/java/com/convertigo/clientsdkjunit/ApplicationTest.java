@@ -398,10 +398,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     public void CheckLogRemoteHelper(C8o c8o, String lvl, String msg) throws Throwable {
-        Thread.sleep(500);
+        Thread.sleep(333);
         Document doc = c8o.callXml(".GetLogs").sync();
         String sLine = xpath.evaluate("/document/line/text()", doc);
-        assertTrue("sLine='" + sLine +"'", sLine != null && !sLine.isEmpty());
+        assertTrue("[" + lvl + "] sLine='" + sLine +"'", sLine != null && !sLine.isEmpty());
         JSONArray line = new JSONArray(sLine);
         assertEquals(lvl, line.getString(2));
         String newMsg = line.getString(4);
@@ -415,6 +415,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         c8o.setLogC8o(false);
         String id = "logID=" + System.currentTimeMillis();
         c8o.callXml(".GetLogs", "init", id).sync();
+        Thread.sleep(333);
         c8o.log.error(id);
         CheckLogRemoteHelper(c8o, "ERROR", id);
         c8o.log.error(id, new C8oException("for test"));
