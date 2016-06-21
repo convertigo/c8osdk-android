@@ -11,6 +11,7 @@ import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.couchbase.lite.View;
 import com.couchbase.lite.javascript.JavaScriptViewCompiler;
 
+import java.io.InputStream;
 import java.util.Map;
 
 abstract class C8oFullSync {
@@ -142,6 +143,10 @@ abstract class C8oFullSync {
 	 * @throws C8oException
 	 */
 	abstract Object handlePostDocumentRequest(String databaseName, FullSyncPolicy fullSyncPolicy, Map<String, Object> parameters) throws C8oException;
+
+	abstract Object handlePutAttachmentRequest(String databaseName, String docid, String attachmentName, String attachmentType, InputStream attachmentContent) throws C8oException;
+
+	abstract Object handleDeleteAttachmentRequest(String databaseName, String docid, String attachmentName) throws C8oException;
 
 	//*** TAG GetAllDocuments ***//
 

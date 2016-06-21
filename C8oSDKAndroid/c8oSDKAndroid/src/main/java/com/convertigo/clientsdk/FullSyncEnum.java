@@ -15,6 +15,7 @@ import com.couchbase.lite.replicator.Replication;
 
 import org.json.JSONObject;
 
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,36 @@ class FullSyncEnum {
 				FullSyncPolicy fullSyncPolicy = FullSyncPolicy.getFullSyncPolicy(fullSyncPolicyParameter);
 
 				return c8oFullSync.handlePostDocumentRequest(databaseName, fullSyncPolicy, parameters);
+			}
+		},
+		PUT_ATTACHMENT("put_attachment") {
+			@Override
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException	{
+				// Gets the docid parameter
+				String docid = C8oUtils.getParameterStringValue(parameters, FullSyncAttachmentParameter.DOCID.name, false);
+
+				// Gets the attachment name parameter
+				String name = C8oUtils.getParameterStringValue(parameters, FullSyncAttachmentParameter.NAME.name, false);
+
+				// Gets the attachment content_type parameter
+				String contentType = C8oUtils.getParameterStringValue(parameters, FullSyncAttachmentParameter.CONTENT_TYPE.name, false);
+
+				// Gets the attachment content parameter
+				InputStream content = (InputStream)C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+
+				return c8oFullSync.handlePutAttachmentRequest(databaseName, docid, name, contentType, content);
+			}
+		},
+		DELETE_ATTACHMENT("delete_attachment") {
+			@Override
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException	{
+				// Gets the docid parameter
+				String docid = C8oUtils.getParameterStringValue(parameters, FullSyncAttachmentParameter.DOCID.name, false);
+
+				// Gets the attachment name parameter
+				String name = C8oUtils.getParameterStringValue(parameters, FullSyncAttachmentParameter.NAME.name, false);
+
+				return c8oFullSync.handleDeleteAttachmentRequest(databaseName, docid, name);
 			}
 		},
 		ALL("all") {
@@ -462,6 +493,22 @@ class FullSyncEnum {
 		public final String name;
 		
 		FullSyncDeleteDocumentParameter(String name) {
+			this.name = name;
+		}
+	}
+
+	enum FullSyncAttachmentParameter {
+		DOCID("docid"),
+		NAME("name"),
+		CONTENT_TYPE("content_type"),
+		CONTENT("content");
+
+		/**
+		 * The name of the parameter i.e. the key to send.
+		 */
+		public final String name;
+
+		FullSyncAttachmentParameter(String name) {
 			this.name = name;
 		}
 	}

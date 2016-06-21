@@ -7,6 +7,7 @@ import com.convertigo.clientsdk.FullSyncEnum.FullSyncPolicy;
 import com.convertigo.clientsdk.FullSyncEnum.FullSyncRequestParameter;
 import com.convertigo.clientsdk.FullSyncResponse.FullSyncDefaultResponse;
 import com.convertigo.clientsdk.FullSyncResponse.FullSyncDocumentOperationResponse;
+import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
 import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
@@ -25,6 +26,7 @@ import com.couchbase.lite.QueryEnumerator;
 import com.couchbase.lite.Reducer;
 import com.couchbase.lite.Revision;
 import com.couchbase.lite.SavedRevision;
+import com.couchbase.lite.UnsavedRevision;
 import com.couchbase.lite.View;
 import com.couchbase.lite.android.AndroidContext;
 import com.couchbase.lite.internal.RevisionInternal;
@@ -34,6 +36,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -282,6 +285,50 @@ class C8oFullSyncCbl extends C8oFullSync {
         String documentId = createdDocument.getId();
         String currentRevision = createdDocument.getCurrentRevisionId();
         return new FullSyncDocumentOperationResponse(documentId, currentRevision, true);
+    }
+
+    @Override
+    Object handlePutAttachmentRequest(String databaseName, String docid, String attachmentName, String attachmentType, InputStream attachmentContent) throws C8oException {
+        C8oFullSyncDatabase fullSyncDatabase = getOrCreateFullSyncDatabase(databaseName);
+
+        // Gets the document from the local database
+        Document document = fullSyncDatabase.getDatabase().getExistingDocument(docid);
+
+        if (document != null) {
+            UnsavedRevision newRev = document.getCurrentRevision().createRevision();
+            newRev.setAttachment(attachmentName, attachmentType, attachmentContent);
+            try {
+                newRev.save();
+            } catch (CouchbaseLiteException e) {
+                throw new C8oCouchbaseLiteException("Unable to put the attachment " + attachmentName + " to the document " + docid + ".", e);
+            }
+        } else {
+            throw new C8oRessourceNotFoundException(C8oExceptionMessage.toDo());
+        }
+
+        return new FullSyncDocumentOperationResponse(document.getId(), document.getCurrentRevisionId(), true);
+    }
+
+    @Override
+    Object handleDeleteAttachmentRequest(String databaseName, String docid, String attachmentName) throws C8oException {
+        C8oFullSyncDatabase fullSyncDatabase = getOrCreateFullSyncDatabase(databaseName);
+
+        // Gets the document from the local database
+        Document document = fullSyncDatabase.getDatabase().getExistingDocument(docid);
+
+        if (document != null) {
+            UnsavedRevision newRev = document.getCurrentRevision().createRevision();
+            newRev.removeAttachment(attachmentName);
+            try {
+                newRev.save();
+            } catch (CouchbaseLiteException e) {
+                throw new C8oCouchbaseLiteException("Unable to delete the attachment " + attachmentName + " to the document " + docid + ".", e);
+            }
+        } else {
+            throw new C8oRessourceNotFoundException(C8oExceptionMessage.toDo());
+        }
+
+        return new FullSyncDocumentOperationResponse(document.getId(), document.getCurrentRevisionId(), true);
     }
 
     @Override
