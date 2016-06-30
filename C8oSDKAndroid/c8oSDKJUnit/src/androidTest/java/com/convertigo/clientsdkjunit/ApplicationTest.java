@@ -432,6 +432,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         CheckLogRemoteHelper(c8o, "FATAL", id);
         c8o.setLogRemote(false);
         c8o.log.info(id);
+        Thread.sleep(333);
         Document doc = c8o.callXml(".GetLogs").sync();
         Object value = xpath.evaluate("/document/line", doc, XPathConstants.NODE);
         assertNull(value);
@@ -1217,7 +1218,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         synchronized (c8o) {
             JSONObject json = c8o.callJson("fs://.reset").sync();
             assertTrue(json.getBoolean("ok"));
-            String myId = "C8oFsPostExistingPolicyMergeSub-" + System.currentTimeMillis();
+            String myId = "C8oFsMergeObject-" + System.currentTimeMillis();
 
             PlainObjectA plainObjectA = new PlainObjectA();
             plainObjectA.name = "plain A";
@@ -1240,14 +1241,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             plainObjectA.bObject.num = -777;
             plainObjectA.bObject.enabled = true;
 
-            c8o.callJson("fs://.post",
+            json = c8o.callJson("fs://.post",
                     "_id", myId,
                     "a obj", plainObjectA
             ).sync();
             assertTrue(json.getBoolean("ok"));
             plainObjectA.bObjects.get(1).name = "plain B 2 bis";
 
-            c8o.callJson("fs://.post",
+            json = c8o.callJson("fs://.post",
                     C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
                     "_id", myId,
                     "a obj.bObjects", plainObjectA.bObjects
@@ -1259,14 +1260,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             plainObjectA.bObject.num = -666;
             plainObjectA.bObject.enabled = false;
 
-            c8o.callJson("fs://.post",
+            json = c8o.callJson("fs://.post",
                     C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
                     "_id", myId,
                     "a obj.bObject", plainObjectA.bObject
             ).sync();
             assertTrue(json.getBoolean("ok"));
 
-            c8o.callJson("fs://.post",
+            json = c8o.callJson("fs://.post",
                     C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
                     "_id", myId,
                     "a obj.bObject.enabled", true

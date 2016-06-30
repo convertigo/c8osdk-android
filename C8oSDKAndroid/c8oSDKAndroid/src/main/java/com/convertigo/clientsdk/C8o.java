@@ -65,9 +65,9 @@ import javax.xml.parsers.ParserConfigurationException;
 // and '<uses-permission android:name="android.permission.READ_PHONE_STATE"/>'
 /**
  * Allows to send requests to a Convertigo Server (or Studio), these requests are called c8o calls.<br/>
- * C8o calls are done thanks to a HTTP request.<br/>
+ * C8o calls are done thanks to a HTTP request or a CouchbaseLite usage.<br/>
  * An instance of C8o is connected to only one Convertigo and can't change it.<br/>
- * To use it, you have to first initialize the C8o instance with the Convertigo endpoint , then use call methods with Convertigo variables as parameter.<br/>
+ * To use it, you have to first initialize the C8o instance with the Convertigo endpoint, then use call methods with Convertigo variables as parameter.
  */
 public class C8o extends C8oBase {
 	
@@ -101,11 +101,41 @@ public class C8o extends C8oBase {
 
     //*** FULLSYNC parameters ***//
 
+    /**
+     * Constant to use as a parameter for a Call of "fs://.post" and must be followed by a FS_POLICY_* constant.
+     * <pre>{@code
+     * c8o.callJson("fs://.post",
+     *   C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+     *   "docid", myid,
+     *   "mykey", myvalue
+     * ).sync();
+     * }</pre>
+     */
     static final public String FS_POLICY = "_use_policy";
+    /**
+     * Use it with "fs://.post" and C8o.FS_POLICY.<br/>
+     * This is the default post policy that don't alter the document before the CouchbaseLite's insertion.
+     */
     static final public String FS_POLICY_NONE = "none";
+    /**
+     * Use it with "fs://.post" and C8o.FS_POLICY.<br/>
+     * This post policy remove the "_id" and "_rev" of the document before the CouchbaseLite's insertion.
+     */
     static final public String FS_POLICY_CREATE = "create";
+    /**
+     * Use it with "fs://.post" and C8o.FS_POLICY.<br/>
+     * This post policy inserts the document in CouchbaseLite even if a document with the same "_id" already exists.
+     */
     static final public String FS_POLICY_OVERRIDE = "override";
+    /**
+     * Use it with "fs://.post" and C8o.FS_POLICY.<br/>
+     * This post policy merge the document with an existing document with the same "_id" before the CouchbaseLite's insertion.
+     */
     static final public String FS_POLICY_MERGE = "merge";
+    /**
+     * Use it with "fs://.post". Default value is ".".<br/>
+     * This key allow to override the sub key separator in case of document depth modification.
+     */
     static final public String FS_SUBKEY_SEPARATOR = "_use_subkey_separator";
 	
 	//*** Local cache keys ***//
@@ -120,6 +150,11 @@ public class C8o extends C8oBase {
 	public static final String RESPONSE_TYPE_XML = "pxml";
 	public static final String RESPONSE_TYPE_JSON = "json";
 
+    /**
+     * Returns the current version of the SDK as "x.y.z".
+     *
+     * @return Current version of the SDK as "x.y.z".
+     */
     public static String getSdkVersion() {
         return "2.0.4";
     }
@@ -166,14 +201,17 @@ public class C8o extends C8oBase {
 	private Context context;
 	private Handler mainLooperHandler;
 
-	/**
-	 * Initializes a new instance of the C8o class without specifying a C8oExceptionListener.
-	 *
-	 * @param context
-	 * @param endpoint - The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;server&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt; (Example : http://127.0.0.1:18080/convertigo/projects/MyProject)
+    /**
+     * This is the base object representing a Convertigo Server end point. This object should be instanciated
+     * when the apps starts and be accessible from any class of the app. Although this is not common , you may have
+     * several C8o objects instantiated in your app.
      *
-	 * @throws C8oException
-	 */
+     * @param context The current application Android Context
+     * @param endpoint The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;server&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt;<br/>
+     *                 Example : http://computerName:18080/convertigo/projects/MyProject
+     *
+     * @throws C8oException In case of invalid parameter or initialization failure.
+     */
 	public C8o(Context context, String endpoint) throws C8oException {
 		this(context, endpoint, null);
 	}
@@ -181,13 +219,15 @@ public class C8o extends C8oBase {
 	/**
      * This is the base object representing a Convertigo Server end point. This object should be instanciated
      * when the apps starts and be accessible from any class of the app. Although this is not common , you may have
-     * several C8o objects instanciated in your app.
+     * several C8o objects instantiated in your app.
 	 *
 	 * @param context The current application Android Context
-	 * @param endpoint - The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;server&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt; (Example : http://127.0.0.1:18080/convertigo/projects/MyProject)
-	 * @param c8oSettings -  Contains optional parameters
+	 * @param endpoint The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;server&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt;<br/>
+     *                 Example : http://computerName:18080/convertigo/projects/MyProject
+	 * @param c8oSettings Initialization options.<br/>
+     *                    Example : new C8oSettings().setLogRemote(false).setDefaultDatabaseName("sample")
 	 *
-	 * @throws C8oException
+	 * @throws C8oException In case of invalid parameter or initialization failure.
 	 */
     public C8o(Context context, String endpoint, C8oSettings c8oSettings) throws C8oException {
 		// Checks the URL validity

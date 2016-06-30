@@ -134,6 +134,7 @@ class FullSyncEnum {
                                 c8oFullSync.c8o.log._trace("handleFullSyncRequest onJsonResponse: " + progress);
                                 ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
                             } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
+								c8oFullSync.c8o.log._trace("handleFullSyncRequest onXmlResponse: " + progress);
                                 ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
                             }
 

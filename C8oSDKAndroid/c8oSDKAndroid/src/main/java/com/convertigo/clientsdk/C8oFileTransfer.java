@@ -251,7 +251,7 @@ public class C8oFileTransfer {
                     throw new Exception("replication not completed");
                 }
                 task.put("replicated", true);
-                JSONObject res = c8oTask.callJson("fs://" + fsConnector + ".post",
+                JSONObject res = c8oTask.callJson("fs://.post",
                     C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
                     "_id", task.getString("_id"),
                     "replicated", true
