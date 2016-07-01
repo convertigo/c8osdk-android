@@ -270,7 +270,7 @@ public class C8oFileTransfer {
                 for (int i = 0; i < transferStatus.getTotal(); i++) {
                     JSONObject meta = c8o.callJson("fs://" + fsConnector + ".get", "docid", transferStatus.getUuid() + "_" + i).sync();
                     debug(meta.toString());
-
+                    String adr = meta.getJSONObject("_attachments").getJSONObject("chunk").getString("content_url");
                     appendChunk(createdFileStream, meta.getJSONObject("_attachments").getJSONObject("chunk").getString("content_url"));
                 }
                 createdFileStream.close();
@@ -368,18 +368,6 @@ public class C8oFileTransfer {
         // Initializes the uuid ending with the number of chunks
         String uuid = UUID.randomUUID().toString();
 
-        byte[] buffer = new byte[chunkSize];
-        int read = 0;
-        double fileSize = 0;
-        while (read >= 0) {
-            read = fileStream.read(buffer);
-            fileSize += read;
-        }
-        fileSize -= read;
-
-        int numberOfChunks = (int) Math.ceil(fileSize / chunkSize);
-        uuid = uuid + "-" + numberOfChunks;
-
         c8oTask.callJson("fs://.post",
                 "_id", uuid,
                 "filePath", fileName,
@@ -436,39 +424,22 @@ public class C8oFileTransfer {
                 //
                 try {
                     fileStream = streamToUpload.get(transferStatus.getUuid());
-                    fileStream.reset();
                     byte[] buffer = new byte[chunkSize];
-
                     String uuid = transferStatus.getUuid();
-
-                    for (int chunkId  = 0; chunkId < transferStatus.getTotal(); chunkId++) {
-                        String docid = uuid + "_" + chunkId;
-
-                        // Checks if the chunk is not already stored to avoid conflicts
-                        boolean documentAlreadyExists = false;
-                        boolean chunkAlreadyExists = false;
-
-                        try {
-                            res = c8o.callJson("fs://.get",
-                                    "docid", docid).sync();
-                            documentAlreadyExists = true;
-                            if (res.get("_attachments.chunk") != null) {
-                                chunkAlreadyExists = true;
-                            }
-                        } catch (Exception e) {}
-
-                        if (!documentAlreadyExists) {
+                    int countTot = -1;
+                    int read = 0;
+                    while (read >= 0) {
+                        countTot ++;
+                        read = fileStream.read(buffer);
+                        if(read >= 0){
+                            String docid = uuid + "_" + countTot;
                             c8o.callJson("fs://.post",
                                     "_id", docid,
                                     "fileName", fileName,
                                     "type", "chunk",
                                     "uuid", uuid).sync();
-                        }
 
-                        if (!chunkAlreadyExists) {
-                            int read = fileStream.read(buffer);
                             chunk = new ByteArrayInputStream(buffer, 0, read);
-
                             c8o.callJson("fs://.put_attachment",
                                     "docid", docid,
                                     "name", "chunk",
@@ -476,10 +447,15 @@ public class C8oFileTransfer {
                                     "content", chunk).sync();
 
                             chunk.close();
-                        } else {
-                            fileStream.skip(chunkSize);
                         }
+                        else{
+
+                        }
+
                     }
+
+                    transferStatus.total = countTot;
+
                 } catch (Exception e) {
                     throw e;
                 } finally {
@@ -490,6 +466,7 @@ public class C8oFileTransfer {
                         chunk.close();
                     }
                 }
+
 
                 // Updates the state document in the c8oTask database
                 res = c8oTask.callJson("fs://.post",
@@ -611,7 +588,10 @@ public class C8oFileTransfer {
                 //
                 // 5 : Request the server to assemble chunks to the initial file
                 //
-                res = c8o.callJson(".StoreDatabaseFileToLocal", "uuid", transferStatus.getUuid()).sync();
+                res = c8o.callJson(".StoreDatabaseFileToLocal",
+                                        "uuid", transferStatus.getUuid(),
+                                        "numberOfChunks", transferStatus.total
+                ).sync();
                 JSONObject document = res.getJSONObject("document");
                 if (document.get("serverFilePath") == null)
                 {

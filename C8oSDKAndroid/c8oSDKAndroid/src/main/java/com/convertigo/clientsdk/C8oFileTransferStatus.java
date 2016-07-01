@@ -86,11 +86,21 @@ public class C8oFileTransferStatus {
 
     public boolean isDownload() { return download; }
 
-    public void setDownload(boolean download) { this.download = download; }
+    public void setDownload(boolean download) {
+        this.download = download;
+        if(download){
+            tot();
+        }
+    }
 
     C8oFileTransferStatus(String uuid, String filepath) {
         this.uuid = uuid;
         this.filepath = filepath;
+        total = 0;
+        //total = Integer.parseInt(uuid.substring(uuid.lastIndexOf('-') + 1));
+    }
+
+    private void tot(){
         total = Integer.parseInt(uuid.substring(uuid.lastIndexOf('-') + 1));
     }
 }
