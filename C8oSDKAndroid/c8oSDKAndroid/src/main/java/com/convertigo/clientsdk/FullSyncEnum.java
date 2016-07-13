@@ -574,6 +574,7 @@ class FullSyncEnum {
 					newProperties.remove(C8oFullSync.FULL_SYNC__ID);
 
 					// Creates a new document or get an existing one (if the ID is specified)
+
                     createdDocument = (documentId == null) ? database.createDocument() : database.getDocument(documentId);
 
 					createdDocument.putProperties(newProperties);
