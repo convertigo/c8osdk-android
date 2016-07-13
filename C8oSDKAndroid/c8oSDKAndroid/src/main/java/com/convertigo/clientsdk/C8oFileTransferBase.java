@@ -13,4 +13,5 @@ public class C8oFileTransferBase {
     public void Copy(C8oFileTransferSettings c8oFileTransferSettings){
         maxRunning = c8oFileTransferSettings.getMaxRunning();
     }
+
 }
