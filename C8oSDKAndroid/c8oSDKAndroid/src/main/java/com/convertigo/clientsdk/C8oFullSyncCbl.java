@@ -433,7 +433,7 @@ class C8oFullSyncCbl extends C8oFullSync {
         }
 
         try {
-            Database db = manager.getDatabase(databaseName + localSuffix);
+            Database db = C8oFullSyncDatabase.MyOpenDatabase(databaseName + localSuffix, manager);
             if (db != null) {
                 db.delete();
             }
@@ -500,7 +500,7 @@ class C8oFullSyncCbl extends C8oFullSync {
         if (view == null || view.getMap() == null) {
             // No TouchDB view is defined, or it hasn't had a map block assigned
             // Searches in the design document if there is a CouchDB view definition we can compile
-            RevisionInternal rev = database.getDocumentWithIDAndRev(String.format("_design/%s", ddocName), null, EnumSet.noneOf(Database.TDContentOptions.class));
+            RevisionInternal rev = database.getDocument(String.format("_design/%s", ddocName), null, true);
             //RevisionInternal rev = database.getDocument("_design/" + ddocName, null, true);
             if (rev == null) {
                 // C8oLogger.log("Document : " + designDoc + " not found", Log.ERROR);

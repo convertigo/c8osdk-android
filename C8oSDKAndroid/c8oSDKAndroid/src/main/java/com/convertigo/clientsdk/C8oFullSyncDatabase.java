@@ -1,9 +1,12 @@
 package com.convertigo.clientsdk;
 
+import android.util.Log;
+
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
+import com.couchbase.lite.DatabaseOptions;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.replicator.Replication.ChangeEvent;
@@ -57,7 +60,19 @@ class C8oFullSyncDatabase {
     // private boolean basicAuth;
 
     //*** TAG Constructors ***//
-    
+
+    public static Database MyOpenDatabase(String databaseName, Manager manager) throws CouchbaseLiteException{
+        Database Mydatabase;
+
+        String KEY_4_DATABASE = "<password>";
+        DatabaseOptions options = new DatabaseOptions();
+        options.setCreate(true);
+        options.setEncryptionKey(KEY_4_DATABASE);
+        options.setStorageType(Manager.FORESTDB_STORAGE);
+        Mydatabase = manager.openDatabase(databaseName, options);
+        return Mydatabase;
+    }
+
     /**
      * Creates a fullSync database with the specified name and its location.
      * 
@@ -79,7 +94,14 @@ class C8oFullSyncDatabase {
         this.databaseName = (databaseName += localSuffix);
 
     	try {
-			database = manager.getDatabase(databaseName);
+
+            // manager.enableLogging("Sync", Log.DEBUG);
+            // manager.enableLogging("RemoteRequest", Log.VERBOSE);
+            // database = manager.openDatabase(databaseName, options);
+            // database = manager.getDatabase(databaseName);
+
+            database = MyOpenDatabase(databaseName, manager);
+
 		} catch (CouchbaseLiteException e) {
 			throw new C8oException(C8oExceptionMessage.unableToGetFullSyncDatabase(databaseName), e);
 		}
@@ -193,6 +215,7 @@ class C8oFullSyncDatabase {
                         progress.setTaskInfo("n/a");//changeEvent.getTransition().toString();
                         progress.setStatus("" + rep.getStatus());
                         progress.setFinished(rep.getStatus() != Replication.ReplicationStatus.REPLICATION_ACTIVE);
+                        Log.d("C8O", "rep.getStatus()==>" + rep.getStatus());
 
                         if (progress.isChanged()) {
                             _progress[0] = new C8oProgress(progress);
