@@ -46,7 +46,8 @@ import javax.xml.xpath.XPathFactory;
  */
 @RunWith(AndroidJUnit4.class)
 public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivity> {
-    static final String HOST = "buildus.twinsoft.fr";
+    static final String HOST = "localhost";
+    static final String PORT = "18080";
     static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
 
     static final XPath xpath = XPathFactory.newInstance().newXPath();
@@ -57,7 +58,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         C8O {
             @Override
             Object get() throws Throwable {
-                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+                C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH);
                 c8o.setLogRemote(false);
                 c8o.setLogLevelLocal(Log.ERROR);
                 return c8o;
@@ -72,7 +73,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         C8O_FS {
             @Override
             Object get() throws Throwable {
-                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH, new C8oSettings()
+                C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH, new C8oSettings()
                     .setDefaultDatabaseName("clientsdktesting")
                 );
                 c8o.setLogRemote(false);
@@ -83,7 +84,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         C8O_FS_PULL {
             @Override
             Object get() throws Throwable {
-                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH, new C8oSettings()
+                C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT   + PROJECT_PATH, new C8oSettings()
                         .setDefaultDatabaseName("qa_fs_pull")
                 );
                 c8o.setLogRemote(false);
@@ -96,7 +97,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         C8O_FS_PUSH {
             @Override
             Object get() throws Throwable {
-                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH, new C8oSettings()
+                C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH, new C8oSettings()
                         .setDefaultDatabaseName("qa_fs_push")
                 );
                 c8o.setLogRemote(false);
@@ -109,7 +110,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         C8O_LC {
             @Override
             Object get() throws Throwable {
-                C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+                C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH);
                 c8o.setLogRemote(false);
                 c8o.setLogLevelLocal(Log.ERROR);
                 return c8o;
@@ -181,7 +182,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     @Test(expected = IllegalArgumentException.class)
     public void C8oBadEndpoint() throws C8oException {
-        new C8o(context, "http://" + HOST + ":28080");
+        new C8o(context, "http://" + HOST + ":" + PORT);
     }
 
     @Test
@@ -230,7 +231,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void C8oUnknownHostCallAndLog() throws Throwable {
         Throwable exception = null;
         final Throwable[] exceptionLog = {null};
-        C8o c8o = new C8o(context, "http://" + HOST + "ee:28080" + PROJECT_PATH, new C8oSettings()
+        C8o c8o = new C8o(context, "http://" + HOST + "ee:" + PORT   + PROJECT_PATH, new C8oSettings()
             .setLogOnFail(new C8oOnFail() {
                 @Override
                 public void run(Throwable throwable, Map<String, Object> parameters) {
@@ -262,7 +263,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     @Test
     public void C8oUnknownHostCallWait() throws Throwable {
         Throwable exception = null;
-        C8o c8o = new C8o(context, "http://" + HOST + "ee:28080" + PROJECT_PATH);
+        C8o c8o = new C8o(context, "http://" + HOST + "ee:" + PORT   + PROJECT_PATH);
         try {
             C8oPromise<Document> promise = c8o.callXml(".Ping");
             Thread.sleep(500);
@@ -411,7 +412,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     @Test
     public void CheckLogRemote() throws Throwable {
-        C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH);
+        C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH);
         c8o.setLogC8o(false);
         String id = "logID=" + System.currentTimeMillis();
         c8o.callXml(".GetLogs", "init", id).sync();
@@ -885,7 +886,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void C8o0Ssl1TrustFail() throws Throwable {
         Throwable exception = null;
         try {
-            C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH);
+            C8o c8o = new C8o(context, "https://" + HOST + ":2443" + PROJECT_PATH);
             Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
             String value = xpath.evaluate("/document/pong/var1/text()", doc);
             assertTrue("not possible", false);
@@ -906,7 +907,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     @Test
     public void C8oSsl2TrustAll() throws Throwable {
-        C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
+        C8o c8o = new C8o(context, "https://" + HOST + ":2443" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
         Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
         String value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
@@ -1432,7 +1433,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
     //@Test
     public void Testing() throws Throwable {
-        C8o c8o = new C8o(context, "http://192.168.100.95:18080/convertigo/projects/xsd", new C8oSettings()
+        C8o c8o = new C8o(context, "http://192.168.100.95:" + PORT  +"/convertigo/projects/xsd", new C8oSettings()
                 .setDefaultDatabaseName("hardkey_fullsync")
         );
         c8o.setLogRemote(false);
@@ -1901,7 +1902,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     //@Test
     public void C8oWithTimeout() throws Throwable {
-        C8o c8o = new C8o(context, "http://" + HOST + ":28080" + PROJECT_PATH, new C8oSettings().setTimeout(1000));
+        C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH, new C8oSettings().setTimeout(1000));
         Document doc = c8o.callXml(".Sleep2sec").sync();
         String value = xpath.evaluate("/document/element/text()", doc);
         assertEquals("ok", value);
