@@ -69,6 +69,7 @@ class C8oFullSyncDatabase {
         options.setCreate(true);
         options.setEncryptionKey(KEY_4_DATABASE);
         options.setStorageType(Manager.FORESTDB_STORAGE);
+        options.setStorageType(Manager.SQLITE_STORAGE);
         Mydatabase = manager.openDatabase(databaseName, options);
         return Mydatabase;
     }

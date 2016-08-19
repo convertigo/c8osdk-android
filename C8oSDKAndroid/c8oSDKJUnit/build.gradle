@@ -35,9 +35,3 @@ dependencies {
     compile project(':c8oSDKAndroid')
 }
 
-/*
-repositories {
-    flatDir{
-        dirs '../c8oSDKAndroid/libs'
-    }
-}*/

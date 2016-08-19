@@ -204,6 +204,7 @@ class HttpInterface {
 				
 			SchemeRegistry schemeRegistry = new SchemeRegistry();
 			schemeRegistry.register(new Scheme(protocol, sslSocketFactory, port));
+			schemeRegistry.register(new DefaultHttpClient().getConnectionManager().getSchemeRegistry().getScheme("http"));
 			
 			this.httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(httpParams, schemeRegistry), httpParams);
 		} else {

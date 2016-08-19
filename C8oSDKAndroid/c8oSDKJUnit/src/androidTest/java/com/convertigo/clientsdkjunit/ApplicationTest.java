@@ -46,8 +46,8 @@ import javax.xml.xpath.XPathFactory;
  */
 @RunWith(AndroidJUnit4.class)
 public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivity> {
-    static final String HOST = "localhost";
-    static final String PORT = "18080";
+    static final String HOST = "buildus.twinsoft.fr";
+    static final String PORT = "28080";
     static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
 
     static final XPath xpath = XPathFactory.newInstance().newXPath();
@@ -886,7 +886,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void C8o0Ssl1TrustFail() throws Throwable {
         Throwable exception = null;
         try {
-            C8o c8o = new C8o(context, "https://" + HOST + ":2443" + PROJECT_PATH);
+            C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH);
             Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
             String value = xpath.evaluate("/document/pong/var1/text()", doc);
             assertTrue("not possible", false);
@@ -907,7 +907,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     @Test
     public void C8oSsl2TrustAll() throws Throwable {
-        C8o c8o = new C8o(context, "https://" + HOST + ":2443" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
+        C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
         Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
         String value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
@@ -1568,7 +1568,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertEquals(8, json.getInt("count"));
                 assertEquals(8, json.getJSONArray("rows").length());
                 assertEquals("789", json.getJSONArray("rows").getJSONObject(5).getString("key"));
-                assertFalse(json.getJSONArray("rows").getJSONObject(5).has("doc"));
+                assertTrue(json.getJSONArray("rows").getJSONObject(5).isNull("doc"));
                 json = c8o.callJson("fs://.all",
                     "include_docs", true
                 ).sync();
@@ -1582,7 +1582,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertEquals(2, json.getInt("count"));
                 assertEquals(2, json.getJSONArray("rows").length());
                 assertEquals("147", json.getJSONArray("rows").getJSONObject(1).getString("key"));
-                assertFalse(json.getJSONArray("rows").getJSONObject(1).has("doc"));
+                assertTrue(json.getJSONArray("rows").getJSONObject(1).isNull("doc"));
                 json = c8o.callJson("fs://.all",
                     "include_docs", true,
                     "limit", 3,
@@ -1624,7 +1624,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertEquals("777", value);
                 value = json.getJSONObject("document").getJSONObject("couchdb_output").getInt("int");
                 assertEquals(777, value);
-                value = json.getJSONObject("document").getJSONObject("couchdb_output").getString("_c8oAcl");
+                value = json.getJSONObject("document").getJSONObject("couchdb_output").getString("~c8oAcl");
                 assertEquals("testing_user", value);
             } finally {
                 c8o.callJson(".LogoutTesting").sync();
@@ -1674,15 +1674,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 JSONArray array = json
                     .getJSONObject("document")
                     .getJSONObject("couchdb_output")
-                    .getJSONObject("rows")
-                    .getJSONArray("item");
+                    .getJSONArray("rows");
                 assertEquals(10, array.length());
                 for (int i = 0; i < 10; i++) {
                     value = array.getJSONObject(i).getJSONObject("doc").getString("_id");
                     assertEquals(id + "-" + i, value);
                     value = array.getJSONObject(i).getJSONObject("doc").getInt("index");
                     assertEquals(i, value);
-                    value = array.getJSONObject(i).getJSONObject("doc").getString("_c8oAcl");
+                    value = array.getJSONObject(i).getJSONObject("doc").getString("~c8oAcl");
                     assertEquals("testing_user", value);
                 }
                 assertFalse("uiThread must be False", uiThread[0]);
@@ -1760,8 +1759,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 JSONArray array = json
                     .getJSONObject("document")
                     .getJSONObject("couchdb_output")
-                    .getJSONObject("rows")
-                    .getJSONArray("item");
+                    .getJSONArray("rows");
                 assertEquals(3, array.length());
                 for (int i = 0; i < 3; i++) {
                     value = array.getJSONObject(i).getJSONObject("doc").getString("_id");

@@ -31,7 +31,7 @@ dependencies {
     androidTestCompile 'com.android.support:support-annotations:23.1.1'
     androidTestCompile 'com.android.support.test:runner:0.4.1'
     androidTestCompile 'com.android.support.test:rules:0.4.1'
-    compile(name:'c8oSDKAndroid-release', ext:'aar')
+    compile(name:'c8oSDKAndroid-release.2.0.4-beta2', ext:'aar')
 }
 
 repositories {
