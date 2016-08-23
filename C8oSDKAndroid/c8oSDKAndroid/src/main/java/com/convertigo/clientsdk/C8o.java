@@ -137,6 +137,10 @@ public class C8o extends C8oBase {
      * This key allow to override the sub key separator in case of document depth modification.
      */
     static final public String FS_SUBKEY_SEPARATOR = "_use_subkey_separator";
+
+
+    static final public String FS_STORAGE_SQL = "SQL";
+    static final public String FS_STORAGE_FORESTDB = "FORESTDB";
 	
 	//*** Local cache keys ***//
 	static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE = "response";
@@ -156,7 +160,7 @@ public class C8o extends C8oBase {
      * @return Current version of the SDK as "x.y.z".
      */
     public static String getSdkVersion() {
-        return "2.0.4";
+        return "2.0.5";
     }
 
     static final Executor executor;
@@ -483,6 +487,27 @@ public class C8o extends C8oBase {
      */
     public void setLogLevelLocal(int logLevelLocal) {
         this.logLevelLocal = logLevelLocal;
+    }
+
+    /**
+     * Set the storage engine for local FullSync databases. Use C8o.FS_STORAGE_SQL or C8o.FS_STORAGE_FORESTDB.
+     *
+     * @param fullSyncStorageEngine
+     */
+    public void setFullSyncStorageEngine(String fullSyncStorageEngine) {
+        if (C8o.FS_STORAGE_SQL.equals(fullSyncStorageEngine) ||
+                C8o.FS_STORAGE_FORESTDB.equals(fullSyncStorageEngine)) {
+            this.fullSyncStorageEngine = fullSyncStorageEngine;
+        }
+    }
+
+    /**
+     * Set the encryption key for local FullSync databases encryption.
+     *
+     * @param fullSyncEncryptionKey
+     */
+    public void setFullSyncEncryptionKey(String fullSyncEncryptionKey) {
+        this.fullSyncEncryptionKey = fullSyncEncryptionKey;
     }
 
     public boolean isUI() {

@@ -159,7 +159,7 @@ public class C8oSettings extends C8oBase {
 	 *
 	 * @param keyStoreInputStream
 	 * @param keyStorePassword
-	 * @return
+	 * @return this
 	 */
 	public C8oSettings setKeyStoreInputStream(InputStream keyStoreInputStream, String keyStorePassword) {
 		this.keyStoreInputStream = keyStoreInputStream;
@@ -172,11 +172,36 @@ public class C8oSettings extends C8oBase {
 	 *
 	 * @param trustStoreInputStream
 	 * @param trustStorePassword
-	 * @return
+	 * @return this
 	 */
 	public C8oSettings setTrustStoreInputStream(InputStream trustStoreInputStream, String trustStorePassword) {
 		this.trustStoreInputStream = trustStoreInputStream;
 		this.trustStorePassword = trustStorePassword;
 		return this;
 	}
+
+    /**
+     * Set the storage engine for local FullSync databases. Use C8o.FS_STORAGE_SQL or C8o.FS_STORAGE_FORESTDB.
+     *
+     * @param fullSyncStorageEngine
+     * @return this
+     */
+    public C8oSettings setFullSyncStorageEngine(String fullSyncStorageEngine) {
+        if (C8o.FS_STORAGE_SQL.equals(fullSyncStorageEngine) ||
+                C8o.FS_STORAGE_FORESTDB.equals(fullSyncStorageEngine)) {
+            this.fullSyncStorageEngine = fullSyncStorageEngine;
+        }
+        return this;
+    }
+
+    /**
+     * Set the encryption key for local FullSync databases encryption.
+     *
+     * @param fullSyncEncryptionKey
+     * @return
+     */
+    public C8oSettings setFullSyncEncryptionKey(String fullSyncEncryptionKey) {
+        this.fullSyncEncryptionKey = fullSyncEncryptionKey;
+        return this;
+    }
 }

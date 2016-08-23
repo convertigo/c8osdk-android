@@ -41,7 +41,6 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -427,19 +426,13 @@ class C8oFullSyncCbl extends C8oFullSync {
 
     @Override
     FullSyncDefaultResponse handleDestroyDatabaseRequest(String databaseName) throws C8oException {
+        getOrCreateFullSyncDatabase(databaseName).delete();
+
         String localDatabaseName = databaseName + localSuffix;
         if (fullSyncDatabases.containsKey(localDatabaseName)) {
             fullSyncDatabases.remove(localDatabaseName);
         }
 
-        try {
-            Database db = C8oFullSyncDatabase.MyOpenDatabase(databaseName + localSuffix, manager);
-            if (db != null) {
-                db.delete();
-            }
-        } catch (CouchbaseLiteException e) {
-            new C8oException("TODO", e);
-        }
         return new FullSyncDefaultResponse(true);
     }
 

@@ -61,19 +61,6 @@ class C8oFullSyncDatabase {
 
     //*** TAG Constructors ***//
 
-    public static Database MyOpenDatabase(String databaseName, Manager manager) throws CouchbaseLiteException{
-        Database Mydatabase;
-
-        String KEY_4_DATABASE = "<password>";
-        DatabaseOptions options = new DatabaseOptions();
-        options.setCreate(true);
-        options.setEncryptionKey(KEY_4_DATABASE);
-        options.setStorageType(Manager.FORESTDB_STORAGE);
-        options.setStorageType(Manager.SQLITE_STORAGE);
-        Mydatabase = manager.openDatabase(databaseName, options);
-        return Mydatabase;
-    }
-
     /**
      * Creates a fullSync database with the specified name and its location.
      * 
@@ -98,11 +85,17 @@ class C8oFullSyncDatabase {
 
             // manager.enableLogging("Sync", Log.DEBUG);
             // manager.enableLogging("RemoteRequest", Log.VERBOSE);
-            // database = manager.openDatabase(databaseName, options);
-            // database = manager.getDatabase(databaseName);
-
-            database = MyOpenDatabase(databaseName, manager);
-
+            DatabaseOptions options = new DatabaseOptions();
+            options.setCreate(true);
+            if (c8o.getFullSyncEncryptionKey() != null) {
+                options.setEncryptionKey(c8o.getFullSyncEncryptionKey());
+            }
+            if (C8o.FS_STORAGE_SQL.equals(c8o.getFullSyncStorageEngine())) {
+                options.setStorageType(Manager.SQLITE_STORAGE);
+            } else {
+                options.setStorageType(Manager.FORESTDB_STORAGE);
+            }
+            database = manager.openDatabase(databaseName, options);
 		} catch (CouchbaseLiteException e) {
 			throw new C8oException(C8oExceptionMessage.unableToGetFullSyncDatabase(databaseName), e);
 		}
@@ -123,6 +116,18 @@ class C8oFullSyncDatabase {
         	pushReplication.setCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME, authenticationCookieValue, "/", expirationDate, isSecure, httpOnly);
         }
         */
+    }
+
+    void delete() {
+        if (database != null) {
+            try {
+                database.delete();
+            } catch (CouchbaseLiteException e) {
+                c8o.log._info("Failed to close database", e);
+            } finally {
+                database = null;
+            }
+        }
     }
 
 	private Replication getReplication(FullSyncReplication fsReplication) {
