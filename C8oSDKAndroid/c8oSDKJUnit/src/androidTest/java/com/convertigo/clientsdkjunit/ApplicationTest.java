@@ -9,6 +9,9 @@ import android.test.ActivityInstrumentationTestCase2;
 import android.util.Log;
 
 import com.convertigo.clientsdk.C8o;
+import com.convertigo.clientsdk.C8oFileTransfer;
+import com.convertigo.clientsdk.C8oFileTransferSettings;
+import com.convertigo.clientsdk.C8oFileTransferStatus;
 import com.convertigo.clientsdk.C8oLocalCache;
 import com.convertigo.clientsdk.C8oOnFail;
 import com.convertigo.clientsdk.C8oOnProgress;
@@ -16,6 +19,7 @@ import com.convertigo.clientsdk.C8oOnResponse;
 import com.convertigo.clientsdk.C8oProgress;
 import com.convertigo.clientsdk.C8oPromise;
 import com.convertigo.clientsdk.C8oSettings;
+import com.convertigo.clientsdk.EventHandler;
 import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
@@ -28,6 +32,8 @@ import org.junit.runner.RunWith;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import java.io.File;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,6 +52,8 @@ import javax.xml.xpath.XPathFactory;
  */
 @RunWith(AndroidJUnit4.class)
 public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivity> {
+    /*static final String HOST = "192.168.100.95";
+    static final String PORT = "18080";*/
     static final String HOST = "buildus.twinsoft.fr";
     static final String PORT = "28080";
     static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
@@ -1829,6 +1837,100 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals(id, value);
         signature2 = xpath.evaluate("/document/@signature", doc);
         assertNotSame(signature, signature2);
+    }
+
+    @Test
+    public void C8oFileTransferDownloadSimple() throws Throwable {
+        C8o c8o = get(Stuff.C8O);
+        synchronized (c8o) {
+            C8oFileTransfer ft = new C8oFileTransfer(c8o, new C8oFileTransferSettings());
+            c8o.callJson(ft.getTaskDb() + ".destroy").sync();
+            final C8oFileTransferStatus[] status = new C8oFileTransferStatus[]{null};
+            final Throwable[] error = new Throwable[]{null};
+            ft.raiseTransferStatus(new EventHandler<C8oFileTransfer, C8oFileTransferStatus>() {
+                @Override
+                public void on(C8oFileTransfer source, C8oFileTransferStatus event) {
+                    if (event.getState() == C8oFileTransferStatus.C8oFileTransferState.Finished) {
+                        synchronized (status) {
+                            status[0] = event;
+                            status.notify();
+                        }
+                    }
+                }
+            }).raiseException(new EventHandler<C8oFileTransfer, Throwable>() {
+                @Override
+                public void on(C8oFileTransfer source, Throwable event) {
+                    synchronized (status) {
+                        error[0] = event;
+                        status.notify();
+                    }
+                }
+            });
+            ft.start();
+            String uuid = xpath.evaluate("/document/uuid/text()", c8o.callXml(".PrepareDownload4M").sync());
+            assertNotNull(uuid);
+            File file = new File(context.getCacheDir(), "4m.jpg");
+            file.delete();
+            try {
+                synchronized (status) {
+                    ft.downloadFile(uuid, file.getAbsolutePath());
+                    status.wait(20000);
+                }
+                if (error[0] != null) {
+                    throw error[0];
+                }
+                assertNotNull(status[0]);
+                assertTrue(file.exists());
+                long length = file.length();
+                assertEquals(4237409, length);
+            } finally {
+                file.delete();
+            }
+        }
+    }
+
+    @Test
+    public void C8oFileTransferUploadSimple() throws Throwable {
+        C8o c8o = get(Stuff.C8O);
+        InputStream is = context.getAssets().open("4m.jpg");
+        int av = is.available();
+        synchronized (c8o) {
+            C8oFileTransfer ft = new C8oFileTransfer(c8o, new C8oFileTransferSettings());
+            c8o.callJson(ft.getTaskDb() + ".destroy").sync();
+            final C8oFileTransferStatus[] status = new C8oFileTransferStatus[]{null};
+            final Throwable[] error = new Throwable[]{null};
+            ft.raiseTransferStatus(new EventHandler<C8oFileTransfer, C8oFileTransferStatus>() {
+                @Override
+                public void on(C8oFileTransfer source, C8oFileTransferStatus event) {
+                    if (event.getState() == C8oFileTransferStatus.C8oFileTransferState.Finished) {
+                        synchronized (status) {
+                            status[0] = event;
+                            status.notify();
+                        }
+                    }
+                }
+            }).raiseException(new EventHandler<C8oFileTransfer, Throwable>() {
+                @Override
+                public void on(C8oFileTransfer source, Throwable event) {
+                    synchronized (status) {
+                        error[0] = event;
+                        status.notify();
+                    }
+                }
+            });
+            ft.start();
+            synchronized (status) {
+                ft.uploadFile("4m.jpg", context.getAssets().open("4m.jpg"));
+                status.wait(20000);
+            }
+            if (error[0] != null) {
+                throw error[0];
+            }
+            assertNotNull(status[0]);
+            String filepath = status[0].getServerFilePath();
+            String length = xpath.evaluate("/document/length/text()", c8o.callXml(".GetSizeAndDelete", "filepath", filepath).sync());
+            assertEquals("4237409", length);
+        }
     }
 
     @Test

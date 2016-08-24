@@ -2,7 +2,6 @@ package com.convertigo.clientsdk;
 
 import com.convertigo.clientsdk.exception.C8oException;
 
-import org.apache.commons.io.IOUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -11,7 +10,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +23,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
     private boolean tasksDbCreated = false;
     private boolean alive = true;
     private int chunkSize = 1000 * 1024;
+    private int[] _maxRunning;
 
     private C8o c8oTask;
     private Map<String, C8oFileTransferStatus> tasks = null;
@@ -34,36 +34,30 @@ public class C8oFileTransfer extends C8oFileTransferBase {
     private Map<String, InputStream> streamToUpload;
 
     public C8oFileTransfer(C8o c8o) throws C8oException {
-        this(c8o,new C8oFileTransferSettings(), "lib_FileTransfer");
+        this(c8o, null);
     }
     public C8oFileTransfer(C8o c8o, C8oFileTransferSettings c8oFileTransferSettings) throws C8oException {
-        this(c8o,c8oFileTransferSettings, "lib_FileTransfer");
-    }
-    public C8oFileTransfer(C8o c8o, C8oFileTransferSettings c8oFileTransferSettings, String projectName) throws C8oException {
-        this(c8o, c8oFileTransferSettings, projectName, "c8ofiletransfer_tasks");
-    }
-    
-    public C8oFileTransfer(C8o c8o, C8oFileTransferSettings c8oFileTransferSettings, String projectName, String taskDb) throws C8oException {
         if (c8oFileTransferSettings != null)
         {
-            Copy(c8oFileTransferSettings);
+            copy(c8oFileTransferSettings);
         }
+        _maxRunning = new int[] {maxRunning};
         c8oTask = new C8o(c8o.getContext(), c8o.getEndpointConvertigo() + "/projects/" + projectName, new C8oSettings(c8o).setDefaultDatabaseName(taskDb));
-        this.streamToUpload = new HashMap<String, InputStream>();
+        streamToUpload = new HashMap<String, InputStream>();
     }
 
     public C8oFileTransfer raiseTransferStatus(EventHandler<C8oFileTransfer, C8oFileTransferStatus> handler) {
-        this.raiseTransferStatus = handler;
+        raiseTransferStatus = handler;
         return this;
     }
 
     public C8oFileTransfer raiseDebug(EventHandler<C8oFileTransfer, String> handler) {
-        this.raiseDebug = handler;
+        raiseDebug = handler;
         return this;
     }
 
     public C8oFileTransfer raiseException(EventHandler<C8oFileTransfer, Throwable> handler) {
-        this.raiseException = handler;
+        raiseException = handler;
         return this;
     }
 
@@ -180,11 +174,11 @@ public class C8oFileTransfer extends C8oFileTransferBase {
         boolean needRemoveSession = false;
         C8o c8o = null;
         try {
-            synchronized (maxRunning){
-                if(maxRunning[0] <= 0){
-                    maxRunning.wait();
+            synchronized (_maxRunning) {
+                if (_maxRunning[0] <= 0) {
+                    _maxRunning.wait();
                 }
-                maxRunning[0]--;
+                _maxRunning[0]--;
             }
             c8o = new C8o(c8oTask.getContext(), c8oTask.getEndpoint(), new C8oSettings(c8oTask).setFullSyncLocalSuffix("_" + transferStatus.getUuid()));
             String fsConnector = null;
@@ -277,7 +271,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 //
                 // 2 : Gets the document describing the chunks list
                 //
-                OutputStream createdFileStream = new FileOutputStream(transferStatus.getFilepath());
+                FileChannel createdFileStream = new FileOutputStream(transferStatus.getFilepath()).getChannel();
 
                 for (int i = 0; i < transferStatus.getTotal(); i++) {
                     JSONObject meta = c8o.callJson("fs://" + fsConnector + ".get", "docid", transferStatus.getUuid() + "_" + i).sync();
@@ -327,9 +321,9 @@ public class C8oFileTransfer extends C8oFileTransferBase {
             notify(e);
         }
         finally {
-            synchronized (maxRunning){
-                maxRunning[0]++;
-                maxRunning.notify();
+            synchronized (_maxRunning) {
+                _maxRunning[0]++;
+                _maxRunning.notify();
             }
         }
 
@@ -344,11 +338,11 @@ public class C8oFileTransfer extends C8oFileTransferBase {
         }
     }
 
-    private void appendChunk(OutputStream createdFileStream, String contentPath) throws IOException {
+    private void appendChunk(FileChannel createdFileStream, String contentPath) throws IOException {
         contentPath = contentPath.replaceFirst("^file:", "");
-        InputStream chunkStream = new FileInputStream(contentPath);
-        IOUtils.copy(chunkStream, createdFileStream);
-        chunkStream.close();
+        FileChannel fromChannel = new FileInputStream(contentPath).getChannel();
+        fromChannel.transferTo(0, fromChannel.size(), createdFileStream);
+        fromChannel.close();
     }
 
     private void notify(C8oFileTransferStatus transferStatus) {
@@ -410,11 +404,11 @@ public class C8oFileTransfer extends C8oFileTransferBase {
     void uploadFile(C8oFileTransferStatus transferStatus, final JSONObject task) {
 
         try {
-            synchronized (maxRunning){
-                if(maxRunning[0] <= 0){
-                    maxRunning.wait();
+            synchronized (_maxRunning) {
+                if (_maxRunning[0] <= 0) {
+                    _maxRunning.wait();
                 }
-                maxRunning[0]--;
+                _maxRunning[0]--;
             }
             JSONObject res = null;
             String fileName = transferStatus.getFilepath();
@@ -655,9 +649,9 @@ public class C8oFileTransfer extends C8oFileTransferBase {
             throwable.printStackTrace();
         }
         finally {
-            synchronized (maxRunning){
-                maxRunning[0]++;
-                maxRunning.notify();
+            synchronized (_maxRunning) {
+                _maxRunning[0]++;
+                _maxRunning.notify();
             }
         }
     }

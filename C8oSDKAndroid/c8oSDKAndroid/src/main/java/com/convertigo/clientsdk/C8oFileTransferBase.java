@@ -3,15 +3,26 @@ package com.convertigo.clientsdk;
 /**
  * Created by charlesg on 12/07/2016.
  */
-public class C8oFileTransferBase {
-    protected int[] maxRunning = { 4 };
+class C8oFileTransferBase {
+    protected String projectName = "lib_FileTransfer";
+    protected String taskDb = "c8ofiletransfer_tasks";
+    protected int maxRunning = 4;
 
-    public int[] getMaxRunning(){
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public String getTaskDb() {
+        return taskDb;
+    }
+
+    public int getMaxRunning() {
         return maxRunning;
     }
 
-    public void Copy(C8oFileTransferSettings c8oFileTransferSettings){
-        maxRunning = c8oFileTransferSettings.getMaxRunning();
+    protected void copy(C8oFileTransferBase settings) {
+        projectName = settings.projectName;
+        taskDb = settings.taskDb;
+        maxRunning = settings.maxRunning;
     }
-
 }
