@@ -27,15 +27,16 @@ public class C8oFileTransfer extends C8oFileTransferBase {
 
     private C8o c8oTask;
     private Map<String, C8oFileTransferStatus> tasks = null;
-    public EventHandler<C8oFileTransfer, C8oFileTransferStatus> raiseTransferStatus;
-    public EventHandler<C8oFileTransfer, String> raiseDebug;
-    public EventHandler<C8oFileTransfer, Throwable> raiseException;
+    private EventHandler<C8oFileTransfer, C8oFileTransferStatus> raiseTransferStatus;
+    private EventHandler<C8oFileTransfer, String> raiseDebug;
+    private EventHandler<C8oFileTransfer, Throwable> raiseException;
 
     private Map<String, InputStream> streamToUpload;
 
     public C8oFileTransfer(C8o c8o) throws C8oException {
         this(c8o, null);
     }
+
     public C8oFileTransfer(C8o c8o, C8oFileTransferSettings c8oFileTransferSettings) throws C8oException {
         if (c8oFileTransferSettings != null)
         {
