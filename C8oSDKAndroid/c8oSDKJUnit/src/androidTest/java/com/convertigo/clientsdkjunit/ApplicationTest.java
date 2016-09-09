@@ -33,7 +33,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.io.File;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1844,7 +1843,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         C8o c8o = get(Stuff.C8O);
         synchronized (c8o) {
             C8oFileTransfer ft = new C8oFileTransfer(c8o, new C8oFileTransferSettings());
-            c8o.callJson(ft.getTaskDb() + ".destroy").sync();
+            c8o.callJson("fs://" + ft.getTaskDb() + ".destroy").sync();
             final C8oFileTransferStatus[] status = new C8oFileTransferStatus[]{null};
             final Throwable[] error = new Throwable[]{null};
             ft.raiseTransferStatus(new EventHandler<C8oFileTransfer, C8oFileTransferStatus>() {
@@ -1892,11 +1891,9 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     @Test
     public void C8oFileTransferUploadSimple() throws Throwable {
         C8o c8o = get(Stuff.C8O);
-        InputStream is = context.getAssets().open("4m.jpg");
-        int av = is.available();
         synchronized (c8o) {
             C8oFileTransfer ft = new C8oFileTransfer(c8o, new C8oFileTransferSettings());
-            c8o.callJson(ft.getTaskDb() + ".destroy").sync();
+            c8o.callJson("fs://" + ft.getTaskDb() + ".destroy").sync();
             final C8oFileTransferStatus[] status = new C8oFileTransferStatus[]{null};
             final Throwable[] error = new Throwable[]{null};
             ft.raiseTransferStatus(new EventHandler<C8oFileTransfer, C8oFileTransferStatus>() {

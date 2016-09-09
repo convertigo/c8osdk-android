@@ -537,9 +537,9 @@ public class C8oFileTransfer extends C8oFileTransferBase {
 
                         // Asks how many documents are in the server database with this uuid
                         JSONObject json = c8o.callJson(".c8ofiletransfer.GetViewCountByUuid", "_use_key", transferStatus.getUuid()).sync();
-                        Object rows = json.getJSONObject("document").getJSONObject("couchdb_output").get("rows");// json.SelectToken("document.couchdb_output.rows.item");
-                        if (rows != null && rows instanceof JSONObject) {
-                            String currentStr = ((JSONObject) rows).getJSONObject("item").getString("value");
+                        Object rows = json.getJSONObject("document").getJSONObject("couchdb_output").get("rows");
+                        if (rows != null && rows instanceof JSONArray) {
+                            String currentStr = ((JSONArray) rows).getJSONObject(0).getString("value");
                             int current = Integer.parseInt(currentStr);
                             if (current != transferStatus.getCurrent()) {
                                 transferStatus.setCurrent(current);
