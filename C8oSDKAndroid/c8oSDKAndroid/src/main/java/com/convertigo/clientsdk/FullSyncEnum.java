@@ -130,12 +130,14 @@ class FullSyncEnum {
 								}
 							}
 
-                            if (c8oResponseListener instanceof C8oResponseJsonListener) {
-                                c8oFullSync.c8o.log._trace("handleFullSyncRequest onJsonResponse: " + progress);
-                                ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
-                            } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
-								c8oFullSync.c8o.log._trace("handleFullSyncRequest onXmlResponse: " + progress);
-                                ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                            if (progress.getTotal() != -1) {
+                                if (c8oResponseListener instanceof C8oResponseJsonListener) {
+                                    c8oFullSync.c8o.log._trace("handleFullSyncRequest onJsonResponse: " + progress);
+                                    ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
+                                } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
+                                    c8oFullSync.c8o.log._trace("handleFullSyncRequest onXmlResponse: " + progress);
+                                    ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                                }
                             }
 
                             if (!mutex[0] && pullFinish[0] && pushFinish[0]) {
@@ -150,7 +152,9 @@ class FullSyncEnum {
 
                     JSONObject response = new JSONObject();
                     try {
-                        mutex.wait();
+						if (!mutex[0]) {
+							mutex.wait();
+						}
                         c8oFullSync.c8o.log._debug("handleFullSyncRequest after wait");
                         response.put("ok", true);
                     } catch (Exception e) {
@@ -163,7 +167,7 @@ class FullSyncEnum {
 		REPLICATE_PULL("replicate_pull") {
 			@Override
 			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
-				final Object mutex = new Object();
+                final boolean[] mutex = {false};
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (mutex)
                 {
@@ -173,21 +177,26 @@ class FullSyncEnum {
                         public void onProgressResponse(C8oProgress progress, Map<String, Object> parameters) {
                             if (progress.isFinished()) {
                                 synchronized (mutex) {
+                                    mutex[0] = true;
                                     mutex.notify();
                                 }
                             }
 
-                            if (c8oResponseListener instanceof C8oResponseJsonListener) {
-                                ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
-                            } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
-                                ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                            if (progress.getTotal() != -1) {
+                                if (c8oResponseListener instanceof C8oResponseJsonListener) {
+                                    ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
+                                } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
+                                    ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                                }
                             }
                         }
                     });
 
                     JSONObject response = new JSONObject();
                     try {
-                        mutex.wait();
+                        if (!mutex[0]) {
+                            mutex.wait();
+                        }
                         response.put("ok", true);
                     } catch (Exception e) {
 						throw new C8oException("TODO", e);
@@ -199,7 +208,7 @@ class FullSyncEnum {
 		REPLICATE_PUSH("replicate_push") {
 			@Override
 			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
-                final Object mutex = new Object();
+                final boolean[] mutex = {false};
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (mutex)
                 {
@@ -209,21 +218,26 @@ class FullSyncEnum {
                         public void onProgressResponse(C8oProgress progress, Map<String, Object> parameters) {
                             if (progress.isFinished()) {
                                 synchronized (mutex) {
+                                    mutex[0] = true;
                                     mutex.notify();
                                 }
                             }
 
-                            if (c8oResponseListener instanceof C8oResponseJsonListener) {
-                                ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
-                            } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
-                                ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+							if (progress.getTotal() != -1) {
+                                if (c8oResponseListener instanceof C8oResponseJsonListener) {
+                                    ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
+                                } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
+                                    ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                                }
                             }
                         }
                     });
 
                     JSONObject response = new JSONObject();
                     try {
-                        mutex.wait();
+                        if (!mutex[0]) {
+                            mutex.wait();
+                        }
                         response.put("ok", true);
                     } catch (Exception e) {
 						throw new C8oException("TODO", e);

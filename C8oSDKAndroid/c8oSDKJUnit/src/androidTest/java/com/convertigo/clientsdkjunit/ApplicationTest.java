@@ -55,6 +55,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     static final String PORT = "18080";*/
     static final String HOST = "buildus.twinsoft.fr";
     static final String PORT = "28080";
+    /*static final String HOST = "cosinus.twinsoft.fr";
+    static final String PORT = "18080";*/
     static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
 
     static final XPath xpath = XPathFactory.newInstance().newXPath();
@@ -889,7 +891,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals("step 3", value);
     }
 
-    @Test
+    //@Test
     public void C8o0Ssl1TrustFail() throws Throwable {
         Throwable exception = null;
         try {
@@ -912,7 +914,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         assertEquals(java.security.cert.CertPathValidatorException.class, exception.getClass());
     }
 
-    @Test
+    //@Test
     public void C8oSsl2TrustAll() throws Throwable {
         C8o c8o = new C8o(context, "https://" + HOST + ":443" + PROJECT_PATH, new C8oSettings().setTrustAllCertificates(true));
         Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
@@ -1795,6 +1797,22 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             } finally {
                 c8o.callJson(".LogoutTesting").sync();
             }
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsReplicateCancel() throws Throwable {
+        C8o c8o = get(Stuff.C8O_FS);
+        synchronized (c8o) {
+            JSONObject json = c8o.callJson("fs://.reset").sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.replicate_push", "cancel", true).sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.replicate_pull", "cancel", true).sync();
+            assertTrue(json.getBoolean("ok"));
+            json = c8o.callJson("fs://.sync", "cancel", true).sync();
+            assertTrue(json.getBoolean("ok"));
         }
     }
 

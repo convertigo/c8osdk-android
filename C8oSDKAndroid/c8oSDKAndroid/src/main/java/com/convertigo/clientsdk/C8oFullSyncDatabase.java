@@ -130,21 +130,32 @@ class C8oFullSyncDatabase {
         }
     }
 
+    private Replication createReplication(FullSyncReplication fsReplication) {
+        Replication replication = fsReplication.replication = fsReplication.pull ?
+                database.createPullReplication(c8oFullSyncDatabaseUrl) :
+                database.createPushReplication(c8oFullSyncDatabaseUrl);
+
+        for (Cookie cookie : c8o.getCookieStore().getCookies()) {
+            replication.setCookie(cookie.getName(), cookie.getValue(), cookie.getPath(), cookie.getExpiryDate(), cookie.isSecure(), false);
+        }
+
+        return replication;
+    }
+
+    private void stopReplication(FullSyncReplication fsReplication) {
+        if (fsReplication.replication != null) {
+            fsReplication.replication.stop();
+            if (fsReplication.changeListener != null) {
+                fsReplication.replication.removeChangeListener(fsReplication.changeListener);
+                fsReplication.changeListener = null;
+            }
+            fsReplication.replication = null;
+        }
+    }
+
 	private Replication getReplication(FullSyncReplication fsReplication) {
-		if (fsReplication.replication != null) {
-			fsReplication.replication.stop();
-			if (fsReplication.changeListener != null) {
-				fsReplication.replication.removeChangeListener(fsReplication.changeListener);
-			}
-		}
-		Replication replication = fsReplication.replication = fsReplication.pull ?
-				database.createPullReplication(c8oFullSyncDatabaseUrl) :
-				database.createPushReplication(c8oFullSyncDatabaseUrl);
-
-		for (Cookie cookie : c8o.getCookieStore().getCookies()) {
-			replication.setCookie(cookie.getName(), cookie.getValue(), cookie.getPath(), cookie.getExpiryDate(), cookie.isSecure(), false);
-		}
-
+		stopReplication(fsReplication);
+		Replication replication = createReplication(fsReplication);
 		return replication;
 	}
 
@@ -195,20 +206,23 @@ class C8oFullSyncDatabase {
 		}
 
 		final Replication rep = getReplication(fullSyncReplication);
+        C8oProgress progress = new C8oProgress();
+        progress.setRaw(rep);
+        progress.setPull(rep.isPull());
 
 		if (cancel)
 		{
-            if (rep != null) {
-                rep.stop();
+            stopReplication(fullSyncReplication);
+            progress.setFinished(true);
+
+            if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener) {
+                ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, null);
             }
 			return;
 		}
 
-		final Map<String, Object> param = new HashMap<String, Object>(parameters);
-		C8oProgress progress = new C8oProgress();
+        final Map<String, Object> param = new HashMap<String, Object>(parameters);
         final C8oProgress[] _progress = {progress};
-		progress.setRaw(rep);
-		progress.setPull(rep.isPull());
 
 		rep.addChangeListener(
 				fullSyncReplication.changeListener = new ChangeListener() {
@@ -234,7 +248,7 @@ class C8oFullSyncDatabase {
                         }
 
                         if (progress.isFinished()) {
-                            rep.stop();
+                            stopReplication(fullSyncReplication);
                             if (continuous) {
                                 final long lastCurrent = 0;//progress.getCurrent();
                                 final short[] stat = {0};
