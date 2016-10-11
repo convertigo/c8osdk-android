@@ -5,23 +5,28 @@ package com.convertigo.clientsdk;
  */
 public class C8oFileTransferStatus {
 
+    public static final C8oFileTransferState StateNotQueued = C8oFileTransferState.NotQueued;
     public static final C8oFileTransferState StateQueued = C8oFileTransferState.Queued;
+
     public static final C8oFileTransferState StateAuthenticated = C8oFileTransferState.Authenticated;
     public static final C8oFileTransferState StateSplitting = C8oFileTransferState.Splitting;
     public static final C8oFileTransferState StateReplicate = C8oFileTransferState.Replicate;
     public static final C8oFileTransferState StateAssembling = C8oFileTransferState.Assembling;
     public static final C8oFileTransferState StateCleaning = C8oFileTransferState.Cleaning;
     public static final C8oFileTransferState StateFinished = C8oFileTransferState.Finished;
+    public static final C8oFileTransferState StateCanceled = C8oFileTransferState.Canceled;
 
     public enum C8oFileTransferState
     {
+        NotQueued("not queued"),
         Queued("queued"),
         Authenticated("authenticated"),
         Splitting("splitting"),
         Replicate("replicating"),
         Assembling("assembling"),
         Cleaning("cleaning"),
-        Finished("finished");
+        Finished("finished"),
+        Canceled("canceled");
 
         String toString;
 
@@ -34,7 +39,7 @@ public class C8oFileTransferStatus {
         }
     }
 
-    private C8oFileTransferState state = StateQueued;
+    private C8oFileTransferState state = StateNotQueued;
 
     public C8oFileTransferState getState() {
         return state;

@@ -160,7 +160,7 @@ public class C8o extends C8oBase {
      * @return Current version of the SDK as "x.y.z".
      */
     public static String getSdkVersion() {
-        return "2.0.6";
+        return "2.0.7";
     }
 
     static final Executor executor;

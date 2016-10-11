@@ -31,4 +31,9 @@ public class C8oFileTransferSettings extends C8oFileTransferBase {
         }
         return this;
     }
+
+    public C8oFileTransferSettings SetMaxDurationForTransferAttempt(long maxDurationForTransferAttempt) {
+        this.maxDurationForTransferAttempt = maxDurationForTransferAttempt;
+        return this;
+    }
 }

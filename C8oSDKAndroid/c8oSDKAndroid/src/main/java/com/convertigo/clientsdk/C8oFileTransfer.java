@@ -11,8 +11,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -27,6 +31,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
 
     private C8o c8oTask;
     private Map<String, C8oFileTransferStatus> tasks = null;
+    private Set<String> canceledTasks = new HashSet<String>();
     private EventHandler<C8oFileTransfer, C8oFileTransferStatus> raiseTransferStatus;
     private EventHandler<C8oFileTransfer, String> raiseDebug;
     private EventHandler<C8oFileTransfer, Throwable> raiseException;
@@ -108,6 +113,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                                     // Add the document id to the tasks list
                                     C8oFileTransferStatus transferStatus = new C8oFileTransferStatus(uuid, filePath);
                                     tasks.put(uuid, transferStatus);
+                                    transferStatus.setState(C8oFileTransferStatus.StateQueued);
                                     C8oFileTransfer.this.notify(transferStatus);
 
                                     if (task.has("download")) {
@@ -172,6 +178,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
     }
 
     void downloadFile(C8oFileTransferStatus transferStatus, JSONObject task) {
+        final String uuid = transferStatus.getUuid();
         boolean needRemoveSession = false;
         C8o c8o = null;
         try {
@@ -181,7 +188,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 }
                 _maxRunning[0]--;
             }
-            c8o = new C8o(c8oTask.getContext(), c8oTask.getEndpoint(), new C8oSettings(c8oTask).setFullSyncLocalSuffix("_" + transferStatus.getUuid()));
+            c8o = new C8o(c8oTask.getContext(), c8oTask.getEndpoint(), new C8oSettings(c8oTask).setFullSyncLocalSuffix("_" + uuid));
             String fsConnector = null;
 
             //
@@ -189,7 +196,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
             //
             if (!task.getBoolean("replicated") || !task.getBoolean("remoteDeleted")) {
                 needRemoveSession = true;
-                JSONObject json = c8o.callJson(".SelectUuid", "uuid", transferStatus.getUuid()).sync();
+                JSONObject json = c8o.callJson(".SelectUuid", "uuid", uuid).sync();
 
                 debug("SelectUuid:\n" + json.toString());
 
@@ -209,8 +216,9 @@ public class C8oFileTransfer extends C8oFileTransferBase {
             // 1 : Replicate the document discribing the chunks ids list
             //
 
-            if (!task.getBoolean("replicated") && fsConnector != null) {
+            if (!task.getBoolean("replicated") && fsConnector != null && !canceledTasks.contains(uuid)) {
                 final boolean[] locker = new boolean[] { false };
+                long expireTransfer = System.currentTimeMillis() + maxDurationForTransferAttempt;
 
                 c8o.callJson("fs://" + fsConnector + ".create").sync();
 
@@ -230,14 +238,18 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 notify(transferStatus);
 
                 Map<String, Object> allOptions = new HashMap<String, Object>();
-                allOptions.put("startkey", transferStatus.getUuid() + "_");
-                allOptions.put("endkey", transferStatus.getUuid() + "__");
+                allOptions.put("startkey", uuid + "_");
+                allOptions.put("endkey", uuid + "__");
 
                 // Waits the end of the replication if it is not finished
                 do {
                     try {
                         synchronized (locker) {
-                            locker.wait(500);
+                            if (System.currentTimeMillis() > expireTransfer) {
+                                locker[0] = true;
+                                throw new Exception("expireTransfer of " + maxDurationForTransferAttempt + " ms : retry soon");
+                            }
+                            locker.wait(1000);
                         }
 
                         JSONObject all = c8o.callJson("fs://" + fsConnector + ".all", allOptions).sync();
@@ -250,23 +262,30 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                             }
                         }
                     } catch (Exception e) {
+                        notify(e);
                         debug(e.toString());
                     }
-                } while (!locker[0]);
+                } while (!locker[0] && !canceledTasks.contains(uuid));
 
-                if (transferStatus.getCurrent() < transferStatus.getTotal()) {
-                    throw new Exception("replication not completed");
+                c8o.callJson("fs://" + fsConnector + ".replicate_pull", "cancel", true).sync();
+
+                if (!canceledTasks.contains(uuid)) {
+                    if (transferStatus.getCurrent() < transferStatus.getTotal()) {
+                        throw new Exception("replication not completed");
+                    }
+                    task.put("replicated", true);
+                    JSONObject res = c8oTask.callJson("fs://.post",
+                            C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                            "_id", task.getString("_id"),
+                            "replicated", true
+                    ).sync();
+                    debug("replicated true:\n" + res);
                 }
-                task.put("replicated", true);
-                JSONObject res = c8oTask.callJson("fs://.post",
-                    C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
-                    "_id", task.getString("_id"),
-                    "replicated", true
-                ).sync();
-                debug("replicated true:\n" + res);
             }
 
-            if (!task.getBoolean("assembled") && fsConnector != null) {
+            boolean isCanceling = canceledTasks.contains(uuid);
+
+            if (!task.getBoolean("assembled") && fsConnector != null && !isCanceling) {
                 transferStatus.setState(C8oFileTransferStatus.StateAssembling);
                 notify(transferStatus);
                 //
@@ -275,7 +294,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 FileChannel createdFileStream = new FileOutputStream(transferStatus.getFilepath()).getChannel();
 
                 for (int i = 0; i < transferStatus.getTotal(); i++) {
-                    JSONObject meta = c8o.callJson("fs://" + fsConnector + ".get", "docid", transferStatus.getUuid() + "_" + i).sync();
+                    JSONObject meta = c8o.callJson("fs://" + fsConnector + ".get", "docid", uuid + "_" + i).sync();
                     debug(meta.toString());
                     String adr = meta.getJSONObject("_attachments").getJSONObject("chunk").getString("content_url");
                     appendChunk(createdFileStream, meta.getJSONObject("_attachments").getJSONObject("chunk").getString("content_url"));
@@ -299,7 +318,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 debug("destroy local true:\n" + res);
 
                 needRemoveSession = true;
-                res = c8o.callJson(".DeleteUuid", "uuid", transferStatus.getUuid()).sync();
+                res = c8o.callJson(".DeleteUuid", "uuid", uuid).sync();
                 debug("deleteUuid:\n" + res);
 
                 task.put("remoteDeleted", true);
@@ -311,12 +330,18 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 debug("remoteDeleted true:\n" + res);
             }
 
-            if (task.getBoolean("replicated") && task.getBoolean("assembled") && task.getBoolean("remoteDeleted")) {
-                JSONObject res = c8oTask.callJson("fs://.delete", "docid", transferStatus.getUuid()).sync();
+            if ((task.getBoolean("replicated") && task.getBoolean("assembled") && task.getBoolean("remoteDeleted")) || isCanceling) {
+                JSONObject res = c8oTask.callJson("fs://.delete", "docid", uuid).sync();
                 debug("local delete:\n" + res);
 
                 transferStatus.setState(C8oFileTransferStatus.StateFinished);
                 notify(transferStatus);
+            }
+
+            if (isCanceling) {
+                transferStatus.setState(C8oFileTransferStatus.StateCanceled);
+                notify(transferStatus);
+                canceledTasks.remove(uuid);
             }
         } catch (Throwable e) {
             notify(e);
@@ -332,7 +357,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
             c8o.callJson(".RemoveSession");
         }
 
-        tasks.remove(transferStatus.getUuid());
+        tasks.remove(uuid);
 
         synchronized (this) {
             this.notify();
@@ -403,7 +428,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
     }
 
     void uploadFile(C8oFileTransferStatus transferStatus, final JSONObject task) {
-
+        final String uuid = transferStatus.getUuid();
         try {
             synchronized (_maxRunning) {
                 if (_maxRunning[0] <= 0) {
@@ -412,27 +437,27 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 _maxRunning[0]--;
             }
             JSONObject res = null;
-            String fileName = transferStatus.getFilepath();
             final boolean[] locker = new boolean[] { false };
+            String fileName = transferStatus.getFilepath();
 
             // Creates a c8o instance with a specific fullsync local suffix in order to store chunks in a specific database
-            C8o c8o = new C8o(c8oTask.getContext(), c8oTask.getEndpoint(), new C8oSettings(c8oTask).setFullSyncLocalSuffix("_" + transferStatus.getUuid()).setDefaultDatabaseName("c8ofiletransfer"));
+            C8o c8o = new C8o(c8oTask.getContext(), c8oTask.getEndpoint(), new C8oSettings(c8oTask).setFullSyncLocalSuffix("_" + uuid).setDefaultDatabaseName("c8ofiletransfer"));
 
             // Creates the local db
             c8o.callJson("fs://.create").sync();
             // res = c8o.callJson("fs://.all").sync();
 
             // If the file is not already splitted and stored in the local database
-            if (!task.getBoolean("splitted")) {
+            if (!task.getBoolean("splitted") && !canceledTasks.contains(uuid)) {
                 transferStatus.setState( C8oFileTransferStatus.StateSplitting);
                 notify(transferStatus);
 
                 // Checks if the stream is still stored
-                if (!streamToUpload.containsKey(transferStatus.getUuid())) {
+                if (!streamToUpload.containsKey(uuid)) {
                     // Removes the local database
                     c8o.callJson("fs://.reset").sync();
                     // Removes the task doc
-                    c8oTask.callJson("fs://.delete", "docid", transferStatus.getUuid()).sync();
+                    c8oTask.callJson("fs://.delete", "docid", uuid).sync();
                     throw new Exception("The file '" + task.get("filePath") + "' can't be upload because it was stopped before the file content was handled");
                 }
 
@@ -442,9 +467,8 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 // 1 : Split the file and store it locally
                 //
                 try {
-                    fileStream = streamToUpload.get(transferStatus.getUuid());
+                    fileStream = streamToUpload.get(uuid);
                     byte[] buffer = new byte[chunkSize];
-                    String uuid = transferStatus.getUuid();
                     int countTot = -1;
                     int read = 0;
                     while (read >= 0) {
@@ -466,9 +490,6 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                                     "content", chunk).sync();
 
                             chunk.close();
-                        }
-                        else{
-
                         }
 
                     }
@@ -497,14 +518,14 @@ public class C8oFileTransfer extends C8oFileTransferBase {
             }
 
             // res = c8o.callJson("fs://.all").sync();
-            streamToUpload.remove(transferStatus.getUuid());
+            streamToUpload.remove(uuid);
 
             // If the local database is not replecated to the server
-            if (!task.getBoolean("replicated")) {
+            if (!task.getBoolean("replicated") && !canceledTasks.contains(uuid)) {
                 //
                 // 2 : Authenticates
                 //
-                res = c8o.callJson(".SetAuthenticatedUser", "userId", transferStatus.getUuid()).sync();
+                res = c8o.callJson(".SetAuthenticatedUser", "userId", uuid).sync();
                 debug("SetAuthenticatedUser:\n" + res.toString());
 
                 transferStatus.setState(C8oFileTransferStatus.StateAuthenticated);
@@ -536,7 +557,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                         }
 
                         // Asks how many documents are in the server database with this uuid
-                        JSONObject json = c8o.callJson(".c8ofiletransfer.GetViewCountByUuid", "_use_key", transferStatus.getUuid()).sync();
+                        JSONObject json = c8o.callJson(".c8ofiletransfer.GetViewCountByUuid", "_use_key", uuid).sync();
                         Object rows = json.getJSONObject("document").getJSONObject("couchdb_output").get("rows");
                         if (rows != null && rows instanceof JSONArray) {
                             String currentStr = ((JSONArray) rows).getJSONObject(0).getString("value");
@@ -551,14 +572,19 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                     }
                 } while (!locker[0]);
 
-                // Updates the state document in the task database
-                res = c8oTask.callJson("fs://.post",
-                        C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
-                        "_id", task.getString("_id"),
-                        "replicated", task.put("replicated", true).getBoolean("replicated")
-                ).sync();
-                debug("replicated true:\n" + res);
+                c8o.callJson("fs://.replicate_push", "cancel", true).sync();
+
+                if (!canceledTasks.contains(uuid)) {
+                    // Updates the state document in the task database
+                    res = c8oTask.callJson("fs://.post",
+                            C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                            "_id", task.getString("_id"),
+                            "replicated", task.put("replicated", true).getBoolean("replicated")
+                    ).sync();
+                    debug("replicated true:\n" + res);
+                }
             }
+
 
             // If the local database containing chunks is not deleted
             locker[0] = true;
@@ -598,8 +624,10 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 });
             }
 
+            boolean isCanceling = canceledTasks.contains(uuid);
+
             // If the file is not assembled in the server
-            if (!task.getBoolean("assembled"))
+            if (!task.getBoolean("assembled") && !isCanceling)
             {
                 transferStatus.setState(C8oFileTransferStatus.StateAssembling);
                 notify(transferStatus);
@@ -608,7 +636,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 // 5 : Request the server to assemble chunks to the initial file
                 //
                 res = c8o.callJson(".StoreDatabaseFileToLocal",
-                                        "uuid", transferStatus.getUuid(),
+                                        "uuid", uuid,
                                         "numberOfChunks", transferStatus.total
                 ).sync();
                 JSONObject document = res.getJSONObject("document");
@@ -626,27 +654,34 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 debug("assembled true:\n" + res);
             }
 
-            transferStatus.setServerFilePath(task.getString("serverFilePath"));
+            if (!isCanceling) {
+                transferStatus.setServerFilePath(task.getString("serverFilePath"));
 
-            // Waits the local database is deleted
-            do
-            {
-                synchronized (locker)
+                // Waits the local database is deleted
+                do
                 {
-                    locker.wait(500);
-                }
-            } while (!locker[0]);
+                    synchronized (locker)
+                    {
+                        locker.wait(500);
+                    }
+                } while (!locker[0]);
+            }
 
             //
             // 6 : Remove the task document
             //
-            res = c8oTask.callJson("fs://.delete", "docid", transferStatus.getUuid()).sync();
+            res = c8oTask.callJson("fs://.delete", "docid", uuid).sync();
             debug("local delete:\n" + res.toString());
 
-            transferStatus.setState(C8oFileTransferStatus.StateFinished);
+            if (isCanceling) {
+                canceledTasks.remove(uuid);
+                transferStatus.setState(C8oFileTransferStatus.StateCanceled);
+            } else {
+                transferStatus.setState(C8oFileTransferStatus.StateFinished);
+            }
             notify(transferStatus);
-
         } catch (Throwable throwable) {
+            notify(throwable);
             throwable.printStackTrace();
         }
         finally {
@@ -654,6 +689,48 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 _maxRunning[0]++;
                 _maxRunning.notify();
             }
+        }
+    }
+
+    public List<C8oFileTransferStatus> getAllFiletransferStatus() {
+        List list = new ArrayList<C8oFileTransferStatus>();
+        try {
+            JSONObject res = c8oTask.callJson("fs://.all", "include_docs", true).sync();
+            JSONArray rows = res.getJSONArray("rows");
+            for (int i = 0; i < rows.length(); i++) {
+                JSONObject row = rows.getJSONObject(i);
+                JSONObject task = row.getJSONObject("doc");
+                String uuid = task.getString("_id");
+
+                // If this document id is not already in the tasks list
+                if (tasks.containsKey(uuid)) {
+                    list.add(tasks.get(uuid));
+                } else {
+                    String filePath = task.getString("filePath");
+                    list.add(new C8oFileTransferStatus(uuid, filePath));
+                }
+            }
+        } catch (Throwable t) {
+            t.printStackTrace();
+        }
+        return list;
+    }
+
+    public void cancelFiletransfer(C8oFileTransferStatus filetransferStatus)
+    {
+        cancelFiletransfer(filetransferStatus.getUuid());
+    }
+
+    public void cancelFiletransfer(String uuid)
+    {
+        canceledTasks.add(uuid);
+    }
+
+    public void cancelFiletransfers()
+    {
+        for (C8oFileTransferStatus filetransferStatus : getAllFiletransferStatus())
+        {
+            cancelFiletransfer(filetransferStatus);
         }
     }
 }
