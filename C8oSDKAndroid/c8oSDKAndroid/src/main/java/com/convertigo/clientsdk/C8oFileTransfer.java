@@ -570,7 +570,7 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                     } catch (Exception e) {
                         debug(e.toString());
                     }
-                } while (!locker[0]);
+                } while (!locker[0] && !canceledTasks.contains(uuid));
 
                 c8o.callJson("fs://.replicate_push", "cancel", true).sync();
 
@@ -716,18 +716,15 @@ public class C8oFileTransfer extends C8oFileTransferBase {
         return list;
     }
 
-    public void cancelFiletransfer(C8oFileTransferStatus filetransferStatus)
-    {
+    public void cancelFiletransfer(C8oFileTransferStatus filetransferStatus) {
         cancelFiletransfer(filetransferStatus.getUuid());
     }
 
-    public void cancelFiletransfer(String uuid)
-    {
+    public void cancelFiletransfer(String uuid) {
         canceledTasks.add(uuid);
     }
 
-    public void cancelFiletransfers()
-    {
+    public void cancelFiletransfers() {
         for (C8oFileTransferStatus filetransferStatus : getAllFiletransferStatus())
         {
             cancelFiletransfer(filetransferStatus);
