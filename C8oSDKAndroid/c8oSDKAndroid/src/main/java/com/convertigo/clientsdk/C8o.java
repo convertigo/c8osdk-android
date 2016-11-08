@@ -98,6 +98,7 @@ public class C8o extends C8oBase {
 	static final String ENGINE_PARAMETER_ENCODED = "__encoded";
     static final String ENGINE_PARAMETER_DEVICE_UUID = "__uuid";
     static final String ENGINE_PARAMETER_PROGRESS = "__progress";
+    static final String ENGINE_PARAMETER_FROM_LIVE = "__fromLive";
 
     //*** FULLSYNC parameters ***//
 
@@ -141,6 +142,8 @@ public class C8o extends C8oBase {
 
     static final public String FS_STORAGE_SQL = "SQL";
     static final public String FS_STORAGE_FORESTDB = "FORESTDB";
+
+    static final public String FS_LIVE = "__live";
 	
 	//*** Local cache keys ***//
 	static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE = "response";
@@ -198,13 +201,15 @@ public class C8o extends C8oBase {
      */
     C8oFullSync c8oFullSync;
 
+    Map<String, C8oCallTask> lives = new HashMap<String, C8oCallTask>();
+    Map<String, String> livesDb = new HashMap<String, String>();
+
 	/**
 	 * Used to build a Document form an InputStream.
 	 */
 	private DocumentBuilder documentBuilder;
 	private Context context;
 	private Handler mainLooperHandler;
-
     /**
      * This is the base object representing a Convertigo Server end point. This object should be instanciated
      * when the apps starts and be accessible from any class of the app. Although this is not common , you may have
@@ -363,9 +368,7 @@ public class C8o extends C8oBase {
             }
 
             // Creates C8oCallTask (extends android.os.AsyncTask)
-            C8oCallTask task = new C8oCallTask(this, parameters, c8oResponseListener, c8oExceptionListener);
-            // Performs the task
-            runBG(task);
+            new C8oCallTask(this, parameters, c8oResponseListener, c8oExceptionListener).execute();
         } catch (Exception e) {
             handleCallException(c8oExceptionListener, parameters, e);
         }
@@ -571,6 +574,46 @@ public class C8o extends C8oBase {
         return this.documentBuilder;
     }
 
+    public void addFullSyncChangeListener(String db, C8oFullSyncChangeListener listener) throws C8oException {
+        c8oFullSync.addFullSyncChangeListener(db, listener);
+    }
+
+    public void removeFullSyncChangeListener(String db, C8oFullSyncChangeListener listener) throws C8oException {
+        c8oFullSync.removeFullSyncChangeListener(db, listener);
+    }
+
+    void addLive(String liveid, String db, C8oCallTask task) throws C8oException {
+        cancelLive(liveid);
+        synchronized (lives) {
+            lives.put(liveid, task);
+        }
+
+        synchronized (livesDb) {
+            livesDb.put(liveid, db);
+        }
+
+        addFullSyncChangeListener(db, handleFullSyncLive);
+    }
+
+    public void cancelLive(String liveid) throws C8oException {
+        if (livesDb.containsKey(liveid)) {
+            String db;
+            synchronized (livesDb) {
+                db = livesDb.remove(liveid);
+                if (livesDb.containsValue(db)) {
+                    db = null;
+                }
+            }
+
+            if (db != null) {
+                removeFullSyncChangeListener(db, handleFullSyncLive);
+            }
+        }
+        synchronized (lives) {
+            lives.remove(liveid);
+        }
+    }
+
     public static Map<String, Object> toParameters(Object... parameters) {
         if (parameters.length % 2 != 0) {
             throw new InvalidParameterException("TODO");
@@ -599,4 +642,16 @@ public class C8o extends C8oBase {
             c8oExceptionListener.onException(exception, requestParameters);
         }
     }
+
+    private C8oFullSyncChangeListener handleFullSyncLive = new C8oFullSyncChangeListener() {
+
+        @Override
+        public void onChange(JSONObject changes) {
+            synchronized (lives) {
+                for (C8oCallTask task: lives.values()) {
+                    task.executeFromLive();
+                }
+            }
+        }
+    };
 }

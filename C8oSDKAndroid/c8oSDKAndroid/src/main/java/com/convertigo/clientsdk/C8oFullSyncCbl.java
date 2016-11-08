@@ -19,6 +19,7 @@ import com.couchbase.lite.Attachment;
 import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.Document;
+import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.Mapper;
 import com.couchbase.lite.Query;
@@ -42,10 +43,12 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -62,6 +65,8 @@ class C8oFullSyncCbl extends C8oFullSync {
      * List of couch databases and their replications.
      */
     private Map<String, C8oFullSyncDatabase> fullSyncDatabases;
+    private Map<String, Set<C8oFullSyncChangeListener>> fullSyncChangeListeners;
+    private Map<String, Database.ChangeListener> cblChangeListeners;
 
     public C8oFullSyncCbl() {
     }
@@ -71,6 +76,8 @@ class C8oFullSyncCbl extends C8oFullSync {
         super.Init(c8o, context);
 
         fullSyncDatabases = new HashMap<String, C8oFullSyncDatabase>();
+        fullSyncChangeListeners = new HashMap<String, Set<C8oFullSyncChangeListener>>();
+        cblChangeListeners = new HashMap<String, Database.ChangeListener>();
         try {
             manager = new Manager(new AndroidContext(context), Manager.DEFAULT_OPTIONS);
         } catch (IOException e) {
@@ -91,6 +98,9 @@ class C8oFullSyncCbl extends C8oFullSync {
         if (!fullSyncDatabases.containsKey(localDatabaseName))
         {
             fullSyncDatabases.put(localDatabaseName, new C8oFullSyncDatabase(c8o, manager, databaseName, fullSyncDatabaseUrlBase, localSuffix));
+            if (cblChangeListeners.containsKey(databaseName)) {
+                fullSyncDatabases.get(localDatabaseName).getDatabase().addChangeListener(cblChangeListeners.get(databaseName));
+            }
         }
         return fullSyncDatabases.get(localDatabaseName);
     }
@@ -713,6 +723,77 @@ class C8oFullSyncCbl extends C8oFullSync {
             localCacheDocument.putProperties(properties);
         } catch (Exception e) {
             throw new C8oException("TODO", e);
+        }
+    }
+
+    public void addFullSyncChangeListener(String db, C8oFullSyncChangeListener listener) throws C8oException {
+        if (db == null || db.isEmpty()) {
+            db = c8o.getDefaultDatabaseName();
+        }
+
+        final Set<C8oFullSyncChangeListener>[] listeners = new Set[]{null};
+
+        if (fullSyncChangeListeners.containsKey(db)) {
+            listeners[0] = fullSyncChangeListeners.get(db);
+        } else {
+            listeners[0] = new HashSet<C8oFullSyncChangeListener>();
+            fullSyncChangeListeners.put(db, listeners[0]);
+            Database.ChangeListener evtHandler = new Database.ChangeListener() {
+                @Override
+                public void changed (final Database.ChangeEvent e) {
+                    c8o.runBG(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                JSONObject changes = new JSONObject();
+                                JSONArray docs = new JSONArray();
+
+                                changes.put("changes", docs);
+                                changes.put("isExternal", e.isExternal());
+
+                                for (DocumentChange change: e.getChanges()) {
+                                    JSONObject doc = new JSONObject();
+                                    doc.put("id", change.getDocumentId());
+                                    doc.put("isConflict", change.isConflict());
+                                    doc.put("isCurrentRevision", change.isCurrentRevision());
+                                    doc.put("winningRevision", change.getWinningRevisionID());
+                                    doc.put("revisionId", change.getRevisionId());
+                                    if (change.getSource() != null) {
+                                        doc.put("sourceUrl", "" + change.getSource());
+                                    }
+                                    docs.put(doc);
+                                }
+
+                                for (C8oFullSyncChangeListener handler :listeners[0])
+                                {
+                                    handler.onChange(changes);
+                                }
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+                    });
+                }
+            };
+            getOrCreateFullSyncDatabase(db).getDatabase().addChangeListener(evtHandler);
+            cblChangeListeners.put(db, evtHandler);
+        }
+        listeners[0].add(listener);
+    }
+
+    public void removeFullSyncChangeListener(String db, C8oFullSyncChangeListener listener) throws C8oException {
+        if (db == null || db.isEmpty()) {
+            db = c8o.getDefaultDatabaseName();
+        }
+
+        if (fullSyncChangeListeners.containsKey(db)) {
+            Set<C8oFullSyncChangeListener> listeners = fullSyncChangeListeners.get(db);
+            listeners.remove(listener);
+            if (listeners.isEmpty()) {
+                getOrCreateFullSyncDatabase(db).getDatabase().removeChangeListener(cblChangeListeners.get(db));
+                fullSyncChangeListeners.remove(db);
+                cblChangeListeners.remove(db);
+            }
         }
     }
 

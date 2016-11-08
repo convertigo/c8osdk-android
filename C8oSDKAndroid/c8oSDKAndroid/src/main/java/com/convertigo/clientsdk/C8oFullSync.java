@@ -12,6 +12,7 @@ import com.couchbase.lite.View;
 import com.couchbase.lite.javascript.JavaScriptViewCompiler;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
 
 abstract class C8oFullSync {
@@ -57,6 +58,8 @@ abstract class C8oFullSync {
 	 * @throws C8oException 
 	 */
 	public Object handleFullSyncRequest(Map<String, Object> parameters, C8oResponseListener listener) throws C8oException {
+        parameters = new HashMap<String, Object>(parameters);
+
 		// Checks if this is really a fullSync request (even if this is normally already checked)
 		String projectParameterValue = C8oUtils.peekParameterStringValue(parameters, C8o.ENGINE_PARAMETER_PROJECT, true);
 
@@ -235,4 +238,7 @@ abstract class C8oFullSync {
 		}
 		return false;
 	}
+
+	abstract void addFullSyncChangeListener(String db, C8oFullSyncChangeListener listener) throws C8oException;
+	abstract void removeFullSyncChangeListener(String db, C8oFullSyncChangeListener listener) throws C8oException;
 }

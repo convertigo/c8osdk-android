@@ -181,7 +181,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
     }
 
     void onResponse(final T response, final Map<String, Object> parameters) {
-        if (lastResponse != null) {
+        if (lastResponse != null && !parameters.containsKey(C8o.ENGINE_PARAMETER_FROM_LIVE)) {
             if (nextPromise != null) {
                 nextPromise.onResponse(response, parameters);
             } else {

@@ -1,7 +1,5 @@
 package com.convertigo.clientsdk;
 
-import android.os.AsyncTask;
-
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
 import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
@@ -62,6 +60,16 @@ class C8oCallTask implements Runnable {
         c8o.log.logMethodCall("C8oCallTask", parameters, c8oResponseListener, c8oExceptionListener);
     }
 
+    public void execute() {
+        c8o.runBG(this);
+    }
+
+    public void executeFromLive() {
+        parameters.remove(C8o.FS_LIVE);
+        parameters.put(C8o.ENGINE_PARAMETER_FROM_LIVE, true);
+        execute();
+    }
+
     // Perform background operations
     @Override
     public void run() {
@@ -79,6 +87,12 @@ class C8oCallTask implements Runnable {
 
         if (isFullSyncRequest) {
 			c8o.log._debug("Is FullSync request");
+
+            String liveid = C8oUtils.getParameterStringValue(parameters, C8o.FS_LIVE, false);
+            if (liveid != null) {
+                String dbName = C8oUtils.getParameterStringValue(parameters, C8o.ENGINE_PARAMETER_PROJECT, true).substring(C8oFullSync.FULL_SYNC_PROJECT.length());
+                c8o.addLive(liveid, dbName, this);
+            }
             try {
 				Object fullSyncResult = c8o.c8oFullSync.handleFullSyncRequest(parameters, c8oResponseListener);
 				return fullSyncResult;
