@@ -8,8 +8,11 @@ import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
 import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
+import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
 import com.couchbase.lite.View;
 import com.couchbase.lite.javascript.JavaScriptViewCompiler;
+
+import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.util.HashMap;
@@ -109,6 +112,11 @@ abstract class C8oFullSync {
      * @throws C8oException Failed to parse response to JSON or XML.
      */
     protected Object handleFullSyncResponse(Object response, C8oResponseListener listener) throws C8oException {
+		if (response instanceof JSONObject) {
+			if (listener instanceof C8oResponseXmlListener) {
+				response = C8oFullSyncTranslator.fullSyncJsonToXml((JSONObject) response, c8o.getDocumentBuilder());
+			}
+		}
         return response;
     }
 	

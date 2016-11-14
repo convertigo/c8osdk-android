@@ -131,11 +131,6 @@ class C8oFullSyncCbl extends C8oFullSync {
             //*** FullSyncDefaultResponse (Sync, ReplicatePull, ReplicatePush, Reset) ***//
             else if (response instanceof FullSyncDefaultResponse) {
                 return C8oFullSyncTranslator.fullSyncDefaultResponseToJson((FullSyncDefaultResponse) response);
-            } else if (response instanceof JSONObject) {
-                return response;
-            } else {
-                throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentIncompatibleListener
-                        (listener.getClass().getName(), response.getClass().getName()));
             }
         } else if (listener instanceof C8oResponseXmlListener) {
             //*** Document (GetDocument) ***//
@@ -157,21 +152,15 @@ class C8oFullSyncCbl extends C8oFullSync {
             //*** FullSyncDefaultResponse (Sync, ReplicatePull, ReplicatePush, Reset) ***//
             else if (response instanceof FullSyncDefaultResponse) {
                 return C8oFullSyncTranslator.fullSyncDefaultResponseToXml((FullSyncDefaultResponse) response, c8o.getDocumentBuilder());
-            } else {
-                throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentIncompatibleListener
-                        (listener.getClass().getName(), response.getClass().getName()));
             }
         } else if (listener instanceof C8oResponseCblListener) {
             //*** Document (GetDocument) ***// || //*** QueryEnumerator (GetAllDocuments, GetView) ***//
             if (response instanceof Document || response instanceof QueryEnumerator) {
                 return response;
-            } else {
-                throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentIncompatibleListener
-                        (listener.getClass().getName(), response.getClass().getName()));
             }
-        } else {
-            throw new IllegalArgumentException(C8oExceptionMessage.unhandledListenerType(listener.getClass().getName()));
         }
+
+        return response;
     }
 
     @Override

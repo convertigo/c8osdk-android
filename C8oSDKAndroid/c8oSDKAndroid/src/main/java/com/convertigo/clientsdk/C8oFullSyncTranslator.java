@@ -47,7 +47,7 @@ class C8oFullSyncTranslator {
 	 * @return
 	 * @throws C8oException
 	 */
-	private static org.w3c.dom.Document fullSyncJsonToXml(JSONObject json, DocumentBuilder builder) throws C8oException {
+	public static org.w3c.dom.Document fullSyncJsonToXml(JSONObject json, DocumentBuilder builder) throws C8oException {
 		org.w3c.dom.Document xmlDocument;
 		// Lock on the document builder
 		synchronized (builder) {
@@ -255,4 +255,6 @@ class C8oFullSyncTranslator {
 			throw new C8oException(C8oExceptionMessage.fullSyncJsonToXML(), e);
 		}
 	}
+
+
 }
