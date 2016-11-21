@@ -164,8 +164,6 @@ class C8oCallTask implements Runnable {
             // Do the c8o call
             try {
                 httpResponse = c8o.httpInterface.handleC8oCallRequest(c8oCallUrl, parameters);
-            } catch (C8oException e) {
-                return new C8oException(C8oExceptionMessage.handleC8oCallRequest(), e);
             } catch (C8oHttpRequestException e) {
                 if (localCacheEnabled) {
                     try {
@@ -181,6 +179,8 @@ class C8oCallTask implements Runnable {
                         // no entry
                     }
                 }
+                return e;
+            } catch (C8oException e) {
                 return new C8oException(C8oExceptionMessage.handleC8oCallRequest(), e);
             }
             // Get the c8o call result

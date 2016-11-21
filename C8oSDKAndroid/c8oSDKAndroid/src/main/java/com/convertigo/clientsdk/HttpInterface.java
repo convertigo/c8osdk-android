@@ -121,6 +121,7 @@ class HttpInterface {
 		
 		// Create a HttpParams to set the connection timeout
 		HttpParams httpParams = new BasicHttpParams();
+		HttpConnectionParams.setSoTimeout(httpParams, c8o.getTimeout());
 		HttpConnectionParams.setConnectionTimeout(httpParams, c8o.getTimeout());
 		// HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);
 		// HttpProtocolParams.setContentCharset(httpParams, HTTP.UTF_8);
