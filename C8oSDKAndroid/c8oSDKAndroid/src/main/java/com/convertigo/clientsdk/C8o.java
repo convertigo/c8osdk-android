@@ -138,11 +138,20 @@ public class C8o extends C8oBase {
      * This key allow to override the sub key separator in case of document depth modification.
      */
     static final public String FS_SUBKEY_SEPARATOR = "_use_subkey_separator";
-
-
+    /**
+     * Use it with "c8oSettings.setFullSyncStorageEngine" to choose the SQL fullsync storage engine.
+     */
     static final public String FS_STORAGE_SQL = "SQL";
+    /**
+     * Use it with "c8oSettings.setFullSyncStorageEngine" to choose the FORESTDB fullsync storage engine.
+     */
     static final public String FS_STORAGE_FORESTDB = "FORESTDB";
-
+    /**
+     * Use it with "fs://" request as parameter to enable the live request feature.<br/>
+     * Must be followed by a string parameter, the 'liveid' that can be use to cancel the live
+     * request using c8o.cancelLive(liveid) method.<br/>
+     * A live request automatically recall the then or thenUI handler when the database changed.
+     */
     static final public String FS_LIVE = "__live";
 	
 	//*** Local cache keys ***//
@@ -153,9 +162,8 @@ public class C8o extends C8oBase {
 	static final String LOCAL_CACHE_DATABASE_NAME = "c8olocalcache";
 	
 	//*** Response type ***//
-	
-	public static final String RESPONSE_TYPE_XML = "pxml";
-	public static final String RESPONSE_TYPE_JSON = "json";
+	static final String RESPONSE_TYPE_XML = "pxml";
+	static final String RESPONSE_TYPE_JSON = "json";
 
     /**
      * Returns the current version of the SDK as "x.y.z".
@@ -394,6 +402,17 @@ public class C8o extends C8oBase {
         call((Map<String, Object>) null, null, null);
     }
 
+    /**
+     * Makes a c8o call with c8o requestable out of parameters, expecting a JSON response through a C8oPromise.<br/>
+     * The C8oPromise allow to register response handler with .then and .thenUI,
+     * error handler with .fail and failUI,
+     * replication handler with .progress
+     * and synchronous response with .sync().
+     *
+     * @param requestable - Contains the Convertigo Sequence or Transaction targeted  (Syntax : "<project>.<sequence>" or "<project>.<connector>.<transaction>")
+     * @param parameters - Contains c8o variables as key/value pair in the Map
+     * @return A C8oPromise that can deliver the JSON response
+     */
     public C8oPromise<JSONObject> callJson(String requestable, Map<String, Object> parameters) {
         final C8oPromise<JSONObject> promise = new C8oPromise<JSONObject>(this);
 
@@ -416,10 +435,32 @@ public class C8o extends C8oBase {
         return promise;
     }
 
+    /**
+     * Makes a c8o call with c8o requestable out of parameters, expecting a JSON response through a C8oPromise.<br/>
+     * The C8oPromise allow to register response handler with .then and .thenUI,
+     * error handler with .fail and failUI,
+     * replication handler with .progress
+     * and synchronous response with .sync().
+     *
+     * @param requestable - Contains the Convertigo Sequence or Transaction targeted  (Syntax : "<project>.<sequence>" or "<project>.<connector>.<transaction>")
+     * @param parameters - Contains c8o variables as key/value pair of sibling values
+     * @return A C8oPromise that can deliver the JSON response
+     */
     public C8oPromise<JSONObject> callJson(String requestable, Object... parameters) {
         return callJson(requestable, toParameters(parameters));
     }
 
+    /**
+     * Makes a c8o call with c8o requestable out of parameters, expecting a JSON response through a C8oPromise.<br/>
+     * The C8oPromise allow to register response handler with .then and .thenUI,
+     * error handler with .fail and failUI,
+     * replication handler with .progress
+     * and synchronous response with .sync().
+     *
+     * @param requestable - Contains the Convertigo Sequence or Transaction targeted  (Syntax : "<project>.<sequence>" or "<project>.<connector>.<transaction>")
+     * @param parameters - Contains c8o variables as key/value pair inside the JSONObject
+     * @return A C8oPromise that can deliver the JSON response
+     */
     public C8oPromise<JSONObject> callJson(String requestable, JSONObject parameters) {
         Map<String, Object> map = new LinkedHashMap<String, Object>(parameters.length());
         for (Iterator i = parameters.keys(); i.hasNext();) {
@@ -433,6 +474,17 @@ public class C8o extends C8oBase {
         return callJson(requestable, map);
     }
 
+    /**
+     * Makes a c8o call with c8o requestable out of parameters, expecting a XML Document response through a C8oPromise.<br/>
+     * The C8oPromise allow to register response handler with .then and .thenUI,
+     * error handler with .fail and failUI,
+     * replication handler with .progress
+     * and synchronous response with .sync().
+     *
+     * @param requestable - Contains the Convertigo Sequence or Transaction targeted  (Syntax : "<project>.<sequence>" or "<project>.<connector>.<transaction>")
+     * @param parameters - Contains c8o variables as key/value pair in the Map
+     * @return A C8oPromise that can deliver the XML Document response
+     */
     public C8oPromise<Document> callXml(String requestable, final Map<String, Object> parameters) {
         final C8oPromise<Document> promise = new C8oPromise<Document>(this);
 
@@ -455,6 +507,17 @@ public class C8o extends C8oBase {
         return promise;
     }
 
+    /**
+     * Makes a c8o call with c8o requestable out of parameters, expecting a XML Document response through a C8oPromise.<br/>
+     * The C8oPromise allow to register response handler with .then and .thenUI,
+     * error handler with .fail and failUI,
+     * replication handler with .progress
+     * and synchronous response with .sync().
+     *
+     * @param requestable - Contains the Convertigo Sequence or Transaction targeted  (Syntax : "<project>.<sequence>" or "<project>.<connector>.<transaction>")
+     * @param parameters - Contains c8o variables as key/value pair of sibling values
+     * @return A C8oPromise that can deliver the XML Document response
+     */
     public C8oPromise<Document> callXml(String requestable, Object... parameters) {
         return callXml(requestable, toParameters(parameters));
     }
@@ -470,6 +533,13 @@ public class C8o extends C8oBase {
         this.httpInterface.addCookie(name, value);
     }
 
+    /**
+     * Enable the internal SDK log.<br/>
+     * Add to the application log (generated using the c8o.log object) the logs generated internally
+     * by the SDK. Useful for debugging the SDK.
+     *
+     * @param logC8o set true to enable internal SDK log.
+     */
     public void setLogC8o(boolean logC8o) {
         this.logC8o = logC8o;
     }
@@ -477,6 +547,8 @@ public class C8o extends C8oBase {
     /**
      * Sets a value indicating if logs are sent to the Convertigo server.<br/>
      * Default is <b>true</b>.
+     *
+     * @param logRemote set true to enable remote logs.
      */
     public void setLogRemote(boolean logRemote) {
         this.logRemote = logRemote;
@@ -513,10 +585,21 @@ public class C8o extends C8oBase {
         this.fullSyncEncryptionKey = fullSyncEncryptionKey;
     }
 
+    /**
+     * Is the current thread is the UI thread.
+     *
+     * @return true if the current thread is the UI thread
+     */
     public boolean isUI() {
         return Looper.myLooper() == Looper.getMainLooper();
     }
 
+    /**
+     * Run a block of code in the UI Thread.<br/>
+     * Run the code directly if already in the UI thread.
+     *
+     * @param code The code to run in the UI Thread.
+     */
     public void runUI(Runnable code) {
         if (isUI()) {
             code.run();
@@ -525,6 +608,11 @@ public class C8o extends C8oBase {
         }
     }
 
+    /**
+     * Run a block of code in a background Thread.
+     *
+     * @param code The code to run in the background Thread.
+     */
     public void runBG(Runnable code) {
         executor.execute(code);
     }
@@ -574,10 +662,22 @@ public class C8o extends C8oBase {
         return this.documentBuilder;
     }
 
+    /**
+     * Add a listener to monitor all changes of the 'db'.
+     *
+     * @param db the name of the fullsync database to monitor. Use the default database for a blank or a null value.
+     * @param listener the listener to trigger on change.
+     */
     public void addFullSyncChangeListener(String db, C8oFullSyncChangeListener listener) throws C8oException {
         c8oFullSync.addFullSyncChangeListener(db, listener);
     }
 
+    /**
+     * Remove a listener for changes of the 'db'.
+     *
+     * @param db the name of the fullsync database to monitor. Use the default database for a blank or a null value.
+     * @param listener the listener instance to remove.
+     */
     public void removeFullSyncChangeListener(String db, C8oFullSyncChangeListener listener) throws C8oException {
         c8oFullSync.removeFullSyncChangeListener(db, listener);
     }
@@ -595,6 +695,11 @@ public class C8o extends C8oBase {
         addFullSyncChangeListener(db, handleFullSyncLive);
     }
 
+    /**
+     * Cancel a live request previously enabled by the C8o.FS_LIVE parameter.
+     *
+     * @param liveid The value associated with the C8o.FS_LIVE parameter.
+     */
     public void cancelLive(String liveid) throws C8oException {
         if (livesDb.containsKey(liveid)) {
             String db;
@@ -614,7 +719,13 @@ public class C8o extends C8oBase {
         }
     }
 
-    public static Map<String, Object> toParameters(Object... parameters) {
+    /**
+     * Transforms siblings values as key/value of a Map.
+     *
+     * @param parameters pair of values to transform into a Map.
+     * @return a Map that contains all parameters
+     */
+    private static Map<String, Object> toParameters(Object... parameters) {
         if (parameters.length % 2 != 0) {
             throw new InvalidParameterException("TODO");
         }
