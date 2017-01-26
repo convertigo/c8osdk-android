@@ -448,7 +448,7 @@ class C8oFullSyncCbl extends C8oFullSync {
      * @param viewProps
      * @return
      */
-    private View compileView(Database db, String viewName, Map<String, Object> viewProps) {
+    private View compileView(Database db, String viewName, String revID, Map<String, Object> viewProps) {
         String language = (String) viewProps.get("language");
         if (language == null) {
             language = "javascript";
@@ -476,7 +476,7 @@ class C8oFullSyncCbl extends C8oFullSync {
         }
 
         View view = db.getView(viewName);
-        view.setMapReduce(mapBlock, reduceBlock, "1");
+        view.setMapReduce(mapBlock, reduceBlock, revID);
         String collation = (String) viewProps.get("collation");
         if ("raw".equals(collation)) {
             view.setCollation(View.TDViewCollation.TDViewCollationRaw);
@@ -489,15 +489,22 @@ class C8oFullSyncCbl extends C8oFullSync {
         String tdViewName = ddocName + "/" + viewName;
         View view = database.getExistingView(tdViewName);
 
+        //RevisionInternal rev = database.getDocument(String.format("_design/%s", ddocName), null, true);
+        RevisionInternal rev = database.getDocument("_design/" + ddocName, null, true);
+
+        if (rev == null) {
+            return null;
+        }
+
+        String revID = rev.getRevID();
+
+        if (view != null && !revID.equals(view.getMapVersion())) {
+            view = null;
+        }
+
         if (view == null || view.getMap() == null) {
             // No TouchDB view is defined, or it hasn't had a map block assigned
             // Searches in the design document if there is a CouchDB view definition we can compile
-            RevisionInternal rev = database.getDocument(String.format("_design/%s", ddocName), null, true);
-            //RevisionInternal rev = database.getDocument("_design/" + ddocName, null, true);
-            if (rev == null) {
-                // C8oLogger.log("Document : " + designDoc + " not found", Log.ERROR);
-                return null;
-            }
             Map<String, Object> views = (Map<String, Object>) rev.getProperties().get("views");
             Map<String, Object> viewProps = (Map<String, Object>) views.get(viewName);
             if (viewProps == null) {
@@ -505,7 +512,7 @@ class C8oFullSyncCbl extends C8oFullSync {
                 return null;
             }
             // If there is a CouchDB view, see if it can be compiled from source:
-            view = compileView(database, tdViewName, viewProps);
+            view = compileView(database, tdViewName, revID, viewProps);
             if (view == null) {
                 // C8oLogger.log("Unable to compile view : " + tdViewName, Log.ERROR);
                 return null;

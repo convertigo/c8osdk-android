@@ -354,12 +354,7 @@ public class C8oLogger {
 							throw new C8oException(C8oExceptionMessage.urlEncode(), e);
 						}
 						// Get http response
-						HttpResponse response;
-						try {
-							response = c8o.httpInterface.handleRequest(request);
-						} catch (C8oHttpRequestException e) {
-							throw new C8oException(C8oExceptionMessage.remoteLogHttpRequest(), e);
-						}
+						HttpResponse response = c8o.httpInterface.handleRequest(request);
 						
 						JSONObject jsonResponse;
 						InputStream inputStreamResponse;
