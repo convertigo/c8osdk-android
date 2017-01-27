@@ -67,7 +67,7 @@ class C8oFullSyncCbl extends C8oFullSync {
     private Map<String, C8oFullSyncDatabase> fullSyncDatabases;
     private Map<String, Set<C8oFullSyncChangeListener>> fullSyncChangeListeners;
     private Map<String, Database.ChangeListener> cblChangeListeners;
-    private Map<String, String> viewDDdocRev;
+    private Map<String, String> viewDDocRev;
 
     public C8oFullSyncCbl() {
     }
@@ -79,7 +79,7 @@ class C8oFullSyncCbl extends C8oFullSync {
         fullSyncDatabases = new HashMap<String, C8oFullSyncDatabase>();
         fullSyncChangeListeners = new HashMap<String, Set<C8oFullSyncChangeListener>>();
         cblChangeListeners = new HashMap<String, Database.ChangeListener>();
-        viewDDdocRev = new HashMap<String, String>();
+        viewDDocRev = new HashMap<String, String>();
         try {
             manager = new Manager(new AndroidContext(context), Manager.DEFAULT_OPTIONS);
         } catch (IOException e) {
@@ -505,7 +505,7 @@ class C8oFullSyncCbl extends C8oFullSync {
 
         if (view != null) {
             String mapVersion = view.getMapVersion();
-            if (!revID.equals(viewDDdocRev.get(mapVersion))) {
+            if (!revID.equals(viewDDocRev.get(mapVersion))) {
                 view = null;
             }
         }
@@ -525,7 +525,7 @@ class C8oFullSyncCbl extends C8oFullSync {
                 // C8oLogger.log("Unable to compile view : " + tdViewName, Log.ERROR);
                 return null;
             }
-            viewDDdocRev.put(view.getMapVersion(), revID);
+            viewDDocRev.put(view.getMapVersion(), revID);
             return view;
         }
         return view;
