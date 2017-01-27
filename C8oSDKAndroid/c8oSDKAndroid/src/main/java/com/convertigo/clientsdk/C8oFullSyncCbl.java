@@ -505,7 +505,7 @@ class C8oFullSyncCbl extends C8oFullSync {
 
         if (view != null) {
             String mapVersion = view.getMapVersion();
-            if (!revID.equals(viewDDocRev.get(mapVersion))) {
+            if (mapVersion == null || !revID.equals(viewDDocRev.get(mapVersion))) {
                 view = null;
             }
         }
