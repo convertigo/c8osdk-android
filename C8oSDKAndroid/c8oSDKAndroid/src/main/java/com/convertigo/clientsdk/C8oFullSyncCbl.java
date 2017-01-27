@@ -521,12 +521,9 @@ class C8oFullSyncCbl extends C8oFullSync {
             }
             // If there is a CouchDB view, see if it can be compiled from source:
             view = compileView(database, tdViewName, viewProps);
-            if (view == null) {
-                // C8oLogger.log("Unable to compile view : " + tdViewName, Log.ERROR);
-                return null;
+            if (view != null) {
+                viewDDocRev.put(view.getMapVersion(), revID);
             }
-            viewDDocRev.put(view.getMapVersion(), revID);
-            return view;
         }
         return view;
     }
