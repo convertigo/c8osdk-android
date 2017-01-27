@@ -67,6 +67,7 @@ class C8oFullSyncCbl extends C8oFullSync {
     private Map<String, C8oFullSyncDatabase> fullSyncDatabases;
     private Map<String, Set<C8oFullSyncChangeListener>> fullSyncChangeListeners;
     private Map<String, Database.ChangeListener> cblChangeListeners;
+    private Map<String, String> viewDDdocRev;
 
     public C8oFullSyncCbl() {
     }
@@ -78,6 +79,7 @@ class C8oFullSyncCbl extends C8oFullSync {
         fullSyncDatabases = new HashMap<String, C8oFullSyncDatabase>();
         fullSyncChangeListeners = new HashMap<String, Set<C8oFullSyncChangeListener>>();
         cblChangeListeners = new HashMap<String, Database.ChangeListener>();
+        viewDDdocRev = new HashMap<String, String>();
         try {
             manager = new Manager(new AndroidContext(context), Manager.DEFAULT_OPTIONS);
         } catch (IOException e) {
@@ -448,7 +450,7 @@ class C8oFullSyncCbl extends C8oFullSync {
      * @param viewProps
      * @return
      */
-    private View compileView(Database db, String viewName, String revID, Map<String, Object> viewProps) {
+    private View compileView(Database db, String viewName, Map<String, Object> viewProps) {
         String language = (String) viewProps.get("language");
         if (language == null) {
             language = "javascript";
@@ -465,6 +467,8 @@ class C8oFullSyncCbl extends C8oFullSync {
             return null;
         }
 
+        String mapID = db.getName() + ":" + viewName + ":" + mapSource.hashCode();
+
         String reduceSource = (String) viewProps.get("reduce");
         Reducer reduceBlock = null;
         if (reduceSource != null) {
@@ -473,10 +477,11 @@ class C8oFullSyncCbl extends C8oFullSync {
                 // C8oLogger.log("View " +viewName + " has unknown reduce function:" +reduceBlock, Log.ERROR);
                 return null;
             }
+            mapID += ":" + reduceSource.hashCode();
         }
 
         View view = db.getView(viewName);
-        view.setMapReduce(mapBlock, reduceBlock, revID);
+        view.setMapReduce(mapBlock, reduceBlock, mapID);
         String collation = (String) viewProps.get("collation");
         if ("raw".equals(collation)) {
             view.setCollation(View.TDViewCollation.TDViewCollationRaw);
@@ -498,8 +503,11 @@ class C8oFullSyncCbl extends C8oFullSync {
 
         String revID = rev.getRevID();
 
-        if (view != null && !revID.equals(view.getMapVersion())) {
-            view = null;
+        if (view != null) {
+            String mapVersion = view.getMapVersion();
+            if (!revID.equals(viewDDdocRev.get(mapVersion))) {
+                view = null;
+            }
         }
 
         if (view == null || view.getMap() == null) {
@@ -512,11 +520,12 @@ class C8oFullSyncCbl extends C8oFullSync {
                 return null;
             }
             // If there is a CouchDB view, see if it can be compiled from source:
-            view = compileView(database, tdViewName, revID, viewProps);
+            view = compileView(database, tdViewName, viewProps);
             if (view == null) {
                 // C8oLogger.log("Unable to compile view : " + tdViewName, Log.ERROR);
                 return null;
             }
+            viewDDdocRev.put(view.getMapVersion(), revID);
             return view;
         }
         return view;
