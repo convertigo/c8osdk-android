@@ -41,6 +41,8 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import javax.xml.xpath.XPath;
@@ -1994,13 +1996,18 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     public void C8oFsLiveChanges() throws Throwable {
         C8o c8o = get(Stuff.C8O_FS_PUSH);
         final JSONObject[] lastChanges = new JSONObject[]{null};
+        final CountDownLatch[] signal = new CountDownLatch[]{null};
+
         C8oFullSyncChangeListener changeListener = new C8oFullSyncChangeListener() {
             @Override
             public void onChange(JSONObject changes) {
-                synchronized (lastChanges) {
+                Log.i("SdkDebug", "C8oFullSyncChangeListener before");
+        //        synchronized (lastChanges) {
+        //            Log.i("SdkDebug", "C8oFullSyncChangeListener after");
                     lastChanges[0] = changes;
-                    lastChanges.notify();
-                }
+        //            lastChanges.notify();
+        //        }
+                signal[0].countDown();
             }
         };
 
@@ -2010,53 +2017,53 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertTrue(json.getBoolean("ok"));
                 json = c8o.callJson("fs://.replicate_pull", "continuous", true).sync();
                 assertTrue(json.getBoolean("ok"));
+
                 final int[] cptlive = new int[] {0};
+                signal[0] = new CountDownLatch(2);
+
                 c8o.callJson("fs://.get", "docid", "abc", C8o.FS_LIVE, "getabc").then(new C8oOnResponse<JSONObject>() {
                     @Override
                     public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        synchronized (cptlive) {
-                            if (response.getString("_id").equals("abc")) {
-                                cptlive[0]++;
-                            }
-                            cptlive.notify();
+                        Log.i("SdkDebug", "fs://.get docid abc THEN");
+                        if (response.getString("_id").equals("abc")) {
+                            cptlive[0]++;
+                            Log.i("SdkDebug", "fs://.get docid abc THEN cptlive[0]=" + cptlive[0]);
                         }
+                        signal[0].countDown();
                         return null;
                     }
                 }).sync();
                 assertEquals(1, cptlive[0]);
-                synchronized (cptlive) {
-                    json = c8o.callJson(".qa_fs_push.PostDocument", "_id", "ghi").sync();
-                    assertTrue(json.getJSONObject("document").getJSONObject("couchdb_output").getBoolean("ok"));
-                    cptlive.wait(1000);
-                    assertEquals(2, cptlive[0]);
-                }
+                json = c8o.callJson(".qa_fs_push.PostDocument", "_id", "ghi").sync();
+                Log.i("SdkDebug", ".qa_fs_push.PostDocument _id ghi");
+                assertTrue(json.getJSONObject("document").getJSONObject("couchdb_output").getBoolean("ok"));
+                signal[0].await(10, TimeUnit.SECONDS);
+                Log.i("SdkDebug", "assertEquals(2, cptlive[0]) = " + cptlive[0]);
+                assertEquals(2, cptlive[0]);
+                signal[0] = new CountDownLatch(2);
                 c8o.addFullSyncChangeListener("", changeListener);
-                synchronized (lastChanges) {
-                    synchronized (cptlive) {
-                        json = c8o.callJson(".qa_fs_push.PostDocument", "_id", "jkl").sync();
-                        assertTrue(json.getJSONObject("document").getJSONObject("couchdb_output").getBoolean("ok"));
-                        lastChanges.wait(3000);
-                        cptlive.wait(1000);
-                        assertEquals(3, cptlive[0]);
-                        assertNotNull(lastChanges[0]);
-                        assertEquals(1, lastChanges[0].getJSONArray("changes").length());
-                        assertEquals("jkl", lastChanges[0].getJSONArray("changes").getJSONObject(0).getString("id"));
-                    }
-                }
-
-                synchronized (lastChanges) {
-                    synchronized (cptlive) {
-                        c8o.cancelLive("getabc");
-                        json = c8o.callJson(".qa_fs_push.PostDocument", "_id", "mno").sync();
-                        assertTrue(json.getJSONObject("document").getJSONObject("couchdb_output").getBoolean("ok"));
-                        lastChanges.wait(3000);
-                        cptlive.wait(1000);
-                        assertEquals(3, cptlive[0]);
-                        assertNotNull(lastChanges[0]);
-                        assertEquals(1, lastChanges[0].getJSONArray("changes").length());
-                        assertEquals("mno", lastChanges[0].getJSONArray("changes").getJSONObject(0).getString("id"));
-                    }
-                }
+                json = c8o.callJson(".qa_fs_push.PostDocument", "_id", "jkl").sync();
+                Log.i("SdkDebug", ".qa_fs_push.PostDocument  _id jkl");
+                assertTrue(json.getJSONObject("document").getJSONObject("couchdb_output").getBoolean("ok"));
+                Log.i("SdkDebug", "signal[0].await(15, TimeUnit.SECONDS) cptlive[0]=" + cptlive[0]);
+                signal[0].await(15, TimeUnit.SECONDS);
+                Log.i("SdkDebug", "assertEquals(3, cptlive[0]); = " + cptlive[0]);
+                assertEquals(3, cptlive[0]);
+                assertNotNull(lastChanges[0]);
+                assertEquals(1, lastChanges[0].getJSONArray("changes").length());
+                assertEquals("jkl", lastChanges[0].getJSONArray("changes").getJSONObject(0).getString("id"));
+                signal[0] = new CountDownLatch(1);
+                c8o.cancelLive("getabc");
+                json = c8o.callJson(".qa_fs_push.PostDocument", "_id", "mno").sync();
+                Log.i("SdkDebug", ".qa_fs_push.PostDocument  _id mno");
+                assertTrue(json.getJSONObject("document").getJSONObject("couchdb_output").getBoolean("ok"));
+                Log.i("SdkDebug", "signal[0].await(15, TimeUnit.SECONDS) cptlive[0]=" + cptlive[0]);
+                signal[0].await(15, TimeUnit.SECONDS);
+                Log.i("SdkDebug", "assertEquals(3, cptlive[0]); = " + cptlive[0]);
+                assertEquals(3, cptlive[0]);
+                assertNotNull(lastChanges[0]);
+                assertEquals(1, lastChanges[0].getJSONArray("changes").length());
+                assertEquals("mno", lastChanges[0].getJSONArray("changes").getJSONObject(0).getString("id"));
             } finally {
                 c8o.cancelLive("getabc");
                 c8o.removeFullSyncChangeListener("", changeListener);
