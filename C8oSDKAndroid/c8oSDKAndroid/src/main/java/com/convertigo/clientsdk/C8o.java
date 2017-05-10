@@ -45,7 +45,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -171,13 +171,13 @@ public class C8o extends C8oBase {
      * @return Current version of the SDK as "x.y.z".
      */
     public static String getSdkVersion() {
-        return "2.1.1";
+        return "2.1.2";
     }
 
     static final Executor executor;
 
     static {
-        executor = new ThreadPoolExecutor(1, 100, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+        executor = new ThreadPoolExecutor(1, 100, 5, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
     }
 
     //*** Network ***//
