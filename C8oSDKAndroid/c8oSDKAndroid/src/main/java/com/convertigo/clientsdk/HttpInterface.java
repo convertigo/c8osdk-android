@@ -341,6 +341,9 @@ class HttpInterface {
 				} catch (BadPaddingException e) {
 					throw new C8oException(C8oExceptionMessage.encodeParameters(), e);
 				}
+				catch(NullPointerException e){
+					throw new C8oException(C8oExceptionMessage.noServerOnEndPoint(),e);
+				}
 			}
 			
 			// Remove all parameters (clear ?)

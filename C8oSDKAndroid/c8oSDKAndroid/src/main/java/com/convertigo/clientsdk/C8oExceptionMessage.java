@@ -54,6 +54,10 @@ class C8oExceptionMessage {
 	public static String illegalArgumentNullParameter(String parameterName) {
 		return parameterName + " must be not null";
 	}
+
+	public static String noServerOnEndPoint() {
+		return "There is no convertigo server instance running on endpoint";
+	}
 	
 	public static String invalidParameterValue(String parameterName, String details) {
 		String errorMessage = "The parameter '" + parameterName + "' is invalid";
