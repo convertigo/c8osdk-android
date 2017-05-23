@@ -335,7 +335,6 @@ public class C8oFileTransfer extends C8oFileTransferBase {
                 for (int i = 0; i < transferStatus.getTotal(); i++) {
                     JSONObject meta = c8o.callJson("fs://" + fsConnector + ".get", "docid", uuid + "_" + i).sync();
                     debug(meta.toString());
-                    String adr = meta.getJSONObject("_attachments").getJSONObject("chunk").getString("content_url");
                     appendChunk(createdFileStream, meta.getJSONObject("_attachments").getJSONObject("chunk").getString("content_url"));
                 }
                 createdFileStream.close();

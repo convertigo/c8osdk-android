@@ -13,6 +13,7 @@ import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -378,7 +379,7 @@ class HttpInterface {
 		return handleRequest(request);
 	}
 	
-	public HttpResponse handleRequest(HttpPost request) throws C8oHttpRequestException {
+	public HttpResponse handleRequest(HttpRequestBase request) throws C8oHttpRequestException {
 		try {
             synchronized (firstCall) {
                 if (firstCall[0]) {

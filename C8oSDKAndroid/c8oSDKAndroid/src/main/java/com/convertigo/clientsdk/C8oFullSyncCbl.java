@@ -22,6 +22,7 @@ import com.couchbase.lite.Document;
 import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.Mapper;
+import com.couchbase.lite.Misc;
 import com.couchbase.lite.Query;
 import com.couchbase.lite.QueryEnumerator;
 import com.couchbase.lite.Reducer;
@@ -31,11 +32,20 @@ import com.couchbase.lite.UnsavedRevision;
 import com.couchbase.lite.View;
 import com.couchbase.lite.android.AndroidContext;
 import com.couchbase.lite.internal.RevisionInternal;
+import com.couchbase.lite.store.SQLiteStore;
+import com.couchbase.lite.store.Store;
+import com.couchbase.lite.util.ZipUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -437,6 +447,130 @@ class C8oFullSyncCbl extends C8oFullSync {
         return new FullSyncDefaultResponse(true);
     }
 
+    private void handleDownloadBulkRequestProgress(C8oResponseListener c8oResponseListener, long current, long total, boolean finished) {
+        if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener) {
+            C8oProgress progress = new C8oProgress();
+            progress.setCurrent(current);
+            progress.setTotal(total);
+            progress.setFinished(finished);
+            progress.setStatus("downloadBulk");
+            Map<String, Object> param = new HashMap<String, Object>();
+            param.put(C8o.ENGINE_PARAMETER_PROGRESS, progress);
+            ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, param);
+        }
+    }
+
+    @Override
+    VoidResponse handleDownloadBulkRequest(String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
+        try {
+            String localDabaseName = databaseName + localSuffix;
+
+            String url = (String) parameters.get("databaseZipFile");
+            if (!url.contains("://")) {
+                url = c8o.getEndpoint() + "/" + url;
+            }
+
+            c8o.log.info("handleDownloadBulkRequest before dl: " + url);
+
+            HttpResponse response = c8o.httpInterface.handleRequest(new HttpGet(url));
+
+            long length = -1;
+            Header contentLength = response.getFirstHeader("Content-Length");
+            try {
+                length = Long.parseLong(contentLength.getValue());
+            } catch (Exception e) { }
+
+            File path =  new File(c8o.getContext().getFilesDir(), localDabaseName + ".cblite2");
+            final InputStream content = response.getEntity().getContent();
+            final long total = length;
+            final long[] currentRead = new long[] {0};
+
+            ZipUtils.unzip(new InputStream() {
+
+                @Override
+                public int available() throws IOException {
+                    return content.available();
+                }
+
+                @Override
+                public void close() throws IOException {
+                    content.close();
+                }
+
+                @Override
+                public void mark(int readlimit) {
+                    content.mark(readlimit);
+                }
+
+                @Override
+                public boolean markSupported() {
+                    return content.markSupported();
+                }
+
+                @Override
+                public int read(byte[] buffer) throws IOException {
+                    int read = content.read(buffer);
+                    handleDownloadBulkRequestProgress(c8oResponseListener, currentRead[0] += read, total, false);
+                    return read;
+                }
+
+                @Override
+                public int read(byte[] buffer, int offset, int length) throws IOException {
+                    int read = content.read(buffer, offset, length);
+                    handleDownloadBulkRequestProgress(c8oResponseListener, currentRead[0] += read, total, false);
+                    return read;
+                }
+
+                @Override
+                public synchronized void reset() throws IOException {
+                    content.reset();
+                }
+
+                @Override
+                public long skip(long byteCount) throws IOException {
+                    return content.skip(byteCount);
+                }
+
+                @Override
+                public int read() throws IOException {
+                    int read = content.read();
+                    handleDownloadBulkRequestProgress(c8oResponseListener, currentRead[0] += 1, total, false);
+                    return read;
+                }
+            }, path);
+
+            //path = new File(path, "fsinitial_device.cblite2");
+            c8o.log.info("handleDownloadBulkRequest after dl : " + path.getAbsolutePath());
+
+            Store store = new SQLiteStore(path.getAbsolutePath(), manager, null);
+            store.open();
+            String prebuiltrevision = store.getInfo("prebuiltrevision");
+            store.setInfo("privateUUID", Misc.CreateUUID());
+            store.setInfo("publicUUID", Misc.CreateUUID());
+            store.close();
+
+            c8o.log.info("handleDownloadBulkRequest change id, prebuiltrevision: " + prebuiltrevision);
+
+            Database db = manager.getExistingDatabase(localDabaseName);
+            url = c8o.getEndpointConvertigo() + "/fullsync/" + databaseName + "/";
+            String rmcpId = db.createPullReplication(new URL(url)).remoteCheckpointDocID();
+            db.setLastSequence(prebuiltrevision, rmcpId);
+            db.close();
+
+            c8o.log.info("handleDownloadBulkRequest change id, rmcpId: " + rmcpId);
+
+            HttpPut put = new HttpPut(url + "_local/" + rmcpId);
+            put.setHeader("Content-Type", "application/json");
+            put.setEntity(new StringEntity("{\"_id\":\"_local/" + rmcpId +"\",\"_rev\":\"0-0\",\"lastSequence\":\"" + prebuiltrevision + "\"}", "UTF-8"));
+            response = c8o.httpInterface.handleRequest(put);
+
+            c8o.log.info("handleDownloadBulkRequest posted !");
+            handleDownloadBulkRequestProgress(c8oResponseListener, Math.max(currentRead[0], length), Math.max(currentRead[0], length), true);
+        } catch (Exception e) {
+            throw new C8oException("boom", e);
+        }
+        return VoidResponse.getInstance();
+    }
     //*** TAG Javascript view ***//
 
     /**

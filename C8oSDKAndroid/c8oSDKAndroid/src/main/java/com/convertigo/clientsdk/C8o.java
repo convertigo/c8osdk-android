@@ -29,12 +29,15 @@ import android.os.Looper;
 import android.provider.Settings;
 
 import com.convertigo.clientsdk.exception.C8oException;
+import com.convertigo.clientsdk.exception.C8oHttpRequestException;
 import com.convertigo.clientsdk.listener.C8oExceptionListener;
 import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
 
+import org.apache.http.HttpResponse;
 import org.apache.http.client.CookieStore;
+import org.apache.http.client.methods.HttpGet;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Document;

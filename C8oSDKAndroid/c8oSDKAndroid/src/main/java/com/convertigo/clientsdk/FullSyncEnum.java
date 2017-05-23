@@ -263,6 +263,45 @@ class FullSyncEnum {
 			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
 				return c8oFullSync.handleDestroyDatabaseRequest(databaseName);
 			}
+		},
+		DOWNLOAD_BULK("download_bulk") {
+			@Override
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
+				final boolean[] mutex = {false};
+				//noinspection SynchronizationOnLocalVariableOrMethodParameter
+				synchronized (mutex)
+				{
+					c8oFullSync.handleDownloadBulkRequest(databaseName, parameters, new C8oResponseProgressListener() {
+
+						@Override
+						public void onProgressResponse(C8oProgress progress, Map<String, Object> parameters) {
+							if (progress.isFinished()) {
+								synchronized (mutex) {
+									mutex[0] = true;
+									mutex.notify();
+								}
+							}
+
+                            if (c8oResponseListener instanceof C8oResponseJsonListener) {
+                                ((C8oResponseJsonListener) c8oResponseListener).onJsonResponse(null, parameters);
+                            } else if (c8oResponseListener instanceof C8oResponseXmlListener) {
+                                ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
+                            }
+						}
+					});
+
+					JSONObject response = new JSONObject();
+					try {
+						if (!mutex[0]) {
+							mutex.wait();
+						}
+						response.put("ok", true);
+					} catch (Exception e) {
+						throw new C8oException("TODO", e);
+					}
+					return response;
+				}
+			}
 		};
 		
 		public String value;

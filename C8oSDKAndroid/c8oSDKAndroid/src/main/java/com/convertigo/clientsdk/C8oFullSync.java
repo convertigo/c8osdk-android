@@ -231,6 +231,8 @@ abstract class C8oFullSync {
 
 	abstract Object handleDestroyDatabaseRequest(String databaseName) throws C8oException;
 
+	abstract VoidResponse handleDownloadBulkRequest(String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException;
+
     abstract C8oLocalCacheResponse getResponseFromLocalCache(String c8oCalRequestIdentifier) throws C8oException, C8oUnavailableLocalCacheException;
 
     abstract void saveResponseToLocalCache(String c8oCalRequestIdentifier, C8oLocalCacheResponse localCacheResponse) throws C8oException;
