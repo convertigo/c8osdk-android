@@ -15,6 +15,9 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.protocol.ClientContext;
+import org.apache.http.conn.params.ConnManagerParams;
+import org.apache.http.conn.params.ConnPerRoute;
+import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.impl.client.BasicCookieStore;
@@ -124,6 +127,13 @@ class HttpInterface {
 		HttpParams httpParams = new BasicHttpParams();
 		HttpConnectionParams.setSoTimeout(httpParams, c8o.getTimeout());
 		HttpConnectionParams.setConnectionTimeout(httpParams, c8o.getTimeout());
+		ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRoute() {
+			@Override
+			public int getMaxForRoute(HttpRoute httpRoute) {
+				return 255;
+			}
+		});
+		ConnManagerParams.setMaxTotalConnections(httpParams, 255);
 		// HttpProtocolParams.setVersion(httpParams, HttpVersion.HTTP_1_1);
 		// HttpProtocolParams.setContentCharset(httpParams, HTTP.UTF_8);
 		
@@ -388,7 +398,8 @@ class HttpInterface {
                     return response;
                 }
             }
-            return httpClient.execute(request, httpContext);
+			HttpResponse response = httpClient.execute(request, httpContext);
+			return response;
 		} catch (ClientProtocolException e) {
 			throw new C8oHttpRequestException(C8oExceptionMessage.runHttpRequest(), e);
 		} catch (IOException e) {

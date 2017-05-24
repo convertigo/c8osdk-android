@@ -22,7 +22,6 @@ import com.couchbase.lite.Document;
 import com.couchbase.lite.DocumentChange;
 import com.couchbase.lite.Manager;
 import com.couchbase.lite.Mapper;
-import com.couchbase.lite.Misc;
 import com.couchbase.lite.Query;
 import com.couchbase.lite.QueryEnumerator;
 import com.couchbase.lite.Reducer;
@@ -32,16 +31,12 @@ import com.couchbase.lite.UnsavedRevision;
 import com.couchbase.lite.View;
 import com.couchbase.lite.android.AndroidContext;
 import com.couchbase.lite.internal.RevisionInternal;
-import com.couchbase.lite.store.SQLiteStore;
-import com.couchbase.lite.store.Store;
 import com.couchbase.lite.util.ZipUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.entity.StringEntity;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -378,7 +373,7 @@ class C8oFullSyncCbl extends C8oFullSync {
             view = fullSyncDatabase.getDatabase().getView(viewName);
         }
         if (view == null) {
-            throw new C8oRessourceNotFoundException(C8oExceptionMessage.illegalArgumentNotFoundFullSyncView(viewName, fullSyncDatabase.getDatabaseName()));
+            throw new C8oRessourceNotFoundException(C8oExceptionMessage.illegalArgumentNotFoundFullSyncView(viewName, fullSyncDatabase.getLocalDatabaseName()));
         }
 
         // Creates the fullSync query and add parameters to it
@@ -465,7 +460,7 @@ class C8oFullSyncCbl extends C8oFullSync {
         try {
             String localDabaseName = databaseName + localSuffix;
 
-            String url = (String) parameters.get("databaseZipFile");
+            String url = (String) parameters.get(C8o.FS_DB_ZIP_FILE);
             if (!url.contains("://")) {
                 url = c8o.getEndpoint() + "/" + url;
             }
@@ -539,32 +534,8 @@ class C8oFullSyncCbl extends C8oFullSync {
                 }
             }, path);
 
-            //path = new File(path, "fsinitial_device.cblite2");
             c8o.log.info("handleDownloadBulkRequest after dl : " + path.getAbsolutePath());
-
-            Store store = new SQLiteStore(path.getAbsolutePath(), manager, null);
-            store.open();
-            String prebuiltrevision = store.getInfo("prebuiltrevision");
-            store.setInfo("privateUUID", Misc.CreateUUID());
-            store.setInfo("publicUUID", Misc.CreateUUID());
-            store.close();
-
-            c8o.log.info("handleDownloadBulkRequest change id, prebuiltrevision: " + prebuiltrevision);
-
-            Database db = manager.getExistingDatabase(localDabaseName);
-            url = c8o.getEndpointConvertigo() + "/fullsync/" + databaseName + "/";
-            String rmcpId = db.createPullReplication(new URL(url)).remoteCheckpointDocID();
-            db.setLastSequence(prebuiltrevision, rmcpId);
-            db.close();
-
-            c8o.log.info("handleDownloadBulkRequest change id, rmcpId: " + rmcpId);
-
-            HttpPut put = new HttpPut(url + "_local/" + rmcpId);
-            put.setHeader("Content-Type", "application/json");
-            put.setEntity(new StringEntity("{\"_id\":\"_local/" + rmcpId +"\",\"_rev\":\"0-0\",\"lastSequence\":\"" + prebuiltrevision + "\"}", "UTF-8"));
-            response = c8o.httpInterface.handleRequest(put);
-
-            c8o.log.info("handleDownloadBulkRequest posted !");
+            getOrCreateFullSyncDatabase(databaseName).initBulk();
             handleDownloadBulkRequestProgress(c8oResponseListener, Math.max(currentRead[0], length), Math.max(currentRead[0], length), true);
         } catch (Exception e) {
             throw new C8oException("boom", e);

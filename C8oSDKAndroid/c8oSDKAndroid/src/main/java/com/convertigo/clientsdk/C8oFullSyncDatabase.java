@@ -8,12 +8,21 @@ import com.couchbase.lite.CouchbaseLiteException;
 import com.couchbase.lite.Database;
 import com.couchbase.lite.DatabaseOptions;
 import com.couchbase.lite.Manager;
+import com.couchbase.lite.Misc;
 import com.couchbase.lite.replicator.Replication;
 import com.couchbase.lite.replicator.Replication.ChangeEvent;
 import com.couchbase.lite.replicator.Replication.ChangeListener;
+import com.couchbase.lite.store.SQLiteStore;
+import com.couchbase.lite.store.Store;
+import com.couchbase.lite.util.IOUtils;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.StringEntity;
 
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -21,38 +30,40 @@ import java.util.Map;
 
 
 class C8oFullSyncDatabase {
-	
-	//*** TAG Constants ***//
-	
-	/**
-	 * The name of the authentication cookie.
-	 */
-	private final static String AUTHENTICATION_COOKIE_NAME = "SyncGatewaySession";
 
-	/**
-	 * Used to log.
-	 */
-	private C8o c8o;
-	
-	//*** TAG Attributes ***//
-	
-	/**
-	 * The fullSync database name.
-	 */
+    //*** TAG Constants ***//
+
+    /**
+     * The name of the authentication cookie.
+     */
+    private final static String AUTHENTICATION_COOKIE_NAME = "SyncGatewaySession";
+
+    /**
+     * Used to log.
+     */
+    private C8o c8o;
+    private Manager manager;
+
+    //*** TAG Attributes ***//
+
+    /**
+     * The fullSync database name.
+     */
+    private String localDatabaseName;
     private String databaseName;
 
-	private URL c8oFullSyncDatabaseUrl;
-	/**
-	 * The fullSync Database instance.
-	 */
-	private Database database = null;
-	/**
-	 * Used to make pull replication (uploads changes from the local database to the remote one).
-	 */
+    private URL c8oFullSyncDatabaseUrl;
+    /**
+     * The fullSync Database instance.
+     */
+    private Database database = null;
+    /**
+     * Used to make pull replication (uploads changes from the local database to the remote one).
+     */
     private FullSyncReplication pullFullSyncReplication = new FullSyncReplication(true);
     /**
-	 * Used to make push replication (downloads changes from the remote database to the local one).
-	 */
+     * Used to make push replication (downloads changes from the remote database to the local one).
+     */
     private FullSyncReplication pushFullSyncReplication = new FullSyncReplication(false);
     /**
      * ???
@@ -63,25 +74,28 @@ class C8oFullSyncDatabase {
 
     /**
      * Creates a fullSync database with the specified name and its location.
-     * 
+     *
      * @param c8o
      * @param manager
      * @param databaseName
      * @param fullSyncDatabases
+     * @param localSuffix
      * @throws C8oException Failed to get the fullSync database.
      */
     public C8oFullSyncDatabase(C8o c8o, Manager manager, String databaseName, String fullSyncDatabases, String localSuffix) throws C8oException {
         this.c8o = c8o;
+        this.manager = manager;
 
-		try {
-			c8oFullSyncDatabaseUrl = new URL(fullSyncDatabases + databaseName + "/");
-		} catch (MalformedURLException e) {
-			throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidFullSyncDatabaseUrl(fullSyncDatabases + databaseName + "/"), e);
-		}
+        try {
+            c8oFullSyncDatabaseUrl = new URL(fullSyncDatabases + databaseName + "/");
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidFullSyncDatabaseUrl(fullSyncDatabases + localDatabaseName + "/"), e);
+        }
 
-        this.databaseName = (databaseName += localSuffix);
+        this.databaseName = databaseName;
+        this.localDatabaseName = databaseName + localSuffix;
 
-    	try {
+        try {
 
             // manager.enableLogging("Sync", Log.DEBUG);
             // manager.enableLogging("RemoteRequest", Log.VERBOSE);
@@ -95,10 +109,10 @@ class C8oFullSyncDatabase {
             } else {
                 options.setStorageType(Manager.FORESTDB_STORAGE);
             }
-            database = manager.openDatabase(databaseName, options);
-		} catch (CouchbaseLiteException e) {
-			throw new C8oException(C8oExceptionMessage.unableToGetFullSyncDatabase(databaseName), e);
-		}
+            database = manager.openDatabase(localDatabaseName, options);
+        } catch (CouchbaseLiteException e) {
+            throw new C8oException(C8oExceptionMessage.unableToGetFullSyncDatabase(localDatabaseName), e);
+        }
 
         /*
         // ??? Does surely something but do not know what, it is optional so it is still here ???
@@ -108,10 +122,10 @@ class C8oFullSyncDatabase {
         	Calendar calendar = Calendar.getInstance();
         	calendar.add(Calendar.DATE, 1);
         	Date expirationDate = calendar.getTime();
-  
+
         	boolean isSecure = false;
         	boolean httpOnly = false;
-        	
+
         	pullReplication.setCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME, authenticationCookieValue, "/", expirationDate, isSecure, httpOnly);
         	pushReplication.setCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME, authenticationCookieValue, "/", expirationDate, isSecure, httpOnly);
         }
@@ -153,18 +167,18 @@ class C8oFullSyncDatabase {
         }
     }
 
-	private Replication getReplication(FullSyncReplication fsReplication) {
-		stopReplication(fsReplication);
-		Replication replication = createReplication(fsReplication);
-		return replication;
-	}
+    private Replication getReplication(FullSyncReplication fsReplication) {
+        stopReplication(fsReplication);
+        Replication replication = createReplication(fsReplication);
+        return replication;
+    }
 
     /**
      * Start pull and push replications.
      */
     public void startAllReplications(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
-	    startPullReplication(parameters, c8oResponseListener);
-	    startPushReplication(parameters, c8oResponseListener);
+        startPullReplication(parameters, c8oResponseListener);
+        startPushReplication(parameters, c8oResponseListener);
     }
 
     /**
@@ -173,13 +187,13 @@ class C8oFullSyncDatabase {
     public void startPullReplication(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
         startReplication(pullFullSyncReplication, parameters, c8oResponseListener);
     }
-    
+
     /**
      * Start push replication.
-     * @return 
+     * @return
      */
     public void startPushReplication(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException {
-		startReplication(pushFullSyncReplication, parameters, c8oResponseListener);
+        startReplication(pushFullSyncReplication, parameters, c8oResponseListener);
     }
 
     /**
@@ -191,41 +205,41 @@ class C8oFullSyncDatabase {
      * @param parameters
      */
     private void startReplication(final FullSyncReplication fullSyncReplication, Map<String, Object> parameters, final C8oResponseListener c8oResponseListener) throws C8oException {
-		final boolean continuous;
-		boolean cancel = false;
+        final boolean continuous;
+        boolean cancel = false;
 
-		if (parameters.containsKey("continuous")) {
-			continuous = parameters.get("continuous").toString().equalsIgnoreCase("true");
-		} else {
+        if (parameters.containsKey("continuous")) {
+            continuous = parameters.get("continuous").toString().equalsIgnoreCase("true");
+        } else {
             continuous = false;
         }
 
-		if (parameters.containsKey("cancel"))
-		{
-			cancel = parameters.get("cancel").toString().equalsIgnoreCase("true");
-		}
+        if (parameters.containsKey("cancel"))
+        {
+            cancel = parameters.get("cancel").toString().equalsIgnoreCase("true");
+        }
 
-		final Replication rep = getReplication(fullSyncReplication);
+        final Replication rep = getReplication(fullSyncReplication);
         C8oProgress progress = new C8oProgress();
         progress.setRaw(rep);
         progress.setPull(rep.isPull());
 
-		if (cancel)
-		{
+        if (cancel)
+        {
             stopReplication(fullSyncReplication);
             progress.setFinished(true);
 
             if (c8oResponseListener != null && c8oResponseListener instanceof C8oResponseProgressListener) {
                 ((C8oResponseProgressListener) c8oResponseListener).onProgressResponse(progress, null);
             }
-			return;
-		}
+            return;
+        }
 
         final Map<String, Object> param = new HashMap<String, Object>(parameters);
         final C8oProgress[] _progress = {progress};
 
-		rep.addChangeListener(
-				fullSyncReplication.changeListener = new ChangeListener() {
+        rep.addChangeListener(
+                fullSyncReplication.changeListener = new ChangeListener() {
 
                     @Override
                     public void changed(ChangeEvent changeEvent) {
@@ -249,6 +263,7 @@ class C8oFullSyncDatabase {
 
                         if (progress.isFinished()) {
                             stopReplication(fullSyncReplication);
+                            c8o.log.error("finish, do continuous ? " + continuous);
                             if (continuous) {
                                 final long lastCurrent = 0;//progress.getCurrent();
                                 final short[] stat = {0};
@@ -256,6 +271,21 @@ class C8oFullSyncDatabase {
                                 _progress[0].setRaw(replication);
                                 _progress[0].setContinuous(true);
                                 replication.setContinuous(true);
+                                try {
+                                    c8o.log.error("get store");
+                                    Store store = getStore();
+                                    c8o.log.error("get lastsequence");
+                                    String lastSequence = store.getInfo("checkpoint/" + rep.remoteCheckpointDocID());
+                                    c8o.log.error("lastsequence: " + lastSequence);
+                                    store.close();
+
+                                    c8o.log.error("before putremote");
+                                    putRemoteCheckpoint(replication, lastSequence);
+                                    c8o.log.error("after putremote");
+                                } catch (Exception e) {
+                                    c8o.log.error("boom", e);
+                                    e.printStackTrace();
+                                }
                                 replication.addChangeListener(
                                         fullSyncReplication.changeListener = new ChangeListener() {
 
@@ -288,35 +318,80 @@ class C8oFullSyncDatabase {
 
         rep.start();
     }
-    
+
     //*** TAG Getter / Setter ***//
-    
-    public String getDatabaseName() {
-    	return this.databaseName;
+
+    public String getLocalDatabaseName() {
+        return this.localDatabaseName;
     }
-    
+
     public Database getDatabase() {
-    	return this.database;
+        return this.database;
     }
-    
+
+    public void initBulk() throws Exception {
+        Store store = getStore();
+
+        String lastSequence = store.getInfo("prebuiltrevision");
+        c8o.log.info("initBulk with prebuiltrevision: " + lastSequence);
+
+        store.setInfo("privateUUID", Misc.CreateUUID());
+        store.setInfo("publicUUID", Misc.CreateUUID());
+        store.close();
+
+        putRemoteCheckpoint(database.createPullReplication(c8oFullSyncDatabaseUrl), lastSequence);
+    }
+
     //*** TAG private classes ***//
-    
+
     /**
      * Combines the Replication and the ChangeListener instances.
      */
     private class FullSyncReplication {
-    	
-    	public Replication replication;
-    	public ChangeListener changeListener;
-		public boolean pull;
-    	
-    	// Replication history -> ?
-		// Replication id version -> ?
-		// Session ID -> replication.getSessionID();
-		// Source last seq -> replication.getLocalDatabase().getLastSequenceNumber();
-    	
-    	public FullSyncReplication (boolean pull) {
-    		this.pull = pull;
-    	}
+
+        public Replication replication;
+        public ChangeListener changeListener;
+        public boolean pull;
+
+        // Replication history -> ?
+        // Replication id version -> ?
+        // Session ID -> replication.getSessionID();
+        // Source last seq -> replication.getLocalDatabase().getLastSequenceNumber();
+
+        public FullSyncReplication (boolean pull) {
+            this.pull = pull;
+        }
+    }
+
+    Store getStore() throws CouchbaseLiteException {
+        File path =  new File(c8o.getContext().getFilesDir(), localDatabaseName + ".cblite2");
+        Store store = new SQLiteStore(path.getAbsolutePath(), manager, null);
+        store.open();
+        return store;
+    }
+
+    void putRemoteCheckpoint(Replication replication, String lastSequence) throws Exception {
+        Store store = getStore();
+        String checkpointId = replication.remoteCheckpointDocID();
+        store.setInfo("checkpoint/" + checkpointId, lastSequence);
+        store.close();
+        String url = replication.getRemoteUrl() + "_local/" + checkpointId;
+        HttpGet get = new HttpGet(url);
+        HttpResponse response = c8o.httpInterface.handleRequest(get);
+        String content;
+        if (response.getStatusLine().getStatusCode() == 200) {
+            content = new String(IOUtils.toByteArray(response.getEntity().getContent()), "UTF-8");
+        } else {
+            content = "{\"_id\":\"_local/" + checkpointId +"\",\"_rev\":\"0-0\",\"lastSequence\":\"0\"}";
+        }
+
+        String newContent = content.replaceFirst("(\"lastSequence\":\").*?(\")", "$1" + lastSequence + "$2");
+        if (!newContent.equals(content)) {
+            HttpPut put = new HttpPut(url);
+            put.setHeader("Content-Type", "application/json");
+            put.setEntity(new StringEntity(content, "UTF-8"));
+            c8o.httpInterface.handleRequest(put);
+        }
+        database.setLastSequence(lastSequence, checkpointId);
     }
 }

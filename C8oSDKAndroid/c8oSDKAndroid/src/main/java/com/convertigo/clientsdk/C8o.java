@@ -153,6 +153,12 @@ public class C8o extends C8oBase {
      * A live request automatically recall the then or thenUI handler when the database changed.
      */
     static final public String FS_LIVE = "__live";
+
+    /**
+     * Use it with "fs://[].download_bulk" as key value of parameter. The value should be the relative path
+     * to the prebuilt database or an absolute http url.
+     */
+    public static final String FS_DB_ZIP_FILE = "databaseZipFile";
 	
 	//*** Local cache keys ***//
 	static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE = "response";
@@ -171,7 +177,7 @@ public class C8o extends C8oBase {
      * @return Current version of the SDK as "x.y.z".
      */
     public static String getSdkVersion() {
-        return "2.1.2";
+        return "2.1.3";
     }
 
     static final Executor executor;
