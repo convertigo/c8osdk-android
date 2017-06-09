@@ -265,51 +265,51 @@ public class C8oLogger {
 	}
 
     void _fatal(String message) {
-        log(Log.ASSERT, message, null);
+        _log(Log.ASSERT, message, null);
     }
 
     void _fatal(String message, Exception exception) {
-        log(Log.ASSERT, message, exception);
+        _log(Log.ASSERT, message, exception);
     }
 
     void _error(String message) {
-        log(Log.ERROR, message, null);
+        _log(Log.ERROR, message, null);
     }
 
     void _error(String message, Exception exception) {
-        log(Log.ERROR, message, exception);
+        _log(Log.ERROR, message, exception);
     }
 
     void _warn(String message) {
-        log(Log.WARN, message, null);
+        _log(Log.WARN, message, null);
     }
 
     void _warn(String message, Exception exception) {
-        log(Log.WARN, message, exception);
+        _log(Log.WARN, message, exception);
     }
 
     void _info(String message) {
-        log(Log.INFO, message, null);
+        _log(Log.INFO, message, null);
     }
 
     void _info(String message, Exception exception) {
-        log(Log.INFO, message, exception);
+        _log(Log.INFO, message, exception);
     }
 
     void _debug(String message) {
-        log(Log.DEBUG, message, null);
+        _log(Log.DEBUG, message, null);
     }
 
     void _debug(String message, Exception exception) {
-        log(Log.DEBUG, message, exception);
+        _log(Log.DEBUG, message, exception);
     }
 
     void _trace(String message) {
-        log(Log.VERBOSE, message, null);
+        _log(Log.VERBOSE, message, null);
     }
 
     void _trace(String message, Exception exception) {
-        log(Log.VERBOSE, message, exception);
+        _log(Log.VERBOSE, message, exception);
     }
 	
 	/** 

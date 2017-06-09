@@ -2,6 +2,7 @@ package com.convertigo.clientsdk;
 
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
+import com.convertigo.clientsdk.exception.C8oResponseException;
 import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
 import com.convertigo.clientsdk.listener.C8oExceptionListener;
 import com.convertigo.clientsdk.listener.C8oResponseCblListener;
@@ -9,14 +10,22 @@ import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
 import com.convertigo.clientsdk.listener.C8oResponseXmlListener;
 import com.couchbase.lite.QueryEnumerator;
+import com.couchbase.lite.util.IOUtils;
 
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Document;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 // Informations on AsyncTask :
 // AsyncTasks allows to perform background operations and publish results
@@ -45,6 +54,8 @@ import java.util.Map;
  *    it can be Document (for XML response) or JSONObject (for JSON response) or Exception
  */
 class C8oCallTask implements Runnable {
+    static private Pattern pCharset = Pattern.compile("(?<=charset=)([^;]*)");
+
     private C8o c8o;
     private Map<String, Object> parameters;
     private C8oResponseListener c8oResponseListener;
@@ -183,43 +194,70 @@ class C8oCallTask implements Runnable {
             } catch (C8oException e) {
                 return new C8oException(C8oExceptionMessage.handleC8oCallRequest(), e);
             }
+
+            int httpCode = httpResponse.getStatusLine().getStatusCode();
+            c8o.log._info("(C8oCallTask) Http response code: " + httpCode);
+
+            Map<String, String> headers = new HashMap<String, String>();
+            for (Header header: httpResponse.getAllHeaders()) {
+                headers.put(header.getName(), header.getValue());
+            }
+            c8o.log._debug("(C8oCallTask) Http response headers: " + headers);
+
+            String responseString = null;
             // Get the c8o call result
             try {
                 responseStream = httpResponse.getEntity().getContent();
             } catch (IllegalStateException e) {
-                return new C8oException(C8oExceptionMessage.getInputStreamFromHttpResponse(), e);
+                return new C8oResponseException(C8oExceptionMessage.getInputStreamFromHttpResponse(), e, httpCode, headers, responseString);
             } catch (IOException e) {
-                return new C8oException(C8oExceptionMessage.getInputStreamFromHttpResponse(), e);
+                return new C8oResponseException(C8oExceptionMessage.getInputStreamFromHttpResponse(), e, httpCode, headers, responseString);
             }
 
             //*** Handle response ***//
 
             // Define the return type
             Object response;
-            String responseString = null;
+            byte[] byteArray;
+            try {
+                byteArray = IOUtils.toByteArray(responseStream);
+                responseStream = new ByteArrayInputStream(byteArray);
+            } catch (IOException e) {
+                return new C8oResponseException("Failed to read the stream response", e, httpCode, headers, responseString);
+            }
+            try {
+                Header headerContentType = httpResponse.getFirstHeader("Content-Type");
+                String encoding = "UTF-8";
+                if (headerContentType != null) {
+                    Matcher m = pCharset.matcher("" + headerContentType.getValue());
+                    if (m.find()) {
+                        encoding = m.group(1);
+                    }
+                }
+                responseString = new String(byteArray, encoding);
+                c8o.log._trace("(C8oCallTask) Http response string:\n" + responseString);
+            } catch (UnsupportedEncodingException e) {
+                return new C8oResponseException("Failed to decode response content", e, httpCode, headers, responseString);
+            }
+
+            if (httpCode < 200 || httpCode >= 300) {
+                return new C8oResponseException("Expected HTTP response 2xx but was " + httpCode, httpCode, headers, responseString);
+            }
             if (c8oResponseListener instanceof C8oResponseXmlListener) {
                 try {
                     response = C8oTranslator.inputStreamToXMLAndClose(responseStream, c8o.getDocumentBuilder());
-                    if (localCacheEnabled) {
-                        responseString = C8oTranslator.xmlToString((Document) response);
-                    }
                 } catch (C8oException e) {
-                    return new C8oException(C8oExceptionMessage.inputStreamToXML(), e);
+                    return new C8oResponseException(C8oExceptionMessage.inputStreamToXML(), e, httpCode, headers, responseString);
                 }
             } else if (c8oResponseListener instanceof C8oResponseJsonListener) {
                 try {
-                    try {
-                        responseString = C8oTranslator.inputStreamToString(responseStream);
-                    } catch (C8oException e) {
-                        throw new C8oException(C8oExceptionMessage.parseInputStreamToString(), e);
-                    }
-                    response = C8oTranslator.stringToJSON(responseString);
-                } catch (C8oException e) {
-                    return e;
+                    response = new JSONObject(responseString);
+                } catch (JSONException e) {
+                    return new C8oResponseException(C8oExceptionMessage.parseStringToJson(), e, httpCode, headers, responseString);
                 }
             } else {
                 // Return an Exception because the C8oListener used is unknown
-                return new C8oException(C8oExceptionMessage.wrongListener(c8oResponseListener));
+                return new C8oResponseException(C8oExceptionMessage.wrongListener(c8oResponseListener), httpCode, headers, responseString);
             }
 
             if (localCacheEnabled) {
