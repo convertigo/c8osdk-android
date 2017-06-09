@@ -263,7 +263,7 @@ class C8oFullSyncDatabase {
 
                         if (progress.isFinished()) {
                             stopReplication(fullSyncReplication);
-                            c8o.log.error("finish, do continuous ? " + continuous);
+                            c8o.log._debug("(C8oFullSyncDatabase) replication finish, do continuous ? " + continuous);
                             if (continuous) {
                                 final long lastCurrent = 0;//progress.getCurrent();
                                 final short[] stat = {0};
@@ -272,18 +272,18 @@ class C8oFullSyncDatabase {
                                 _progress[0].setContinuous(true);
                                 replication.setContinuous(true);
                                 try {
-                                    c8o.log.error("get store");
+                                    c8o.log._debug("(C8oFullSyncDatabase) replication get store");
                                     Store store = getStore();
-                                    c8o.log.error("get lastsequence");
+                                    c8o.log._debug("(C8oFullSyncDatabase) replication get lastsequence");
                                     String lastSequence = store.getInfo("checkpoint/" + rep.remoteCheckpointDocID());
-                                    c8o.log.error("lastsequence: " + lastSequence);
+                                    c8o.log._debug("(C8oFullSyncDatabase) replication lastsequence: " + lastSequence);
                                     store.close();
 
-                                    c8o.log.error("before putremote");
+                                    c8o.log._debug("(C8oFullSyncDatabase) replication before putremote");
                                     putRemoteCheckpoint(replication, lastSequence);
-                                    c8o.log.error("after putremote");
+                                    c8o.log._debug("(C8oFullSyncDatabase) replication after putremote");
                                 } catch (Exception e) {
-                                    c8o.log.error("boom", e);
+                                    c8o.log._error("(C8oFullSyncDatabase) failed to update lastSequence", e);
                                     e.printStackTrace();
                                 }
                                 replication.addChangeListener(
@@ -389,7 +389,7 @@ class C8oFullSyncDatabase {
         if (!newContent.equals(content)) {
             HttpPut put = new HttpPut(url);
             put.setHeader("Content-Type", "application/json");
-            put.setEntity(new StringEntity(content, "UTF-8"));
+            put.setEntity(new StringEntity(newContent, "UTF-8"));
             c8o.httpInterface.handleRequest(put);
         }
         database.setLastSequence(lastSequence, checkpointId);
