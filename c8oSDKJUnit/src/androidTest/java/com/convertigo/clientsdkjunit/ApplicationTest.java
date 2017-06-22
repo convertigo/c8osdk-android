@@ -54,13 +54,9 @@ import javax.xml.xpath.XPathFactory;
  */
 @RunWith(AndroidJUnit4.class)
 public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivity> {
-    /*static final String HOST = "192.168.100.95";
-    static final String PORT = "18080";*/
-    static final String HOST = "buildus.twinsoft.fr";
-    static final String PORT = "28080";
-    /*static final String HOST = "cosinus.twinsoft.fr";
-    static final String PORT = "18080";*/
-    static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
+    static final String HOST = "c8o-dev.convertigo.net";
+    static final String PORT = "80";
+    static final String PROJECT_PATH = "/cems/projects/ClientSDKtesting";
 
     static final XPath xpath = XPathFactory.newInstance().newXPath();
 
@@ -259,14 +255,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             exception = ex;
         }
         assertNotNull(exception);
-        assertEquals(C8oException.class, exception.getClass());
-        exception = exception.getCause();
+//        assertEquals(C8oException.class, exception.getClass());
+//        exception = exception.getCause();
         assertEquals(com.convertigo.clientsdk.exception.C8oHttpRequestException.class, exception.getClass());
         exception = exception.getCause();
         assertEquals(java.net.UnknownHostException.class, exception.getClass());
         assertNotNull(exceptionLog[0]);
-        assertEquals(C8oException.class, exceptionLog[0].getClass());
-        exceptionLog[0] = exceptionLog[0].getCause();
+//        assertEquals(C8oException.class, exceptionLog[0].getClass());
+//        exceptionLog[0] = exceptionLog[0].getCause();
         assertEquals(com.convertigo.clientsdk.exception.C8oHttpRequestException.class, exceptionLog[0].getClass());
         exceptionLog[0] = exceptionLog[0].getCause();
         assertEquals(java.net.UnknownHostException.class, exceptionLog[0].getClass());
@@ -284,8 +280,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             exception = ex;
         }
         assertNotNull(exception);
-        assertEquals(C8oException.class, exception.getClass());
-        exception = exception.getCause();
+//        assertEquals(C8oException.class, exception.getClass());
+//        exception = exception.getCause();
         assertEquals(com.convertigo.clientsdk.exception.C8oHttpRequestException.class, exception.getClass());
         exception = exception.getCause();
         assertEquals(java.net.UnknownHostException.class, exception.getClass());
@@ -1894,7 +1890,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             try {
                 synchronized (status) {
                     ft.downloadFile(uuid, file.getAbsolutePath());
-                    status.wait(20000);
+                    status.wait(60000);
                 }
                 if (error[0] != null) {
                     throw error[0];
