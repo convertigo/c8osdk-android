@@ -17,5 +17,5 @@ allprojects {
 }
 
 subprojects {
-    tasks.withType(Javadoc).all { enabled = true }
+    tasks.withType(Javadoc).all { enabled = false }
 }

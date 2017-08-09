@@ -11,9 +11,9 @@ ext {
     libraryDescription = 'Allows Android apps to access Convertigo mBaaS services such as FullSync data replication for offline, push notifications and back-end connectors'
 
     siteUrl = 'http://www.convertigo.com/document/convertigo-client-sdk'
-    gitUrl =  'http://svn.code.sf.net/p/convertigo/code/CEMS_opensource/trunk/'
+    gitUrl =  'https://github.com/convertigo/c8osdk-android'
 
-    libraryVersion = '2.1.4'
+    libraryVersion = '2.1.5'
 
     developerId = 'Convertigo'
     developerName = 'Convertigo SA'
@@ -74,7 +74,6 @@ task generateZipJavadoc(type: Zip, dependsOn: {generateReleaseJavadoc}) {
     from {generateReleaseJavadoc}.destinationDir
 }
 
-/*
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
-*/
+
+//apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
+//apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'

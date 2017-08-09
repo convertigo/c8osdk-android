@@ -296,6 +296,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
     }
 
     @Test
+    public void C8oDefaultPingOneSingleValueUTF8() throws Throwable {
+        C8o c8o = get(Stuff.C8O);
+        Document doc = c8o.callXml(".Ping", "var1", "é@à &%µ").sync();
+        String value = xpath.evaluate("/document/pong/var1/text()", doc);
+        assertEquals("é@à &%µ", value);
+    }
+
+    @Test
     public void C8oDefaultPingTwoSingleValues() throws Throwable {
         C8o c8o = get(Stuff.C8O);
         Document doc = c8o.callXml(".Ping",

@@ -381,7 +381,7 @@ class HttpInterface {
 					params.add(new BasicNameValuePair(parameter.getKey(), "" + value));
 				}
             }
-			request.setEntity(new UrlEncodedFormEntity(params));
+			request.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
 		} catch (UnsupportedEncodingException e) {
 			throw new C8oException(C8oExceptionMessage.urlEncode(), e);
 		}
