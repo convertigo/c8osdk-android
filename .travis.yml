@@ -1,0 +1,57 @@
+language: android
+jdk: oraclejdk8
+android:
+  components:
+    # The SDK version used to compile your project
+    - android-15
+    #system image
+    - sys-img-armeabi-v7a-android-21
+
+before_script:
+  # Create emulator
+  - echo no | android create avd --force -n test -t android-21 --abi armeabi-v7a
+  # Launch emulator
+  - emulator -avd test -no-audio -no-window &
+  #Installing platform tools and accept theirs licence
+  - echo y | android update sdk -u -a -t tools
+  - echo y | android update sdk -u -a -t platform-tools
+  - echo y | android update sdk -u -a -t build-tools-25.0.0
+  - echo y | android update sdk -u -a -t android-25
+  - echo y | android update sdk -u -a -t build-tools-23.0.0
+  - echo y | android update sdk -u -a -t android-23
+  - echo y | android update sdk -u -a -t extra-google-m2repository
+  - echo y | android update sdk -u -a -t extra-android-m2repository
+  # Installing git lfs
+  - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+  - sudo apt-get install git-lfs
+  # Pulling lfs files
+  - git lfs pull
+  # Waiting for emulator to start
+  - android-wait-for-emulator
+  - adb shell input keyevent 82 &
+
+#Removing some unnecessary files before caching files
+before_cache:
+  - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
+
+# Setting cache directory
+cache:
+  directories:
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+    - $HOME/.android/build-cache
+
+before_install:
+ # Give the correct right execution for gradlew
+ - chmod +x ./gradlew
+
+script:
+  # Launching Tests
+ - ./gradlew connectedAndroidTest
+
+#Set licences
+licenses:
+  - 'android-sdk-preview-license-.+'
+  - 'android-sdk-license-.+'
+  - 'google-gdk-license-.+'
