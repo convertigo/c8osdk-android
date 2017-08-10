@@ -1,6 +1,7 @@
 package com.convertigo.clientsdk;
 
 import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
+import com.convertigo.clientsdk.exception.C8oDownloadBulkException;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.listener.C8oResponseJsonListener;
 import com.convertigo.clientsdk.listener.C8oResponseListener;
@@ -271,7 +272,7 @@ class FullSyncEnum {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (mutex)
 				{
-					c8oFullSync.handleDownloadBulkRequest(databaseName, parameters, new C8oResponseProgressListener() {
+					C8oResponseProgressListener listener = new C8oResponseProgressListener() {
 
 						@Override
 						public void onProgressResponse(C8oProgress progress, Map<String, Object> parameters) {
@@ -288,7 +289,20 @@ class FullSyncEnum {
                                 ((C8oResponseXmlListener) c8oResponseListener).onXmlResponse(null, parameters);
                             }
 						}
-					});
+					};
+
+					int retry = 3;
+                    while (retry-- > 0) {
+                        try {
+                            c8oFullSync.handleDownloadBulkRequest(databaseName, parameters, listener);
+                            retry = 0;
+                        } catch (C8oDownloadBulkException e) {
+                            c8oFullSync.c8o.log._warn("'download_bulk' failed [" + retry + " retries left]: " + e.getMessage());
+                            if (retry == 0) {
+                                throw e;
+                            }
+                        }
+                    }
 
 					JSONObject response = new JSONObject();
 					try {

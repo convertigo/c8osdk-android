@@ -8,6 +8,7 @@ import com.convertigo.clientsdk.FullSyncEnum.FullSyncRequestParameter;
 import com.convertigo.clientsdk.FullSyncResponse.FullSyncDefaultResponse;
 import com.convertigo.clientsdk.FullSyncResponse.FullSyncDocumentOperationResponse;
 import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
+import com.convertigo.clientsdk.exception.C8oDownloadBulkException;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
 import com.convertigo.clientsdk.exception.C8oUnavailableLocalCacheException;
@@ -31,6 +32,7 @@ import com.couchbase.lite.UnsavedRevision;
 import com.couchbase.lite.View;
 import com.couchbase.lite.android.AndroidContext;
 import com.couchbase.lite.internal.RevisionInternal;
+import com.couchbase.lite.util.Base64;
 import com.couchbase.lite.util.ZipUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -40,11 +42,16 @@ import org.apache.http.client.methods.HttpGet;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -476,6 +483,7 @@ class C8oFullSyncCbl extends C8oFullSync {
             } catch (Exception e) { }
 
             File path =  new File(c8o.getContext().getFilesDir(), localDabaseName + ".cblite2");
+
             final InputStream content = response.getEntity().getContent();
             final long total = length;
             final long[] currentRead = new long[] {0};
@@ -535,10 +543,43 @@ class C8oFullSyncCbl extends C8oFullSync {
             }, path);
 
             c8o.log.info("handleDownloadBulkRequest after dl : " + path.getAbsolutePath());
+
+            File md5_b64 = new File(path, "md5-b64.txt");
+
+            if (md5_b64.exists()) {
+                byte buf[] = new byte[512];
+                BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(md5_b64), "UTF-8"));
+                String line;
+                while ((line = br.readLine()) != null) {
+                    File file = new File(path, line);
+                    if (!file.exists()) {
+                        throw new C8oDownloadBulkException("The file '" + file.getName() + "' is missing in the zip file.");
+                    }
+
+                    c8o.log.info("handleDownloadBulkRequest checking integrity of '" + file.getName() + "'");
+
+                    if ((line = br.readLine()) == null || !Long.toString(file.length()).equals(line)) {
+                        throw new C8oDownloadBulkException("The file '" + file.getName() + "' length is " + file.length() + " instead of " + line);
+                    }
+
+                    DigestInputStream digest = new DigestInputStream(new FileInputStream(file), MessageDigest.getInstance("MD5"));
+                    while (digest.read(buf) != -1);
+                    String str = Base64.encodeToString(digest.getMessageDigest().digest(), Base64.NO_WRAP);
+
+                    if ((line = br.readLine()) == null || !line.equals(str)) {
+                        throw new C8oDownloadBulkException("The file '" + file.getName() + "' MD5 is " + str + " instead of " + line);
+                    }
+                }
+            } else {
+                throw new C8oDownloadBulkException("The file 'md5-b64.txt' is missing in the zip file.");
+            }
+
             getOrCreateFullSyncDatabase(databaseName).initBulk();
             handleDownloadBulkRequestProgress(c8oResponseListener, Math.max(currentRead[0], length), Math.max(currentRead[0], length), true);
+        } catch (C8oException e) {
+            throw e;
         } catch (Exception e) {
-            throw new C8oException("boom", e);
+            throw new C8oException("Unexpected error during download bulk.", e);
         }
         return VoidResponse.getInstance();
     }
@@ -572,7 +613,7 @@ class C8oFullSyncCbl extends C8oFullSync {
             return null;
         }
 
-        String mapID = db.getName() + ":" + viewName + ":" + mapSource.hashCode();
+        String mapID = viewName + ":" + mapSource.hashCode();
 
         String reduceSource = (String) viewProps.get("reduce");
         Reducer reduceBlock = null;
