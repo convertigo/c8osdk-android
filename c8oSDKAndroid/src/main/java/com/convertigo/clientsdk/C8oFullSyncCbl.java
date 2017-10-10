@@ -32,6 +32,7 @@ import com.couchbase.lite.UnsavedRevision;
 import com.couchbase.lite.View;
 import com.couchbase.lite.android.AndroidContext;
 import com.couchbase.lite.internal.RevisionInternal;
+import com.couchbase.lite.support.CouchbaseLiteHttpClientFactory;
 import com.couchbase.lite.util.Base64;
 import com.couchbase.lite.util.ZipUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -94,7 +95,14 @@ class C8oFullSyncCbl extends C8oFullSync {
         viewDDocRev = new HashMap<String, String>();
         try {
             manager = new Manager(new AndroidContext(context), Manager.DEFAULT_OPTIONS);
-        } catch (IOException e) {
+
+            if (c8o.isTrustAllCertificates()) {
+                Database cookies = manager.getDatabase("persistentcookiejar");
+                CouchbaseLiteHttpClientFactory cblhcf = new CouchbaseLiteHttpClientFactory(cookies.getPersistentCookieStore());
+                cblhcf.allowSelfSignedSSLCertificates();
+                manager.setDefaultHttpClientFactory(cblhcf);
+            }
+        } catch (Exception e) {
             throw new C8oException(C8oExceptionMessage.initCouchManager(), e);
         }
     }
