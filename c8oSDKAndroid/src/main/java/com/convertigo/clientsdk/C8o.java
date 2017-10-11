@@ -540,7 +540,7 @@ public class C8o extends C8oBase {
     }
 
     /**
-     * Add a header for future HTTP requests.
+     * Add a custom header for future HTTP requests.
      *
      * @param name
      * @param value
@@ -551,6 +551,11 @@ public class C8o extends C8oBase {
         }
     }
 
+    /**
+     * Remove a custom header for future HTTP requests.
+     *
+     * @param name
+     */
     public void removeHeader(String name) {
         synchronized (headers) {
             headers.remove(name);
