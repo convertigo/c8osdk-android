@@ -391,6 +391,12 @@ class HttpInterface {
 	
 	public HttpResponse handleRequest(HttpRequestBase request) throws C8oHttpRequestException {
 		try {
+            synchronized (c8o.headers) {
+                for (Entry<String, String> header: c8o.headers.entrySet()) {
+                    request.addHeader(header.getKey(), header.getValue());
+                }
+            }
+
             synchronized (firstCall) {
                 if (firstCall[0]) {
                     HttpResponse response = httpClient.execute(request, httpContext);

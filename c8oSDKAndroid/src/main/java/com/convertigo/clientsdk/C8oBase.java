@@ -12,7 +12,8 @@ class C8oBase {
 
     protected int timeout = 0;
     protected boolean trustAllCertificates = false;
-    protected Map<String, String> cookies = null;
+    protected Map<String, String> cookies = new HashMap<String, String>();
+    protected Map<String, String> headers = new HashMap<String, String>();
 
     //*** Log ***//
 
@@ -64,6 +65,15 @@ class C8oBase {
      * @return List of cookies.
      */
     public Map<String, String> getCookies() {
+        return cookies;
+    }
+
+    /**
+     * Gets initial headers to send to the Convertigo server.<br/>
+     * Default is <b>null</b>.
+     * @return List of headers.
+     */
+    public Map<String, String> getHeaders() {
         return cookies;
     }
 
@@ -138,12 +148,8 @@ class C8oBase {
 
         timeout = c8oBase.timeout;
         trustAllCertificates = c8oBase.trustAllCertificates;
-        if (cookies == null) {
-            cookies = new HashMap<String, String>();
-        }
-        if (c8oBase.cookies != null) {
-            cookies.putAll(c8oBase.cookies);
-        }
+        cookies.putAll(c8oBase.cookies);
+        headers.putAll(c8oBase.headers);
 
         //*** Log ***//
 

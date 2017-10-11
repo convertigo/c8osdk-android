@@ -153,6 +153,14 @@ class C8oFullSyncDatabase {
             replication.setCookie(cookie.getName(), cookie.getValue(), cookie.getPath(), cookie.getExpiryDate(), cookie.isSecure(), false);
         }
 
+        if (!c8o.headers.isEmpty()) {
+            Map<String, Object> headers = replication.getHeaders();
+            for (Map.Entry<String, String> header: c8o.headers.entrySet()) {
+                headers.put(header.getKey(), header.getValue());
+            }
+            replication.setHeaders(headers);
+        }
+
         return replication;
     }
 

@@ -540,6 +540,18 @@ public class C8o extends C8oBase {
     }
 
     /**
+     * Add a header for future HTTP requests.
+     *
+     * @param name
+     * @param value
+     */
+    public void addHeader(String name, String value) {
+        synchronized (headers) {
+            headers.put(name, value);
+        }
+    }
+
+    /**
      * Enable the internal SDK log.<br/>
      * Add to the application log (generated using the c8o.log object) the logs generated internally
      * by the SDK. Useful for debugging the SDK.

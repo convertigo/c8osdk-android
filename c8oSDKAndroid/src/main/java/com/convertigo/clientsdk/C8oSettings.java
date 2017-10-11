@@ -72,10 +72,18 @@ public class C8oSettings extends C8oBase {
 	 * @return The current <b>C8oSettings</b>, for chaining.
 	 */
 	public C8oSettings addCookie(String name, String value) {
-		if (cookies == null) {
-			cookies = new HashMap<String, String>();
-		}
 		cookies.put(name, value);
+		return this;
+	}
+
+	/**
+	 * Add a new header to the initial headers send to the Convertigo server.
+	 * @param name The name of the new header.
+	 * @param value The value of the new header.
+	 * @return The current <b>C8oSettings</b>, for chaining.
+	 */
+	public C8oSettings addHeader(String name, String value) {
+		headers.put(name, value);
 		return this;
 	}
 
