@@ -551,6 +551,12 @@ public class C8o extends C8oBase {
         }
     }
 
+    public void removeHeader(String name) {
+        synchronized (headers) {
+            headers.remove(name);
+        }
+    }
+
     /**
      * Enable the internal SDK log.<br/>
      * Add to the application log (generated using the c8o.log object) the logs generated internally
