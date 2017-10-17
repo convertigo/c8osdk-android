@@ -34,10 +34,8 @@ import com.couchbase.lite.android.AndroidContext;
 import com.couchbase.lite.internal.RevisionInternal;
 import com.couchbase.lite.support.CouchbaseLiteHttpClientFactory;
 import com.couchbase.lite.util.Base64;
-import com.couchbase.lite.util.ZipUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.json.JSONArray;
@@ -46,6 +44,7 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -63,6 +62,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * Created by nicolasa on 01/12/2015.
@@ -480,23 +481,16 @@ class C8oFullSyncCbl extends C8oFullSync {
                 url = c8o.getEndpoint() + "/" + url;
             }
 
-            c8o.log.info("handleDownloadBulkRequest before dl: " + url);
+            c8o.log._info("handleDownloadBulkRequest before dl: " + url);
 
             HttpResponse response = c8o.httpInterface.handleRequest(new HttpGet(url));
-
-            long length = -1;
-            Header contentLength = response.getFirstHeader("Content-Length");
-            try {
-                length = Long.parseLong(contentLength.getValue());
-            } catch (Exception e) { }
 
             File path =  new File(c8o.getContext().getFilesDir(), localDabaseName + ".cblite2");
 
             final InputStream content = response.getEntity().getContent();
-            final long total = length;
+            final long total = response.getEntity().getContentLength();
             final long[] currentRead = new long[] {0};
-
-            ZipUtils.unzip(new InputStream() {
+            unzip(new InputStream() {
 
                 @Override
                 public int available() throws IOException {
@@ -550,7 +544,7 @@ class C8oFullSyncCbl extends C8oFullSync {
                 }
             }, path);
 
-            c8o.log.info("handleDownloadBulkRequest after dl : " + path.getAbsolutePath());
+            c8o.log._debug("handleDownloadBulkRequest after dl : " + path.getAbsolutePath() + " (" + currentRead[0] + " / " + total + " = " + (currentRead[0] / total) + ")");
 
             File md5_b64 = new File(path, "md5-b64.txt");
 
@@ -564,9 +558,10 @@ class C8oFullSyncCbl extends C8oFullSync {
                         throw new C8oDownloadBulkException("The file '" + file.getName() + "' is missing in the zip file.");
                     }
 
-                    c8o.log.info("handleDownloadBulkRequest checking integrity of '" + file.getName() + "'");
+                    c8o.log._debug("handleDownloadBulkRequest checking integrity of '" + file.getName() + "'");
 
                     if ((line = br.readLine()) == null || !Long.toString(file.length()).equals(line)) {
+                        c8o.log._info("handleDownloadBulkRequest fail: The file '" + file.getName() + "' length is " + file.length() + " instead of " + line);
                         throw new C8oDownloadBulkException("The file '" + file.getName() + "' length is " + file.length() + " instead of " + line);
                     }
 
@@ -575,15 +570,17 @@ class C8oFullSyncCbl extends C8oFullSync {
                     String str = Base64.encodeToString(digest.getMessageDigest().digest(), Base64.NO_WRAP);
 
                     if ((line = br.readLine()) == null || !line.equals(str)) {
+                        c8o.log._info("handleDownloadBulkRequest fail: The file '" + file.getName() + "' MD5 is " + str + " instead of " + line);
                         throw new C8oDownloadBulkException("The file '" + file.getName() + "' MD5 is " + str + " instead of " + line);
                     }
                 }
             } else {
+                c8o.log._info("handleDownloadBulkRequest fail: The file 'md5-b64.txt' is missing in the zip file.");
                 throw new C8oDownloadBulkException("The file 'md5-b64.txt' is missing in the zip file.");
             }
 
             getOrCreateFullSyncDatabase(databaseName).initBulk();
-            handleDownloadBulkRequestProgress(c8oResponseListener, Math.max(currentRead[0], length), Math.max(currentRead[0], length), true);
+            handleDownloadBulkRequestProgress(c8oResponseListener, Math.max(currentRead[0], total), Math.max(currentRead[0], total), true);
         } catch (C8oException e) {
             throw e;
         } catch (Exception e) {
@@ -966,5 +963,33 @@ class C8oFullSyncCbl extends C8oFullSync {
         } else {
             return true;
         }
+    }
+
+    private void unzip(InputStream in, File destination) throws IOException {
+        byte[] buffer = new byte[1024];
+        ZipInputStream zis = new ZipInputStream(in);
+        ZipEntry ze = zis.getNextEntry();
+        while (ze != null) {
+            String fileName = ze.getName();
+            File newFile = new File(destination, fileName);
+            if (ze.isDirectory()) {
+                newFile.mkdirs();
+            } else {
+                long total_len = 0;
+                new File(newFile.getParent()).mkdirs();
+                FileOutputStream fos = new FileOutputStream(newFile);
+                int len;
+                while ((len = zis.read(buffer)) >= 0) {
+                    total_len += len;
+                    fos.write(buffer, 0, len);
+                }
+                fos.close();
+                c8o.log._debug("unzip " + newFile + " (" + total_len + ")");
+            }
+            ze = zis.getNextEntry();
+        }
+        zis.closeEntry();
+        zis.close();
+        in.close();
     }
 }

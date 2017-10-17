@@ -113,23 +113,6 @@ class C8oFullSyncDatabase {
         } catch (CouchbaseLiteException e) {
             throw new C8oException(C8oExceptionMessage.unableToGetFullSyncDatabase(localDatabaseName), e);
         }
-
-        /*
-        // ??? Does surely something but do not know what, it is optional so it is still here ???
-        String authenticationCookieValue = c8o.getAuthenticationCookieValue();
-        if (authenticationCookieValue != null) {
-        	// Create the expiration being tomorrow
-        	Calendar calendar = Calendar.getInstance();
-        	calendar.add(Calendar.DATE, 1);
-        	Date expirationDate = calendar.getTime();
-
-        	boolean isSecure = false;
-        	boolean httpOnly = false;
-
-        	pullReplication.setCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME, authenticationCookieValue, "/", expirationDate, isSecure, httpOnly);
-        	pushReplication.setCookie(C8oFullSyncDatabase.AUTHENTICATION_COOKIE_NAME, authenticationCookieValue, "/", expirationDate, isSecure, httpOnly);
-        }
-        */
     }
 
     void delete() {
@@ -341,7 +324,7 @@ class C8oFullSyncDatabase {
         Store store = getStore();
 
         String lastSequence = store.getInfo("prebuiltrevision");
-        c8o.log.info("initBulk with prebuiltrevision: " + lastSequence);
+        c8o.log._info("initBulk with prebuiltrevision: " + lastSequence);
 
         store.setInfo("privateUUID", Misc.CreateUUID());
         store.setInfo("publicUUID", Misc.CreateUUID());
