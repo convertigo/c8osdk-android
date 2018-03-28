@@ -1,6 +1,3 @@
-![](https://travis-ci.org/convertigo/c8osdk-ios.svg?branch=master)
-
-
 ![](http://www.convertigo.com/wp-content/uploads/2015/05/logofix.png)
 # Convertigo SDK for Android #
 Convertigo Mobility Platform supports native Android developpers. Services brought by the platform are available for Android clients applications thanks to the Convertigo MBaaS SDK. SDK provides an Andorid framework you can use to access Convertigo Server’s services such as:
