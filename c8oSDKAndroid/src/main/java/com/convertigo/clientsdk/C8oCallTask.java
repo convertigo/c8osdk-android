@@ -63,10 +63,10 @@ class C8oCallTask implements Runnable {
     private String c8oCallUrl;
 
     public C8oCallTask(C8o c8o, Map<String, Object> parameters, C8oResponseListener c8oResponseListener, C8oExceptionListener c8oExceptionListener) {
-		this.c8o = c8o;
-		this.parameters = parameters;
-		this.c8oResponseListener = c8oResponseListener;
-		this.c8oExceptionListener = c8oExceptionListener;
+        this.c8o = c8o;
+        this.parameters = parameters;
+        this.c8oResponseListener = c8oResponseListener;
+        this.c8oExceptionListener = c8oExceptionListener;
 
         c8o.log.logMethodCall("C8oCallTask", parameters, c8oResponseListener, c8oExceptionListener);
     }
@@ -76,7 +76,7 @@ class C8oCallTask implements Runnable {
     }
 
     public void executeFromLive() {
-        parameters.remove(C8o.FS_LIVE);
+        //parameters.remove(C8o.FS_LIVE);
         parameters.put(C8o.ENGINE_PARAMETER_FROM_LIVE, true);
         execute();
     }
@@ -97,7 +97,7 @@ class C8oCallTask implements Runnable {
         boolean isFullSyncRequest = C8oFullSync.isFullSyncRequest(parameters);
 
         if (isFullSyncRequest) {
-			c8o.log._debug("Is FullSync request");
+            c8o.log._debug("Is FullSync request");
 
             String liveid = C8oUtils.getParameterStringValue(parameters, C8o.FS_LIVE, false);
             if (liveid != null) {
@@ -105,8 +105,8 @@ class C8oCallTask implements Runnable {
                 c8o.addLive(liveid, dbName, this);
             }
             try {
-				Object fullSyncResult = c8o.c8oFullSync.handleFullSyncRequest(parameters, c8oResponseListener);
-				return fullSyncResult;
+                Object fullSyncResult = c8o.c8oFullSync.handleFullSyncRequest(parameters, c8oResponseListener);
+                return fullSyncResult;
             } catch (C8oException e) {
                 throw e;
             } catch (Throwable e) {
@@ -118,10 +118,10 @@ class C8oCallTask implements Runnable {
             if (c8oResponseListener == null || c8oResponseListener instanceof C8oResponseXmlListener) {
                 responseType = C8o.RESPONSE_TYPE_XML;
             } else if (this.c8oResponseListener instanceof C8oResponseJsonListener) {
-				responseType = C8o.RESPONSE_TYPE_JSON;
-			} else {
-				// Return an Exception because the C8oListener used is unknown
-				return new C8oException(C8oExceptionMessage.wrongListener(this.c8oResponseListener));
+                responseType = C8o.RESPONSE_TYPE_JSON;
+            } else {
+                // Return an Exception because the C8oListener used is unknown
+                return new C8oException(C8oExceptionMessage.wrongListener(this.c8oResponseListener));
             }
 
             //*** Local cache ***//

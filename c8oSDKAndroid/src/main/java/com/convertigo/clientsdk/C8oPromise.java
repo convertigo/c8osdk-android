@@ -15,11 +15,11 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
     private Throwable lastFailure;
     private Map<String, Object> lastParameters;
 
-    C8oPromise(C8o c8o) {
+    public C8oPromise(C8o c8o) {
         this.c8o = c8o;
     }
 
-    private C8oPromise<T> then(C8oOnResponse<T> c8oOnResponse, boolean ui) {
+    public C8oPromise<T> then(C8oOnResponse<T> c8oOnResponse, boolean ui) {
         if (nextPromise != null) {
             return nextPromise.then(c8oOnResponse, ui);
         } else {
@@ -67,7 +67,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
         return progress(c8oOnProgress, true);
     }
 
-    private C8oPromiseSync<T> fail(C8oOnFail c8oOnFail, boolean ui) {
+    public C8oPromiseSync<T> fail(C8oOnFail c8oOnFail, boolean ui) {
         if (nextPromise != null) {
             return nextPromise.fail(c8oOnFail, ui);
         } else {
@@ -129,7 +129,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
         return lastResponse;
     }
 
-    private void onResponse() {
+    public void onResponse() {
         try {
             if (c8oResponse != null) {
                 final C8oPromise<T>[] promise = new C8oPromise[1];
@@ -180,7 +180,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
         }
     }
 
-    void onResponse(final T response, final Map<String, Object> parameters) {
+    public void onResponse(final T response, final Map<String, Object> parameters) {
         if (lastResponse != null && !parameters.containsKey(C8o.ENGINE_PARAMETER_FROM_LIVE)) {
             if (nextPromise != null) {
                 nextPromise.onResponse(response, parameters);
@@ -194,7 +194,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
         }
     }
 
-    void onProgress(final C8oProgress progress) {
+    public void onProgress(final C8oProgress progress) {
         if (c8oProgress != null) {
             if (c8oProgress.second) {
                 final Object locker = new Object();
@@ -227,7 +227,7 @@ public class C8oPromise<T> implements C8oPromiseFailSync {
         }
     }
 
-    void onFailure(Throwable throwable, final Map<String, Object> parameters) {
+    public void onFailure(Throwable throwable, final Map<String, Object> parameters) {
         lastFailure = throwable;
         lastParameters = parameters;
 

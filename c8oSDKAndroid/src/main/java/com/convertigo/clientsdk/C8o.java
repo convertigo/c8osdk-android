@@ -70,35 +70,35 @@ import javax.xml.parsers.ParserConfigurationException;
  * To use it, you have to first initialize the C8o instance with the Convertigo endpoint, then use call methods with Convertigo variables as parameter.
  */
 public class C8o extends C8oBase {
-	
-	// Log :
-	// - VERBOSE (v) : methods parameters,
-	// - DEBUG (d) : methods calls,
-	// - INFO (i) :
-	// - WARN (w) :
-	// - ERROR (e) :
-	
-	//*** Regular expression ***//
-	
-	/**
-	 * The regex used to handle the c8o requestable syntax ("&lt;project&gt;.&lt;sequence&gt;" or "&lt;project&gt;.&lt;connector&gt;.&lt;transaction&gt;")
-	 */
-	private static final Pattern RE_REQUESTABLE = Pattern.compile("^([^.]*)\\.(?:([^.]+)|(?:([^.]+)\\.([^.]+)))$");
-	/**
-	 * The regex used to get the part of the endpoint before '/projects/...'
-	 */
-	private static final Pattern RE_ENDPOINT = Pattern.compile("^(http(s)?://([^:/]+)(:[0-9]+)?/?.*?)/projects/([^/]+)$");
-	
-	//*** Engine reserved parameters ***//
-	
-	static final String ENGINE_PARAMETER_PROJECT = "__project";
-	static final String ENGINE_PARAMETER_SEQUENCE = "__sequence";
-	static final String ENGINE_PARAMETER_CONNECTOR = "__connector";
-	static final String ENGINE_PARAMETER_TRANSACTION = "__transaction";
-	static final String ENGINE_PARAMETER_ENCODED = "__encoded";
-    static final String ENGINE_PARAMETER_DEVICE_UUID = "__uuid";
-    static final String ENGINE_PARAMETER_PROGRESS = "__progress";
-    static final String ENGINE_PARAMETER_FROM_LIVE = "__fromLive";
+
+    // Log :
+    // - VERBOSE (v) : methods parameters,
+    // - DEBUG (d) : methods calls,
+    // - INFO (i) :
+    // - WARN (w) :
+    // - ERROR (e) :
+
+    //*** Regular expression ***//
+
+    /**
+     * The regex used to handle the c8o requestable syntax ("&lt;project&gt;.&lt;sequence&gt;" or "&lt;project&gt;.&lt;connector&gt;.&lt;transaction&gt;")
+     */
+    private static final Pattern RE_REQUESTABLE = Pattern.compile("^([^.]*)\\.(?:([^.]+)|(?:([^.]+)\\.([^.]+)))$");
+    /**
+     * The regex used to get the part of the endpoint before '/projects/...'
+     */
+    private static final Pattern RE_ENDPOINT = Pattern.compile("^(http(s)?://([^:/]+)(:[0-9]+)?/?.*?)/projects/([^/]+)$");
+
+    //*** Engine reserved parameters ***//
+
+    public static final String ENGINE_PARAMETER_PROJECT = "__project";
+    public static final String ENGINE_PARAMETER_SEQUENCE = "__sequence";
+    public static final String ENGINE_PARAMETER_CONNECTOR = "__connector";
+    public static final String ENGINE_PARAMETER_TRANSACTION = "__transaction";
+    public static final String ENGINE_PARAMETER_ENCODED = "__encoded";
+    public static final String ENGINE_PARAMETER_DEVICE_UUID = "__uuid";
+    public static final String ENGINE_PARAMETER_PROGRESS = "__progress";
+    public static final String ENGINE_PARAMETER_FROM_LIVE = "__fromLive";
 
     //*** FULLSYNC parameters ***//
 
@@ -159,17 +159,17 @@ public class C8o extends C8oBase {
      * to the prebuilt database or an absolute http url.
      */
     public static final String FS_DB_ZIP_FILE = "databaseZipFile";
-	
-	//*** Local cache keys ***//
-	static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE = "response";
-	static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE_TYPE = "responseType";
-	static final String LOCAL_CACHE_DOCUMENT_KEY_EXPIRATION_DATE = "expirationDate";
-	
-	static final String LOCAL_CACHE_DATABASE_NAME = "c8olocalcache";
-	
-	//*** Response type ***//
-	static final String RESPONSE_TYPE_XML = "pxml";
-	static final String RESPONSE_TYPE_JSON = "json";
+
+    //*** Local cache keys ***//
+    static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE = "response";
+    static final String LOCAL_CACHE_DOCUMENT_KEY_RESPONSE_TYPE = "responseType";
+    static final String LOCAL_CACHE_DOCUMENT_KEY_EXPIRATION_DATE = "expirationDate";
+
+    static final String LOCAL_CACHE_DATABASE_NAME = "c8olocalcache";
+
+    //*** Response type ***//
+    static final String RESPONSE_TYPE_XML = "pxml";
+    static final String RESPONSE_TYPE_JSON = "json";
 
     /**
      * Returns the current version of the SDK as "x.y.z".
@@ -187,11 +187,11 @@ public class C8o extends C8oBase {
     }
 
     //*** Network ***//
-	
-	/**
-	 * The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt; (Example : http://127.0.0.1:18080/convertigo/projects/MyProject)
-	 */
-	private String endpoint;
+
+    /**
+     * The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;host&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt; (Example : http://127.0.0.1:18080/convertigo/projects/MyProject)
+     */
+    private String endpoint;
     private String endpointConvertigo;
     private boolean endpointIsSecure;
     private String endpointHost;
@@ -200,10 +200,10 @@ public class C8o extends C8oBase {
 
     private String deviceUUID;
 
-	/**
-	 * Used to run HTTP requests.
-	 */
-	HttpInterface httpInterface;
+    /**
+     * Used to run HTTP requests.
+     */
+    HttpInterface httpInterface;
 
     /**
      * Allows to log locally and remotely to the Convertigo server.
@@ -218,12 +218,12 @@ public class C8o extends C8oBase {
     Map<String, C8oCallTask> lives = new HashMap<String, C8oCallTask>();
     Map<String, String> livesDb = new HashMap<String, String>();
 
-	/**
-	 * Used to build a Document form an InputStream.
-	 */
-	private DocumentBuilder documentBuilder;
-	private Context context;
-	private Handler mainLooperHandler;
+    /**
+     * Used to build a Document form an InputStream.
+     */
+    private DocumentBuilder documentBuilder;
+    private Context context;
+    private Handler mainLooperHandler;
     /**
      * This is the base object representing a Convertigo Server end point. This object should be instanciated
      * when the apps starts and be accessible from any class of the app. Although this is not common , you may have
@@ -235,37 +235,37 @@ public class C8o extends C8oBase {
      *
      * @throws C8oException In case of invalid parameter or initialization failure.
      */
-	public C8o(Context context, String endpoint) throws C8oException {
-		this(context, endpoint, null);
-	}
-	
-	/**
+    public C8o(Context context, String endpoint) throws C8oException {
+        this(context, endpoint, null);
+    }
+
+    /**
      * This is the base object representing a Convertigo Server end point. This object should be instanciated
      * when the apps starts and be accessible from any class of the app. Although this is not common , you may have
      * several C8o objects instantiated in your app.
-	 *
-	 * @param context The current application Android Context
-	 * @param endpoint The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;server&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt;<br/>
+     *
+     * @param context The current application Android Context
+     * @param endpoint The Convertigo endpoint, syntax : &lt;protocol&gt;://&lt;server&gt;:&lt;port&gt;/&lt;Convertigo web app path&gt;/projects/&lt;project name&gt;<br/>
      *                 Example : http://computerName:18080/convertigo/projects/MyProject
-	 * @param c8oSettings Initialization options.<br/>
+     * @param c8oSettings Initialization options.<br/>
      *                    Example : new C8oSettings().setLogRemote(false).setDefaultDatabaseName("sample")
-	 *
-	 * @throws C8oException In case of invalid parameter or initialization failure.
-	 */
+     *
+     * @throws C8oException In case of invalid parameter or initialization failure.
+     */
     public C8o(Context context, String endpoint, C8oSettings c8oSettings) throws C8oException {
-		// Checks the URL validity
-		if (!C8oUtils.isValidUrl(endpoint)) {
-			throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidURL(endpoint));
-		}
+        // Checks the URL validity
+        if (!C8oUtils.isValidUrl(endpoint)) {
+            throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidURL(endpoint));
+        }
 
-		// Checks the endpoint validity
-		Matcher matches = RE_ENDPOINT.matcher(endpoint);
-		if (!matches.find()) {
-			throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidEndpoint(endpoint));
-		}
+        // Checks the endpoint validity
+        Matcher matches = RE_ENDPOINT.matcher(endpoint);
+        if (!matches.find()) {
+            throw new IllegalArgumentException(C8oExceptionMessage.illegalArgumentInvalidEndpoint(endpoint));
+        }
 
-		this.context = context;
-		this.endpoint = endpoint;
+        this.context = context;
+        this.endpoint = endpoint;
 
         endpointConvertigo = matches.group(1);
         endpointIsSecure = matches.group(2) != null;
@@ -275,31 +275,31 @@ public class C8o extends C8oBase {
 
         deviceUUID = Settings.Secure.getString(context.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
 
-		mainLooperHandler = new Handler(Looper.getMainLooper());
+        mainLooperHandler = new Handler(Looper.getMainLooper());
 
-		if (c8oSettings != null) {
-			copy(c8oSettings);
-		}
+        if (c8oSettings != null) {
+            copy(c8oSettings);
+        }
 
         httpInterface = new HttpInterface(this);
 
-		log = new C8oLogger(this);
+        log = new C8oLogger(this);
 
-		log.logMethodCall("C8o", this);
+        log.logMethodCall("C8o", this);
 
-		try {
-			documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-		} catch (ParserConfigurationException e) {
-			throw new C8oException(C8oExceptionMessage.initDocumentBuilder(), e);
-		}
+        try {
+            documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            throw new C8oException(C8oExceptionMessage.initDocumentBuilder(), e);
+        }
 
-		try {
-			c8oFullSync = new C8oFullSyncCbl();
+        try {
+            c8oFullSync = new C8oFullSyncCbl();
             c8oFullSync.Init(this, context);
-		} catch (C8oException e) {
-			throw new C8oException(C8oExceptionMessage.fullSyncInterfaceInstance(), e);
-		}
-	}
+        } catch (C8oException e) {
+            throw new C8oException(C8oExceptionMessage.fullSyncInterfaceInstance(), e);
+        }
+    }
 
     /**
      * Makes a c8o call with c8o requestable out of parameters.<br/>
@@ -388,17 +388,17 @@ public class C8o extends C8oBase {
         }
     }
 
-	/**
-	 * Makes a c8o call with c8o requestable in parameters ('__project' and ('__sequence' or ('__connector' and '__transaction'))).<br/>
-	 * And without specified the C8oExceptionListener, thereby the C8oExceptionListener of the C8o class will be used.<br/>
-	 * To not use a C8oExceptionListener you can use the call version with C8oExceptionListener in parameter and set it to null.
-	 *
-	 * @param parameters - Contains c8o variables
-	 * @param c8oResponseListener - Define the behavior with the c8o call response
-	 */
-	public void call(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) {
-		call(parameters, c8oResponseListener, null);
-	}
+    /**
+     * Makes a c8o call with c8o requestable in parameters ('__project' and ('__sequence' or ('__connector' and '__transaction'))).<br/>
+     * And without specified the C8oExceptionListener, thereby the C8oExceptionListener of the C8o class will be used.<br/>
+     * To not use a C8oExceptionListener you can use the call version with C8oExceptionListener in parameter and set it to null.
+     *
+     * @param parameters - Contains c8o variables
+     * @param c8oResponseListener - Define the behavior with the c8o call response
+     */
+    public void call(Map<String, Object> parameters, C8oResponseListener c8oResponseListener) {
+        call(parameters, c8oResponseListener, null);
+    }
 
     public void call(Map<String, Object> parameters) {
         call(parameters, null, null);
