@@ -1,5 +1,7 @@
 
 # Created by https://www.gitignore.io/api/android,androidstudio
+##
+Convertigo.gpg
 .idea/
 ### Android ###
 # Built application files
