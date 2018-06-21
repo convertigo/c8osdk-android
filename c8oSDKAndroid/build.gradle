@@ -27,7 +27,7 @@ ext {
 
 android {
     compileSdkVersion 15
-    buildToolsVersion '25.0.0'
+    buildToolsVersion '27.0.3'
     packagingOptions {
         exclude 'META-INF/LICENSE'
         exclude 'META-INF/NOTICE'
@@ -51,15 +51,15 @@ android {
 }
 
 dependencies {
-    compile 'com.couchbase.lite:couchbase-lite-android:1.4.0'
-    compile 'com.couchbase.lite:couchbase-lite-java-javascript:1.4.0'
+    api 'com.couchbase.lite:couchbase-lite-android:1.4.0'
+    api 'com.couchbase.lite:couchbase-lite-java-javascript:1.4.0'
 }
 
 android.libraryVariants.all { variant ->
     task("generate${variant.name.capitalize()}Javadoc", type: Javadoc) {
         description "Generates Javadoc for $variant.name."
         source = variant.javaCompile.source
-        classpath = files(variant.javaCompile.classpath.files, project.android.getBootClasspath())
+        doFirst { classpath = files(variant.javaCompile.classpath.files) + files(ext.androidJar) }
         options {
             links "http://docs.oracle.com/javase/8/docs/api/"
             linksOffline "http://d.android.com/reference", "${android.sdkDirectory}/docs/reference"
