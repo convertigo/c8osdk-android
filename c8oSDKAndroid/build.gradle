@@ -51,8 +51,8 @@ android {
 }
 
 dependencies {
-    api 'com.couchbase.lite:couchbase-lite-android:1.4.0'
-    api 'com.couchbase.lite:couchbase-lite-java-javascript:1.4.0'
+    compile 'com.couchbase.lite:couchbase-lite-android:1.4.0'
+    compile 'com.couchbase.lite:couchbase-lite-java-javascript:1.4.0'
 }
 
 android.libraryVariants.all { variant ->
@@ -79,5 +79,5 @@ task generateZipJavadoc(type: Zip, dependsOn: {generateReleaseJavadoc}) {
 }
 
 
-//apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
-//apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
+apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
+apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
