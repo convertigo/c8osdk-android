@@ -78,6 +78,3 @@ task generateZipJavadoc(type: Zip, dependsOn: {generateReleaseJavadoc}) {
     from {generateReleaseJavadoc}.destinationDir
 }
 
-
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
