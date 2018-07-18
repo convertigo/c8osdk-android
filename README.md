@@ -19,24 +19,24 @@
 - [Installation](#installation)
 - [Documentation](#documentation)
   - [Initializing a Convertigo Endpoint](#initializing-a-convertigo-endpoint)
-    - [2 - Advanced instance settings](#2---advanced-instance-settings)
-      - [2.1 - The common way](#21---the-common-way)
-      - [2.2 - The verbose way](#22---the-verbose-way)
-      - [2.3 - Customize settings](#23---customize-settings)
-        - [2.3.1 - From existing settings](#231---from-existing-settings)
-        - [2.3.2 - From a C8o instance](#232---from-a-c8o-instance)
-      - [2.4 - Retrieve some settings](#24---retrieve-some-settings)
-    - [3 - Calling a Convertigo Requestable](#3---calling-a-convertigo-requestable)
-      - [3.1 - Returning JSON](#31---returning-json)
-      - [3.2 - Returning XML](#32---returning-xml)
-    - [4 - Call parameters](#4---call-parameters)
-      - [4.1 - The common way with parameters](#41---the-common-way-with-parameters)
-      - [4.2 - the verbose way](#42---the-verbose-way)
-    - [5 - Working with threads](#5---working-with-threads)
-      - [5.1 - Locking the current thread](#51---locking-the-current-thread)
-      - [5.2 - Freeing the current thread](#52---freeing-the-current-thread)
-      - [5.2.1 - Then](#521---then)
-      - [5.2.1 - ThenUI](#521---thenui)
+  - [Advanced instance settings](#advanced-instance-settings)
+    - [The common way](#the-common-way)
+    - [The verbose way](#the-verbose-way)
+    - [Customize settings](#customize-settings)
+      - [From existing settings](#from-existing-settings)
+      - [From a C8o instance](#from-a-c8o-instance)
+    - [Retrieve some settings](#retrieve-some-settings)
+  - [Calling a Convertigo Requestable](#calling-a-convertigo-requestable)
+    - [Returning JSON](#returning-json)
+    - [Returning XML](#returning-xml)
+  - [Call parameters](#call-parameters)
+    - [The common way with parameters](#the-common-way-with-parameters)
+    - [The verbose way](#the-verbose-way-1)
+  - [Working with threads](#working-with-threads)
+    - [Locking the current thread](#locking-the-current-thread)
+    - [Freeing the current thread](#freeing-the-current-thread)
+    - [Then](#then)
+    - [ThenUI](#thenui)
     - [6 - Chaining calls](#6---chaining-calls)
     - [7 - Handling failures](#7---handling-failures)
       - [7.1 - Try / catch handling](#71---try--catch-handling)
@@ -170,58 +170,75 @@ import com.convertigo.clientsdk.*;
   // the C8o instance is ready to interact over https with the demo.convertigo.net server, using sampleMobileUsDirectoryDemo as default project.
 ```	
 
-#### 2 - Advanced instance settings ####
+### Advanced instance settings ###
 
 The endpoint is the mandatory setting to get a C8o instance, but there is additional settings through the C8oSettings class.  
 A C8oSettings instance should be passed after the endpoint. Settings are copied inside the C8o instance and a C8oSettings instance can be modified and reused after the C8o constructor.  
 Setters of C8oSettings always return its own instance and can be chained.  
 A C8oSettings can be instantiated from an existing C8oSettings or C8o instance.
 
-##### 2.1 - The common way #####
+#### The common way ####
+```java
+C8o c8o = new C8o(getApplicationContext(), "https://demo.convertigo.net/cems/projects/sampleMobileCtfGallery", new C8oSettings()
+                    .setDefaultDatabaseName("mydb_fullsync")
+                    .setTimeout(30000));
+```
 
-    C8o c8o = new C8o(getApplicationContext(), "https://demo.convertigo.net/cems/projects/sampleMobileCtfGallery", new C8oSettings()
-                        .setDefaultDatabaseName("mydb_fullsync")
-                        .setTimeout(30000));
-##### 2.2 - The verbose way #####
+#### The verbose way ####
 
-    String endpoing = "https://demo.convertigo.net/cems/projects/sampleMobileCtfGallery";
-    C8oSettings c8oSettings = new C8oSettings();
-    c8oSettings.setDefaultDatabaseName("mydb_fullsync");
-    c8oSettings.setTimeout(30000);
-    c8o = new C8o(getApplicationContext(), endpoint, c8oSettings);
+```java
+String endpoing = "https://demo.convertigo.net/cems/projects/sampleMobileCtfGallery";
+C8oSettings c8oSettings = new C8oSettings();
+c8oSettings.setDefaultDatabaseName("mydb_fullsync");
+c8oSettings.setTimeout(30000);
+c8o = new C8o(getApplicationContext(), endpoint, c8oSettings);
+```
                    
-##### 2.3 - Customize settings #####
-###### 2.3.1 - From existing settings ######
+#### Customize settings ####
+
+#####  From existing settings #####
+
+```java
     C8oSettings customSettings = new C8oSettings(c8oSettings).setTimeout(60000);
+```
     
-###### 2.3.2 - From a C8o instance ######
+##### From a C8o instance #####
+
+```java
     customSettings = new C8oSettings(c8o).setTimeout(60000);
+```
 
-##### 2.4 - Retrieve some settings #####
+#### Retrieve some settings ####
 
+```java
     int timeout = c8o.getTimeout();
+```
 
-#### 3 - Calling a Convertigo Requestable ####
+### Calling a Convertigo Requestable ###
 
 With a C8o instance you can call Convertigo Sequence and Transaction or make query to your local FullSync database. You must specify the result type you want: an XML Document or a JSON Object response.
   
-##### 3.1 - Returning JSON #####
+#### Returning JSON ####
 Just use the `c8o.callJson` method to request a JSON response.
 
-	import org.json.JSONObject;
-    …
-    // c8o is a C8o instance
-    JSONObject jObject = c8o.callJson(".getSimpleData").sync();
+```java
+import org.json.JSONObject;
+…
+// c8o is a C8o instance
+JSONObject jObject = c8o.callJson(".getSimpleData").sync();
+```
 
-##### 3.2 - Returning XML #####
+#### Returning XML ####
 Just use the c8o.callXml method to request a XML response.
 
-	import org.w3c.dom.Document;
-    …
-    // c8o is a C8o instance
-    Document document = c8o.callXml(".getSimpleData").sync();
+```java
+import org.w3c.dom.Document;
+…
+// c8o is a C8o instance
+Document document = c8o.callXml(".getSimpleData").sync();
+```
 
-#### 4 - Call parameters ####
+### Call parameters ###
 
 The call method expects the requester string of the following syntax:
 
@@ -233,62 +250,74 @@ The project name is optional, i.e. if not specified, the project specified in th
 Convertigo requestables generally need key/value parameters. The key is always a string and the value can be any object but a string is the standard case.  
 Here a sample with JSON but this would be the same for XML calls:
 
-##### 4.1 - The common way with parameters #####
+#### The common way with parameters ####
 
-	JSONObject jObject = c8o.callJson(".getSimpleData",
-      "firstname", "John",
-      "lastname", "Doe"
-    ).sync();
+```java
+JSONObject jObject = c8o.callJson(".getSimpleData",
+    "firstname", "John",
+    "lastname", "Doe"
+  ).sync();
+```
 
 	
-##### 4.2 - the verbose way #####
+#### The verbose way ####
 
-	Map<String, Object> parameters = new HashMap<String, Object>();
-    parameters.put("firstname", "John");
-    parameters.put("lastname", "Doe");
-    JSONObject jObject = c8o.callJson(".getSimpleData", parameters).sync();
-	
-#### 5 - Working with threads ####
+```java
+Map<String, Object> parameters = new HashMap<String, Object>();
+parameters.put("firstname", "John");
+parameters.put("lastname", "Doe");
+JSONObject jObject = c8o.callJson(".getSimpleData", parameters).sync();
+```
 
-##### 5.1 - Locking the current thread #####
+### Working with threads ###
+
+#### Locking the current thread ####
 
 Maybe you noticed that the calls methods doesn’t return the result directly and that all the sample code chains to the `.sync()` method.  
 This is because the call methods return a `C8oPromise` instance. That allows the developer to choose if he wants to block the current thread, make an async request or get the response in a callback.  
 The `.sync()` method locks the current thread and return the result as soon as it’s avalaible. Of course this should not be used in a UI thread as this will result to a frozen UI untill data is returned by the server. You should use the `.sync()` method only in worker threads.  
 
-	// lock the current thread while the request is done
-    JSONObject jObject = c8o.callJson(".getSimpleData").sync();
-    // the response can be used in this scope
+```java
+// lock the current thread while the request is done
+JSONObject jObject = c8o.callJson(".getSimpleData").sync();
+// the response can be used in this scope
+```
     
-##### 5.2 - Freeing the current thread #####
+#### Freeing the current thread ####
 
 As in many cases, locking the current thread is not recommended, the `.then()` method allows to register a callback that will be executed on a worker thread.  
 The `.thenUI()` method does the same but the callback will be executed on a UI thread. This is useful for quick UI widgets updates.  
 The `.then()` and `.thenUI()` callbacks receives as parameters the response and the request parameters.
 
-##### 5.2.1 - Then #####
-  	// doesn't lock the current thread while the request is done
-    c8o.callJson(".getSimpleData").then(new C8oOnResponse<JSONObject>() {
-      @Override
-      public C8oPromise<JSONObject> run(JSONObject jObject, Map<String, Object> parameters) throws Throwable {
-        // the jObject is available, the current code is executed in an another working thread
-        …
-        return null; // return null for a simple call
-      }
-    });
-    // following lines are executed immediately, before the end of the request.
+#### Then ####
+
+```java
+// doesn't lock the current thread while the request is done
+c8o.callJson(".getSimpleData").then(new C8oOnResponse<JSONObject>() {
+  @Override
+  public C8oPromise<JSONObject> run(JSONObject jObject, Map<String, Object> parameters) throws Throwable {
+    // the jObject is available, the current code is executed in an another working thread
+    …
+    return null; // return null for a simple call
+  }
+});
+// following lines are executed immediately, before the end of the request.
+```
 	
-##### 5.2.1 - ThenUI #####
-	c8o.callJson(".getSimpleData").thenUI(new C8oOnResponse<JSONObject>() {
-      @Override
-      public C8oPromise<JSONObject> run(JSONObject jObject, Map<String, Object> parameters) throws Throwable {
-        // the jObject is available, the current code is executed in the UI thread
-        output.setText(jObject.toString());
-        …
-        return null; // return null for a simple call
-      }
-    });
-    // following lines are executed immediately, before the end of the request.
+#### ThenUI ####
+
+```java
+c8o.callJson(".getSimpleData").thenUI(new C8oOnResponse<JSONObject>() {
+  @Override
+  public C8oPromise<JSONObject> run(JSONObject jObject, Map<String, Object> parameters) throws Throwable {
+    // the jObject is available, the current code is executed in the UI thread
+    output.setText(jObject.toString());
+    …
+    return null; // return null for a simple call
+  }
+});
+// following lines are executed immediately, before the end of the request.
+```
 	
 #### 6 - Chaining calls ####
 
