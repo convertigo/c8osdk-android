@@ -1,5 +1,7 @@
 package com.convertigo.clientsdk;
 
+import android.util.Base64;
+
 import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
 import com.convertigo.clientsdk.exception.C8oDownloadBulkException;
 import com.convertigo.clientsdk.exception.C8oException;
@@ -16,6 +18,7 @@ import com.couchbase.lite.replicator.Replication;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
@@ -60,7 +63,7 @@ class FullSyncEnum {
 		},
 		PUT_ATTACHMENT("put_attachment") {
 			@Override
-			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException	{
+			protected Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws Exception {
 				// Gets the docid parameter
 				String docid = C8oUtils.getParameterStringValue(parameters, FullSyncAttachmentParameter.DOCID.name, false);
 
@@ -71,8 +74,64 @@ class FullSyncEnum {
 				String contentType = C8oUtils.getParameterStringValue(parameters, FullSyncAttachmentParameter.CONTENT_TYPE.name, false);
 
 				// Gets the attachment content parameter
-				InputStream content = (InputStream)C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+				InputStream content = null;
+				try{
+					content = (InputStream)C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+				}
+				catch(Exception e){
+					try {
+						if(e.getMessage().equals("java.lang.String cannot be cast to java.io.InputStream")){
+							String str = (String) C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+							byte[] byteArr = Base64.decode(str, Base64.DEFAULT);
+							content = new ByteArrayInputStream(byteArr);
+						}
+						else {
+							throw e;
+						}
+					}
+					catch(Exception ex){
+						try {
+							String str = (String) C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+							byte[] byteArr = Base64.decode(str, Base64.NO_PADDING);
+							content = new ByteArrayInputStream(byteArr);
+						}
+						catch(Exception exc){
+							try {
+								String str = (String) C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+								byte[] byteArr = Base64.decode(str, Base64.NO_WRAP);
+								content = new ByteArrayInputStream(byteArr);
+							}
+							catch(Exception exce){
+								try {
+									String str = (String) C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+									byte[] byteArr = Base64.decode(str, Base64.CRLF);
+									content = new ByteArrayInputStream(byteArr);
+								}
+								catch(Exception excep){
+									try {
+										String str = (String) C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+										byte[] byteArr = Base64.decode(str, Base64.URL_SAFE);
+										content = new ByteArrayInputStream(byteArr);
+									}
+									catch(Exception except){
+										try {
+											String str = (String) C8oUtils.getParameterObjectValue(parameters, FullSyncAttachmentParameter.CONTENT.name, false);
+											byte[] byteArr = Base64.decode(str, Base64.NO_CLOSE);
+											content = new ByteArrayInputStream(byteArr);
+										}
+										catch(Exception excepti){
+											throw  excepti;
+										}
+									}
 
+								}
+							}
+						}
+
+					}
+
+
+				}
 				return c8oFullSync.handlePutAttachmentRequest(databaseName, docid, name, contentType, content);
 			}
 		},
@@ -324,7 +383,7 @@ class FullSyncEnum {
 			this.value = value;
 		}
 		
-		abstract Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws C8oException;
+		abstract Object handleFullSyncRequest(C8oFullSync c8oFullSync, String databaseName, Map<String, Object> parameters, C8oResponseListener c8oResponseListener) throws Exception;
 	
 		static FullSyncRequestable getFullSyncRequestable(String value) {
 			FullSyncRequestable[] fullSyncRequestableValues = FullSyncRequestable.values();
