@@ -45,6 +45,10 @@
     - [Basic](#basic)
     - [Advanced](#advanced)
   - [Using the Local Cache](#using-the-local-cache)
+  - [Using the Full Sync](#using-the-full-sync)
+  - [Replicating Full Sync databases](#replicating-full-sync-databases)
+  - [Full Sync FS_LIVE requests](#full-sync-fs_live-requests)
+  - [Full Sync Change Listener](#full-sync-change-listener)
 
 
 ## Introduction ##
@@ -133,7 +137,10 @@ dependencies {
     /*
     * Include Convertigo Client SDK version 2.1.2
     */
-    compile 'com.convertigo.sdk:c8oSDKAndroid:2.1.2'
+    compile 'com.convertigo.sdk:c8o
+    
+    
+    SDKAndroid:2.1.2'
 }
 ```
     
@@ -502,4 +509,157 @@ c8o.callJson(".getSimpleData",
   C8oLocalCache.PARAM, new C8oLocalCache(C8oLocalCache.Priority.SERVER, 3600 * 1000)
 ).sync();
 ```
-    
+
+### Using the Full Sync ###
+Full Sync enables mobile apps to handle fully disconnected scenarios, still having data handled and controlled by back end business logic. See the presentation of the Full Sync architecture for more details.
+
+Convertigo Client SDK provides a high level access to local data following the standard Convertigo Sequence paradigm. They differ from standard sequences by a fs:// prefix. Calling these local Full Sync requestable will enable the app to read, write, query and delete data from the local database:
+
+* fs://<database>.create creates the local database if not already exist
+* fs://<database>.view queries a view from the local database
+* fs://<database>.get reads an object from the local database
+* fs://<database>.post writes/update an object to the local database
+* fs://<database>.delete deletes an object from the local database
+* fs://<database>.all gets all objects from the local database
+* fs://<database>.sync synchronizes with server database
+* fs://<database>.replicate_push pushes local modifications on the database server
+* fs://<database>.replicate_pull gets all database server modifications
+* fs://<database>.reset resets a database by removing all the data in it
+* fs://<database>.put_attachment Puts (add) an attachment to a document in the database
+* fs://<database>.get_attachment Gets an attachment from a document
+
+Where fs://<database> is the name of a specific FullSync Connector in the project specified in the endpoint. The fs://<database> name is optional only if the default database name is specified with the method setDefaultDatabaseName on the C8oSetting.
+
+An application can have many databases. On mobile (Android, iOS and Xamarin based) they are stored in the secure storage of the application. On Windows desktop application, they are stored in the user AppData/Local folder, without application isolation.
+
+All platforms can specify a local database prefix that allows many local database copies of the same remote database. Use the method setFullSyncLocalSuffix on the C8oSetting.
+
+```java
+c8o.callJson("fs://base.reset").then(new C8oOnResponse<JSONObject>() { // clear or create the "base" database
+  @Override
+  public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> parameters) throws Throwable {
+    // json content:
+    // { "ok": true }
+    return c8o.callJson("fs://base.post", // creates a new document on "base", with 2 key/value pairs
+      "firstname", "John",
+      "lastname", "Doe"
+    );
+  }
+}).then(new C8oOnResponse<JSONObject>() {
+  @Override
+  public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> parameters) throws Throwable {
+    // json content:
+    // {
+    //   "ok": true,
+    //   "id": "6f1b52df",
+    //   "rev": "1-b0620371"
+    // }
+    return c8o.callJson("fs://base.get", "docid", json.getString("id")); // retrieves the complet document from its "docid"
+  }
+}).then(new C8oOnResponse<JSONObject>() {
+  @Override
+  public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> parameters) throws Throwable {
+    // json content:
+    // {
+    //   "lastname": "Doe",
+    //   "rev": "1-b0620371",
+    //   "firstname": "John",
+    //   "_id": "6f1b52df"
+    // }
+    c8o.log.info(json.toString(2)); // output the document in the log
+    return null;
+  }
+});
+```
+### Replicating Full Sync databases
+
+FullSync has the ability to replicate mobile and Convertigo server databases over unreliable connections still preserving integrity. Data can be replicated in upload or download or both directions. The replication can also be continuous: a new document is instantaneously replicated to the other side.
+
+The client SDK offers the progress event to monitor the replication progression thanks to a C8oProgress instance.
+
+A device cannot pull private documents or push any document without authentication. A session must be established before and the Convertigo server must authenticate the session (using the Set authenticated user step for example).
+
+```java
+// Assuming c8o is a C8o instance properly instanciated and initiated as describe above.
+c8o.callJson(".login", "user", user, "pass", pass).then(new C8oOnResponse<JSONObject>() { // launches a database replication from the server to the device
+  @Override
+  public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> parameters) throws Throwable {
+    // to push documents from the device to the remote database, the session must be authenticated
+    // sets the parameter "continuous" true to allow new documents to sync after the initial replication
+    return c8o.callJson("fs://base.sync", "continuous", true);
+  }
+}).then(new C8oOnResponse<JSONObject>() { 
+  @Override
+  public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> parameters) throws Throwable {
+    // all the documents at the replication time are retrieved from the server and can be used
+    // and local documents are pushed to the server
+    return null;
+  }
+}).progressUI(new C8oOnProgress() {
+  @Override
+  public void run(C8oProgress progress) throws Throwable {
+    // this code runs after each progression event
+    if (progress.isContinuous()) {
+      if (progress.isPull) {
+        toast("new incomming modification");
+      } else {
+        toast("local modification synced")
+      }
+    } else {
+      if (progress.isPull) {
+        incommingGauge(progress.getCurrent(), progress.getTotal());
+      } else {
+        outgoingGauge(progress.getCurrent(), progress.getTotal());
+      }
+    }
+  }
+});
+
+```
+
+### Full Sync FS_LIVE requests
+
+Full Sync has the ability to re-execute your fs:// calls if the database is modified. The then or thenUI following a FS_LIVE parameter is re-executed after each database update. Database update can be local modification or remote modification replicated.
+
+This allow you keep your UI synchronized with database documents.
+
+A FS_LIVE parameter must have a string value, its liveid. The liveid allow to cancel a FS_LIVE request.
+
+```java
+c8o.callJson("fs://.view",
+    "ddoc", "design",
+    "view", "customers",
+    C8O.FS_LIVE, "customers").thenUI(new C8oOnResponse<JSONObject>() { // launches a live view
+  @Override
+  public C8oPromise<JSONObject> run(JSONObject json, Map<String, Object> parameters) throws Throwable {
+    // will be call now and after each database update
+    updateCustomersUI(json);
+    return null;
+  }
+});
+…
+// cancel the previous FS_LIVE request, can be on application page change for example
+c8o.cancelLive("customers");
+```
+
+### Full Sync Change Listener ###
+
+Full Sync has also the ability to notify your if there is any change on the database. The progress following a FS_LIVE parameter is triggered  after each database update. The changes contains the origin of the change, and other attributes :
+* isExternal
+* isCurrentRevision
+* isConflict
+* id
+* revisionId
+
+```java
+C8oFullSyncChangeListener changeListener = new C8oFullSyncChangeListener() {
+    @Override
+    public void onChange(JSONObject changes) {
+        checkChanges(changes);
+    }
+};
+…
+c8o.addFullSyncChangeListener("base", changeListener); // add this listener for the database "base" ; null or "" while use the default database.
+…
+c8o.removeFullSyncChangeListener("base", changeListener); // remove this listener for the database "base" ; null or "" while use the default database.
+```
