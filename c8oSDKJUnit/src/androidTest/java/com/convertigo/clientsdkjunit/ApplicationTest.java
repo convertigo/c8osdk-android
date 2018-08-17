@@ -1360,6 +1360,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 } catch (Exception e) {
                     assertEquals(C8oRessourceNotFoundException.class, e.getClass());
                 }
+                json = c8o.callJson("fs://.reset").sync();
+                assertTrue(json.getBoolean("ok"));
                 json = c8o.callJson(".LoginTesting").sync();
                 value = json.getJSONObject("document").getString("authenticatedUserID");
                 assertEquals("testing_user", value);
@@ -1406,6 +1408,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertEquals("456", value);
                 assertFalse("uiThread must be False", uiThread[0]);
                 assertEquals("pull: 0/0 (running)", first[0]);
+                Thread.sleep(1000);
                 assertEquals("pull: 8/8 (done)", last[0]);
                 assertTrue("count > 5", count[0] > 5);
             } finally {
@@ -1515,6 +1518,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 ).sync();
                 value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
                 assertEquals(405.0, value);
+                json = c8o.callJson("fs://.reset").sync();
+                assertTrue(json.getBoolean("ok"));
                 json = c8o.callJson(".LoginTesting").sync();
                 value = json.getJSONObject("document").getString("authenticatedUserID");
                 assertEquals("testing_user", value);
