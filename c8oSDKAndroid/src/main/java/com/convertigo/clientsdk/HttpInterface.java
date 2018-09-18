@@ -278,6 +278,7 @@ class HttpInterface {
 		HttpPost request = new HttpPost(url);
 		request.addHeader("x-convertigo-sdk", C8o.getSdkVersion());
 		request.addHeader("User-Agent", "Convertigo Client SDK " + C8o.getSdkVersion());
+		request.addHeader("Accept-Encoding", "gzip");
 
 		if (c8o.isUseEncryption()) {
 			// Initialize the cipher

@@ -1,5 +1,7 @@
 package com.convertigo.clientsdk;
 
+import android.net.http.AndroidHttpClient;
+
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oHttpRequestException;
 import com.convertigo.clientsdk.exception.C8oResponseException;
@@ -207,7 +209,12 @@ class C8oCallTask implements Runnable {
             String responseString = null;
             // Get the c8o call result
             try {
-                responseStream = httpResponse.getEntity().getContent();
+                if(httpResponse.containsHeader("Content-Encoding") == true && httpResponse.getHeaders("Content-Encoding")[0].getValue().equals("gzip")){
+                    responseStream = AndroidHttpClient.getUngzippedContent(httpResponse.getEntity());
+                }
+                else {
+                    responseStream = httpResponse.getEntity().getContent();
+                }
             } catch (IllegalStateException e) {
                 return new C8oResponseException(C8oExceptionMessage.getInputStreamFromHttpResponse(), e, httpCode, headers, responseString);
             } catch (IOException e) {
