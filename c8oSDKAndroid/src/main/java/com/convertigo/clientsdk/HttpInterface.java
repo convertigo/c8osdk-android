@@ -307,7 +307,11 @@ class HttpInterface {
 							throw new C8oException(C8oExceptionMessage.urlEncode(), e);
 						}
 					}
-				} else {
+				} else if(value == null){
+				    // Doesn't send value since its null
+                    // See https://github.com/convertigo/c8osdk-android/issues/6
+                }
+                else {
 					try {
 						parametersString += "&" + URLEncoder.encode(parameter.getKey(), "UTF-8") + "=" + URLEncoder.encode("" + value, "UTF-8");
 					} catch (UnsupportedEncodingException e) {
@@ -377,6 +381,9 @@ class HttpInterface {
 					for (Object v: (Collection) value) {
 						params.add(new BasicNameValuePair(parameter.getKey(), "" + v));
 					}
+				} else if(value == null){
+					// Doesn't send value since its null
+					// See https://github.com/convertigo/c8osdk-android/issues/6
 				} else {
 					params.add(new BasicNameValuePair(parameter.getKey(), "" + value));
 				}

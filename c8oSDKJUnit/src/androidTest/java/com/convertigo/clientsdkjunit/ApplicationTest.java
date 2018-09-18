@@ -55,15 +55,15 @@ import javax.xml.xpath.XPathFactory;
 @RunWith(AndroidJUnit4.class)
 public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivity> {
 
-    static final String HOST = "c8o-dev.convertigo.net";
+   /* static final String HOST = "c8o-dev.convertigo.net";
     static final String PORT = "80";
     static final String PROJECT_PATH = "/cems/projects/ClientSDKtesting";
+*/
 
-/*
-    static final String HOST = "192.168.0.19";
+    static final String HOST = "192.168.100.230";
     static final String PORT = "18080";
     static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
-*/
+
 
 
     static final XPath xpath = XPathFactory.newInstance().newXPath();
@@ -301,6 +301,25 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         Document doc = c8o.callXml(".Ping", "var1", "value one").sync();
         String value = xpath.evaluate("/document/pong/var1/text()", doc);
         assertEquals("value one", value);
+    }
+
+    @Test
+    public void C8oDefaultPingOneSingleValueNull() throws Throwable {
+        C8o c8o = get(Stuff.C8O);
+        JSONObject json = c8o.callJson(".Ping",
+                "var1", null, "var2", "mavar2"
+        ).sync();
+        json = json.getJSONObject("document");
+        JSONObject pong = json.getJSONObject("pong");
+        try{
+            Object value = pong.getString("var1");
+        }
+        catch(Exception e)
+        {
+            assertEquals(e != null, true);
+        }
+        Object value = pong.getString("var2");
+        assertEquals( value, "mavar2");
     }
 
     @Test
