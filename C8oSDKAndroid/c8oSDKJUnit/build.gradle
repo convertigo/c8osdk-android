@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    buildToolsVersion '28.0.3'
     packagingOptions {
         exclude 'META-INF/LICENSE'
         exclude 'META-INF/NOTICE'
@@ -24,15 +24,20 @@ android {
     }
     productFlavors {
     }
+    adbOptions {
+        timeOutInMs 20 * 60 * 1000  // 20 minutes
+        installOptions "-d","-t"
+    }
 }
 
 dependencies {
+    compile project(':c8oSDKAndroid')
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:23.1.1'
     androidTestCompile 'com.android.support:support-annotations:23.1.1'
     androidTestCompile 'com.android.support.test:runner:0.4.1'
     androidTestCompile 'com.android.support.test:rules:0.4.1'
-    compile project(':c8oSDKAndroid')
+    //compile project(':c8oSDKAndroid')
     //compile 'com.couchbase.lite:couchbase-lite-android-forestdb:1.3.1'
 }
 

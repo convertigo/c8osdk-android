@@ -56,11 +56,11 @@ import javax.xml.xpath.XPathFactory;
 public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivity> {
     /*static final String HOST = "192.168.100.95";
     static final String PORT = "18080";*/
-    static final String HOST = "buildus.twinsoft.fr";
-    static final String PORT = "28080";
+    static final String HOST = "c8o-dev.convertigo.net";
+    static final String PORT = "80";
     /*static final String HOST = "cosinus.twinsoft.fr";
     static final String PORT = "18080";*/
-    static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
+    static final String PROJECT_PATH = "/cems/projects/ClientSDKtesting";
 
     static final XPath xpath = XPathFactory.newInstance().newXPath();
 
