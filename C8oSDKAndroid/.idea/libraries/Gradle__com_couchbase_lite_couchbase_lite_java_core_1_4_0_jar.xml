@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.couchbase.lite:couchbase-lite-java-core:1.4.0@jar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.couchbase.lite/couchbase-lite-java-core/1.4.0/a882f9d3f84074599d1f951d3f390893b7863599/couchbase-lite-java-core-1.4.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.couchbase.lite/couchbase-lite-java-core/1.4.0/b87163a5b48d6012ba1ed4af6ea0fc3687735858/couchbase-lite-java-core-1.4.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -1,0 +1,2 @@
+com.convertigo.clientsdk
+string app_name

@@ -1,0 +1,7 @@
+#Internal package file, do not edit.
+#Mon Oct 22 18:26:10 CEST 2018
+0.baseType=DIRECTORY
+0.base=C\:\\DEV_CG\\android\\2\\c8osdk-android\\C8oSDKAndroid\\c8oSDKJUnit\\build\\intermediates\\transforms\\dexMerger\\androidTest\\debug\\0
+0.path=classes.dex
+0.set=DEX
+count=1

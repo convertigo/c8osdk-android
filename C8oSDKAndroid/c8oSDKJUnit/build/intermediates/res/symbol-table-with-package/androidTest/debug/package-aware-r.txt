@@ -1,0 +1,2 @@
+com.convertigo.clientsdkjunit.test
+string app_name
