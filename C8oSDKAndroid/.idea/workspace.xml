@@ -36,11 +36,20 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="ApplicationTest.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="ApplicationTest.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/c8oSDKJUnit/src/androidTest/java/com/convertigo/clientsdkjunit/ApplicationTest.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="255">
-              <caret line="62" column="46" selection-start-line="62" selection-start-column="46" selection-end-line="62" selection-end-column="46" />
+            <state relative-caret-position="391">
+              <caret line="70" column="21" lean-forward="true" selection-start-line="70" selection-start-column="21" selection-end-line="70" selection-end-column="21" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="HttpInterface.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/c8oSDKAndroid/src/main/java/com/convertigo/clientsdk/HttpInterface.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="352">
+              <caret line="359" column="17" selection-start-line="359" selection-start-column="17" selection-end-line="359" selection-end-column="17" />
             </state>
           </provider>
         </entry>
@@ -103,6 +112,13 @@
         </entry>
       </file>
     </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>init</find>
+      <find>initCipher</find>
+      <find>encoded.append(C8oTranslator.byteArrayToHexString(cipher[0].doFinal(toCipher, i, Math.min(this.maxBlockSize, toCipher.length - i))));</find>
+    </findStrings>
   </component>
   <component name="GradleLocalSettings">
     <option name="myGradleHomes">
@@ -3496,6 +3512,7 @@
         <option value="$PROJECT_DIR$/c8oSDKJUnit/src/main/java/com/convertigo/clientsdkjunit/MainActivity.java" />
         <option value="$PROJECT_DIR$/c8oSDKJUnit/src/main/AndroidManifest.xml" />
         <option value="$PROJECT_DIR$/c8oSDKJUnit/src/androidTest/java/com/convertigo/clientsdkjunit/ApplicationTest.java" />
+        <option value="$PROJECT_DIR$/c8oSDKAndroid/src/main/java/com/convertigo/clientsdk/HttpInterface.java" />
       </list>
     </option>
   </component>
@@ -3552,6 +3569,21 @@
       <pane id="AndroidView">
         <subPane>
           <expand>
+            <path>
+              <item name="C8oSDKAndroid" type="1abcf292:AndroidViewProjectNode" />
+              <item name="c8oSDKAndroid" type="feadf853:AndroidModuleNode" />
+            </path>
+            <path>
+              <item name="C8oSDKAndroid" type="1abcf292:AndroidViewProjectNode" />
+              <item name="c8oSDKAndroid" type="feadf853:AndroidModuleNode" />
+              <item name="java" type="edd41e36:AndroidSourceTypeNode" />
+            </path>
+            <path>
+              <item name="C8oSDKAndroid" type="1abcf292:AndroidViewProjectNode" />
+              <item name="c8oSDKAndroid" type="feadf853:AndroidModuleNode" />
+              <item name="java" type="edd41e36:AndroidSourceTypeNode" />
+              <item name="clientsdk" type="cbb59c9e:AndroidPsiDirectoryNode" />
+            </path>
             <path>
               <item name="C8oSDKAndroid" type="1abcf292:AndroidViewProjectNode" />
               <item name="c8oSDKJUnit" type="feadf853:AndroidModuleNode" />
@@ -3930,14 +3962,14 @@
       <window_info anchor="right" id="Capture Analysis" order="3" />
       <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" />
       <window_info anchor="right" id="Preview" weight="0.32995737" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.32963374" />
+      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.32963374" />
       <window_info anchor="bottom" id="Version Control" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Terminal" order="7" weight="0.32963374" />
       <window_info anchor="bottom" id="Logcat" order="7" weight="0.32963374" />
       <window_info id="Captures" order="2" weight="0.25" />
       <window_info id="Capture Tool" order="2" />
       <window_info id="Designer" order="2" />
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.25" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.25" />
       <window_info anchor="bottom" id="Build" order="7" weight="0.32963374" />
       <window_info anchor="right" id="Gradle" order="3" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -4071,8 +4103,15 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/c8oSDKJUnit/src/androidTest/java/com/convertigo/clientsdkjunit/ApplicationTest.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="255">
-          <caret line="62" column="46" selection-start-line="62" selection-start-column="46" selection-end-line="62" selection-end-column="46" />
+        <state relative-caret-position="391">
+          <caret line="70" column="21" lean-forward="true" selection-start-line="70" selection-start-column="21" selection-end-line="70" selection-end-column="21" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/c8oSDKAndroid/src/main/java/com/convertigo/clientsdk/HttpInterface.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="352">
+          <caret line="359" column="17" selection-start-line="359" selection-start-column="17" selection-end-line="359" selection-end-column="17" />
         </state>
       </provider>
     </entry>
