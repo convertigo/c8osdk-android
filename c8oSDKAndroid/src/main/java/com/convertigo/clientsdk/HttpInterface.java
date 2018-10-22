@@ -360,6 +360,9 @@ class HttpInterface {
 				catch(NullPointerException e){
 					throw new C8oException(C8oExceptionMessage.noServerOnEndPoint(),e);
 				}
+				catch(Exception e){
+					throw new C8oException(e.getMessage(), e.getCause());
+				}
 			}
 			
 			// Remove all parameters (clear ?)
@@ -461,8 +464,14 @@ class HttpInterface {
 					throw new C8oException(C8oExceptionMessage.parseRsaPublicKey(), e);
 				}
 
-				// Apply regex on the public key
-				Matcher responseParts = HttpInterface.RE_PUBLIC_KEY.matcher(publicKey);
+				Matcher responseParts = null;
+				try{
+					// Apply regex on the public key
+					responseParts = HttpInterface.RE_PUBLIC_KEY.matcher(publicKey);
+				}
+				catch (Exception e){
+					throw new C8oException(e.getMessage(), e.getCause());
+				}
 				if (responseParts.matches()) {
 					// Convert base 16 (hexadecimal) to BigInteger
 					BigInteger modulus = new BigInteger(responseParts.group(2), 16);
