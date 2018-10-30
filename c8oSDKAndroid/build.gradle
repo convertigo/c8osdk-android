@@ -27,7 +27,7 @@ ext {
 
 android {
     compileSdkVersion 15
-    buildToolsVersion '27.0.3'
+    buildToolsVersion '28.0.3'
     packagingOptions {
         exclude 'META-INF/LICENSE'
         exclude 'META-INF/NOTICE'
@@ -51,8 +51,8 @@ android {
 }
 
 dependencies {
-    compile 'com.couchbase.lite:couchbase-lite-android:1.4.0'
-    compile 'com.couchbase.lite:couchbase-lite-java-javascript:1.4.0'
+    api 'com.couchbase.lite:couchbase-lite-android:1.4.1'
+    api 'com.couchbase.lite:couchbase-lite-java-javascript:1.4.1'
 }
 
 android.libraryVariants.all { variant ->
