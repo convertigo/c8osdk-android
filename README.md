@@ -526,7 +526,7 @@ Convertigo Client SDK provides a high level access to local data following the s
 * fs://<database>.replicate_pull gets all database server modifications
 * fs://<database>.reset resets a database by removing all the data in it
 * fs://<database>.put_attachment Puts (add) an attachment to a document in the database
-* fs://<database>.get_attachment Gets an attachment from a document
+* fs://<database>.delete_attachment Delete an attachment from a document into the database
 
 Where fs://<database> is the name of a specific FullSync Connector in the project specified in the endpoint. The fs://<database> name is optional only if the default database name is specified with the method setDefaultDatabaseName on the C8oSetting.
 
@@ -571,6 +571,131 @@ c8o.callJson("fs://base.reset").then(new C8oOnResponse<JSONObject>() { // clear 
   }
 });
 ```
+
+#### fs://.put_attachment Puts (add) an attachment to a document in the database ####
+
+The document must already exists to insert the document. To put the attachment into the database you needs 4 parameters:
+* docid: The id of the document to put into the database.
+* name: The name that you wants to define for the document to put into the database.
+* content_type: The content type of the document that you will put into the database. For example: "text/plain".
+* content: The content to insert. It can be a Base64 string or an InputStream.
+
+The code bellow show how to put an attachment into the database.
+```java
+String id = "uniqueid";
+
+// Fisrt do a post to create a document
+c8o.callJson("fs://.post",
+        "_id", id
+)
+.then(new C8oOnResponse<JSONObject>() {
+    @Override
+    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+        return null;
+    }
+})
+.fail(new C8oOnFail() {
+    @Override
+    public void run(Throwable throwable, Map<String, Object> parameters) {
+        Log.d("Post Error", throwable.toString());
+    }
+}).sync();
+
+
+
+
+// Then you can put the attachement, Here we use a base64 String
+c8o.callJson("fs://.put_attachment",
+        "docid", id,
+        "name", "text2.txt",
+        "content_type", "text/plain",
+        "content", "U2FsdXQgIQo="
+)
+.then(new C8oOnResponse<JSONObject>() {
+    @Override
+    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+        Log.d("Logs perso: response du put attachment du txt", response.toString());
+        return null;
+    }
+})
+.fail(new C8oOnFail() {
+    @Override
+    public void run(Throwable throwable, Map<String, Object> parameters) {
+       Log.d("Put_attachment Error", throwable.toString());
+    }
+}).sync();
+
+```
+
+#### fs://.get Allow us to get a document and his attachments from the database ####
+
+To get the attachment from the database you needs 1 parameters:
+
+* docid: The id of the document to get from the database.
+
+The code bellow show how to get an attachment from the database.
+
+```java
+
+String id = "uniqueid";
+
+c8o.callJson("fs://.get",
+        "docid", id
+        )
+.then(new C8oOnResponse<JSONObject>() {
+    @Override
+    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+        String Uri = response.getJSONObject("_attachments").getJSONObject("text2.txt").get("content_url").toString();
+        if(Uri.startsWith("file:/")){
+            Uri = Uri.substring(6);
+        }
+        File file = new File(Uri);
+
+        //Here tou got your FileInputStream
+        FileInputStream fileInputStream = new FileInputStream(file);
+
+        return null;
+    }
+})
+.fail(new C8oOnFail() {
+    @Override
+    public void run(Throwable throwable, Map<String, Object> parameters) {
+    Log.d("Get Error", throwable.toString());
+    }
+}).sync();
+```
+
+#### fs://<database>.delete_attachment Delete an attachment from a document into the database ####
+
+To get the attachment from the database you needs 2 parameters:
+
+* docid: The id of the document to get from the database.
+* name: The name of the document to delete.
+
+The code bellow show how to get an attachment from the database.
+
+```java
+
+String id = "uniqueid";
+
+c8o.callJson("fs://.delete_attachment",
+        "docid", id,
+        "name", "text2.txt"
+).then(new C8oOnResponse<JSONObject>() {
+    @Override
+    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+
+        return null;
+    }
+})
+.fail(new C8oOnFail() {
+    @Override
+    public void run(Throwable throwable, Map<String, Object> parameters) {
+        Log.d("Delete_attachment Error", throwable.toString());
+    }
+}).sync();
+```
+
 ### Replicating Full Sync databases
 
 FullSync has the ability to replicate mobile and Convertigo server databases over unreliable connections still preserving integrity. Data can be replicated in upload or download or both directions. The replication can also be continuous: a new document is instantaneously replicated to the other side.

@@ -34,6 +34,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,15 +56,15 @@ import javax.xml.xpath.XPathFactory;
 @RunWith(AndroidJUnit4.class)
 public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivity> {
 
-   /* static final String HOST = "c8o-dev.convertigo.net";
+    static final String HOST = "c8o-dev.convertigo.net";
     static final String PORT = "80";
     static final String PROJECT_PATH = "/cems/projects/ClientSDKtesting";
-*/
 
-    static final String HOST = "192.168.100.230";
+
+  /*  static final String HOST = "192.168.100.230";
     static final String PORT = "18080";
     static final String PROJECT_PATH = "/convertigo/projects/ClientSDKtesting";
-
+*/
 
 
     static final XPath xpath = XPathFactory.newInstance().newXPath();
@@ -1746,6 +1747,140 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                         Log.d("Logs perso: erreur du put aattachment de l'image", throwable.toString());
                     }
                 }).sync();
+
+            } catch(Exception e){
+                c8o.log.debug("error");
+            }
+            finally {
+                Thread.sleep(10000);
+                c8o.callJson(".LogoutTesting").sync();
+            }
+        }
+    }
+
+    @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
+    @Test
+    public void C8oFsPostGetDeleteAttachment() throws Throwable {
+        final C8o c8o = get(Stuff.C8O_FS_PUSH);
+        synchronized (c8o) {
+            try {
+                // First reset
+                JSONObject json = c8o.callJson("fs://.reset").sync();
+                assertTrue(json.getBoolean("ok"));
+
+                // Loging testing
+                json = c8o.callJson(".LoginTesting").sync();
+                Object value = json.getJSONObject("document").getString("authenticatedUserID");
+                assertEquals("testing_user", value);
+
+                // Sync continuous
+                c8o.callJson("fs://.sync",
+                        "continuous", true
+                ).then(new C8oOnResponse<JSONObject>() {
+                    @Override
+                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                        Log.d("Logs perso: response du sync", response.toString());
+                        return null;
+                    }
+                })
+                        .progress(new C8oOnProgress() {
+                            @Override
+                            public void run(C8oProgress c8oProgress) {
+                                Log.d("Logs perso: progress du sync", c8oProgress.toString());
+                            }
+                        })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du sync", throwable.toString());
+                                assertNotNull(null);
+                            }
+                        }).sync();
+
+                // Post de l'objet
+                String id = "monidpasunique";
+                c8o.callJson("fs://.post",
+                        "_id", id,
+                        "data", "777",
+                        "bool", true,
+                        "int", 777
+                )
+                .then(new C8oOnResponse<JSONObject>() {
+                    @Override
+                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                        Log.d("Logs perso: response du post", response.toString());
+                        return null;
+                    }
+                })
+                .fail(new C8oOnFail() {
+                    @Override
+                    public void run(Throwable throwable, Map<String, Object> parameters) {
+                        Log.d("Logs perso: erreur du post", throwable.toString());
+                    }
+                }).sync();
+
+                // Put attachment du txt
+                c8o.callJson("fs://.put_attachment",
+                        "docid", id,
+                        "name", "text2.txt",
+                        "content_type", "text/plain",
+                        "content", "U2FsdXQgIQo="
+                )
+                .then(new C8oOnResponse<JSONObject>() {
+                    @Override
+                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                        Log.d("Logs perso: response du put attachment du txt", response.toString());
+                        return null;
+                    }
+                })
+                .fail(new C8oOnFail() {
+                    @Override
+                    public void run(Throwable throwable, Map<String, Object> parameters) {
+                        Log.d("Logs perso: erreur du put attachment du txt", throwable.toString());
+                    }
+                }).sync();
+
+                // get Attachment du texte
+                c8o.callJson("fs://.get",
+                        "docid", id
+                        ).then(new C8oOnResponse<JSONObject>() {
+                    @Override
+                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                        Log.d("Logs perso: response du get attachment de l'image", response.toString());
+                        String Uri = response.getJSONObject("_attachments").getJSONObject("text2.txt").get("content_url").toString();
+                        if(Uri.startsWith("file:/")){
+                            Uri = Uri.substring(6);
+                        }
+                        File file = new File(Uri);
+                        FileInputStream fileInputStream = new FileInputStream(file);
+
+                        return null;
+                    }
+                })
+                .fail(new C8oOnFail() {
+                    @Override
+                    public void run(Throwable throwable, Map<String, Object> parameters) {
+                        Log.d("Logs perso: erreur du get aattachment de l'image", throwable.toString());
+                    }
+                }).sync();
+
+                // Delete attachment
+                c8o.callJson("fs://.delete_attachment",
+                        "docid", id,
+                        "name", "text2.txt"
+                ).then(new C8oOnResponse<JSONObject>() {
+                    @Override
+                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                        Log.d("Logs perso: response du delete attachment de l'image", response.toString());
+                        return null;
+                    }
+                })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du delete aattachment de l'image", throwable.toString());
+                            }
+                        }).sync();
 
             } catch(Exception e){
                 c8o.log.debug("error");
