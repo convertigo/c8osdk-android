@@ -614,7 +614,7 @@ c8o.callJson("fs://.put_attachment",
 .then(new C8oOnResponse<JSONObject>() {
     @Override
     public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-        Log.d("Logs perso: response du put attachment du txt", response.toString());
+        
         return null;
     }
 })
