@@ -135,6 +135,21 @@ public class C8oSettings extends C8oBase {
 		return this;
 	}
 
+	public C8oSettings setFullSyncServerUrl(String fullSyncServerUrl) {
+		this.fullSyncServerUrl = fullSyncServerUrl;
+		return this;
+	}
+
+	public C8oSettings setFullSyncUsername(String fullSyncUsername) {
+		this.fullSyncUsername = fullSyncUsername;
+		return this;
+	}
+
+	public C8oSettings setFullSyncPassword(String fullSyncPassword) {
+		this.fullSyncPassword = fullSyncPassword;
+		return this;
+	}
+
 	public C8oSettings setAuthenticationCookieValue(String authenticationCookieValue) {
 		this.authenticationCookieValue = authenticationCookieValue;
 		return this;

@@ -615,6 +615,15 @@ public class C8o extends C8oBase {
     }
 
     /**
+     * Set the endpoint for FullSync
+     *
+     * @param endpoint
+     */
+    public void setEndpoint(String endpoint) {
+        this.endpoint = endpoint;
+    }
+
+    /**
      * Is the current thread is the UI thread.
      *
      * @return true if the current thread is the UI thread

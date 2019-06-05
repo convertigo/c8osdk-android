@@ -14,10 +14,10 @@ public class C8oProgress {
     private String taskInfo = "";
     private Object raw;
 
-    C8oProgress() {
+    public C8oProgress() {
     }
 
-    C8oProgress(C8oProgress progress) {
+    public C8oProgress(C8oProgress progress) {
         continuous = progress.continuous;
         finished = progress.finished;
         pull = progress.pull;
@@ -26,13 +26,14 @@ public class C8oProgress {
         status = progress.status;
         taskInfo = progress.taskInfo;
         raw = progress.raw;
+        changed = progress.changed;
     }
 
-    boolean isChanged() {
+    public boolean isChanged() {
         return changed;
     }
 
-    void setChanged(boolean changed) {
+    public void setChanged(boolean changed) {
         this.changed = changed;
     }
 
@@ -132,7 +133,8 @@ public class C8oProgress {
         return raw;
     }
 
-    void setRaw(Object raw) {
+
+    public void setRaw(Object raw) {
         if (this.raw != raw) {
             changed = true;
             this.raw = raw;

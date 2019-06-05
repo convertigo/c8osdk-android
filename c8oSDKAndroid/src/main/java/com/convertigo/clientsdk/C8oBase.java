@@ -29,6 +29,9 @@ class C8oBase {
     protected String fullSyncLocalSuffix = null;
     protected String fullSyncStorageEngine = C8o.FS_STORAGE_SQL;
     protected String fullSyncEncryptionKey = null;
+    protected String fullSyncServerUrl = null;
+    protected String fullSyncUsername = null;
+    protected String fullSyncPassword = null;
 
     //*** Encryption ***//
 
@@ -114,6 +117,18 @@ class C8oBase {
         return fullSyncEncryptionKey;
     }
 
+    public String getFullSyncServerUrl() {
+        return fullSyncServerUrl;
+    }
+
+    public String getFullSyncUsername() {
+        return fullSyncUsername;
+    }
+
+    public String getFullSyncPassword() {
+        return fullSyncPassword;
+    }
+
     public String getAuthenticationCookieValue() {
         return authenticationCookieValue;
     }
@@ -165,6 +180,9 @@ class C8oBase {
         fullSyncLocalSuffix = c8oBase.fullSyncLocalSuffix;
         fullSyncStorageEngine = c8oBase.fullSyncStorageEngine;
         fullSyncEncryptionKey = c8oBase.fullSyncEncryptionKey;
+        fullSyncServerUrl = c8oBase.fullSyncServerUrl;
+        fullSyncUsername = c8oBase.fullSyncUsername;
+        fullSyncPassword = c8oBase.fullSyncPassword;
 
         //*** Encryption ***//
 

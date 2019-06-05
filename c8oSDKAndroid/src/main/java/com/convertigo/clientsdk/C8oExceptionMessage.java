@@ -10,7 +10,7 @@ import java.util.Map;
  * Contains static functions returning the exception messages 
  * in order to make simpler their modification and avoid duplication.
  */
-class C8oExceptionMessage {
+public class C8oExceptionMessage {
 	
 	//*** TAG Illegal argument ***//
 	

@@ -9,6 +9,7 @@ import android.test.ActivityInstrumentationTestCase2;
 import android.util.Log;
 
 import com.convertigo.clientsdk.C8o;
+import com.convertigo.clientsdk.C8oExceptionMessage;
 import com.convertigo.clientsdk.C8oFileTransfer;
 import com.convertigo.clientsdk.C8oFileTransferSettings;
 import com.convertigo.clientsdk.C8oFileTransferStatus;
@@ -25,6 +26,8 @@ import com.convertigo.clientsdk.exception.C8oCouchbaseLiteException;
 import com.convertigo.clientsdk.exception.C8oException;
 import com.convertigo.clientsdk.exception.C8oRessourceNotFoundException;
 
+import junit.framework.Assert;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Before;
@@ -36,7 +39,9 @@ import org.w3c.dom.Element;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -214,6 +219,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         Element pong = (Element) xpath.evaluate("/document/pong", doc, XPathConstants.NODE);
         assertNotNull(pong);
     }
+
 
     @Test
     public void C8oDefaultPingWait() throws Throwable {
@@ -440,6 +446,75 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         Document doc = c8o.callXml(".GetFromSession").sync();
         Object expression = xpath.evaluate("/document/session/expression", doc, XPathConstants.NODE);
         assertNull(expression);
+    }
+
+    @Test
+    public void CheckParams() throws Throwable {
+        C8oSettings settings = new C8oSettings();
+        settings.setLogRemote(false);
+        settings.setLogLevelLocal(Log.ERROR);
+        try {
+            C8o c8o = new C8o(context, "https://" + HOST + ":" + PORT  + PROJECT_PATH, settings);
+            c8o.setLogC8o(true);
+            assertEquals(true, c8o.isLogC8o());
+            c8o.setLogLevelLocal(Log.ERROR);
+            assertEquals(c8o.getLogLevelLocal(), Log.ERROR);
+            assertEquals(c8o.getEndpoint(), "https://" + HOST + ":" + PORT  + PROJECT_PATH);
+            assertEquals(true, c8o.getEndpointIsSecure());
+            assertEquals(HOST, c8o.getEndpointHost());
+            assertEquals(":"+PORT, c8o.getEndpointPort());
+            try {
+                JSONObject json = c8o.callJson(null).sync();
+                Assert.fail("it is not supposed to happend");
+            } catch (Exception e) {
+                C8oExceptionMessage exceptionMsg = new C8oExceptionMessage();
+                assertEquals(exceptionMsg.illegalArgumentNullParameter("requestable"), e.getMessage());
+                Log.d("CheckParams requestable", e.getMessage());
+            }
+            settings.setTimeout(200);
+            settings.setTimeout(0);
+            settings.setTrustAllCertificates(true);
+            settings.addCookie("myCookie", "aRandomCookie");
+            settings.setAuthenticationCookieValue("authenticationCookieValue");
+            settings.setFullSyncServerUrl("fullSyncServerUrl");
+            settings.setFullSyncUsername("fullSyncUsername");
+            settings.setFullSyncPassword("fullSyncPassword");
+            settings.setFullSyncLocalSuffix("fullSyncLocalSuffix");
+            settings.setUseEncryption(true);
+            C8o c8ob = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH, settings);
+            try {
+                assertEquals(c8ob.getFullSyncServerUrl(), "fullSyncServerUrl");
+                assertEquals(c8ob.getFullSyncUsername(), "fullSyncUsername");
+                assertEquals(c8ob.getFullSyncPassword(), "fullSyncPassword");
+
+//                c8ob.setEndpoint("htdrdr:fake.com");
+                C8o c8oc = new C8o(context, "htdrdr:fake.com");
+                Assert.fail("Endpoint should not be ok");
+            } catch (Exception e) {
+                C8oExceptionMessage exceptionMsg = new C8oExceptionMessage();
+                assertEquals(exceptionMsg.illegalArgumentInvalidURL("htdrdr:fake.com"), e.getMessage());
+
+                C8oProgress progress = new C8oProgress();
+                progress.setRaw("justanexample");
+                progress.setChanged(true);
+                Log.d("checkparams progress changed", Boolean.toString(progress.isChanged()));
+                C8oProgress progress2 = new C8oProgress(progress);
+                assertEquals(progress2.getRaw(), progress.getRaw());
+                assertEquals(progress2.isChanged(), progress.isChanged());
+                try {
+                    C8oProgress progressb = new C8oProgress(null);
+                    Assert.fail("C8oProgress cannot be null");
+                } catch (Exception ex) {
+                    Assert.assertNotNull(ex.getMessage(), ex);
+                }
+
+            }
+
+
+        } catch (Exception e) {
+            Log.d("CheckParams", e.getMessage());
+        }
+
     }
 
     public void CheckLogRemoteHelper(C8o c8o, String lvl, String msg) throws Throwable {
@@ -2386,6 +2461,22 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         Document doc = c8o.callXml(".Sleep2sec").sync();
         String value = xpath.evaluate("/document/element/text()", doc);
         assertEquals("ok", value);
+    }
+
+    @Test
+    public void BadRequest() throws Throwable {
+        C8oSettings settings = new C8oSettings().setLogLevelLocal(Log.DEBUG);
+        settings.setLogRemote(false);
+        settings.setLogLevelLocal(Log.ERROR);
+
+        try {
+            C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH, settings);
+            JSONObject json = c8o.callJson("badRequest").sync();
+            Assert.fail("it's supposed to triggered an error");
+        } catch (Exception e) {
+            Assert.assertEquals("'badRequest' is not a valid requestable.", e.getMessage());
+        }
+
     }
 
     private void assertEqualsJsonChild(Object expectedObject, Object actualObject) {
