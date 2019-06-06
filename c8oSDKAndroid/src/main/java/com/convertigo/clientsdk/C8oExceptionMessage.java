@@ -61,7 +61,7 @@ public class C8oExceptionMessage {
 	
 	public static String invalidParameterValue(String parameterName, String details) {
 		String errorMessage = "The parameter '" + parameterName + "' is invalid";
-        if (details != null && details.isEmpty()) 
+        if (details != null)
         {
             errorMessage += ", " + details;
         }
@@ -72,7 +72,7 @@ public class C8oExceptionMessage {
 	
 	// TODO
 	public static String initError() {
-		return "Unable to initialize ";
+		return "Unable to initialize";
 	}
 	
 	public static String initRsaPublicKey() {
@@ -90,7 +90,14 @@ public class C8oExceptionMessage {
 	public static String initDocumentBuilder() {
 		return "Unable to initialize the XML document builder";
 	}
-	
+
+	public static String initRsainternalKey() {
+		return "Unable to initialize the RSA internal key";
+	}
+
+	public static String initHttpInterface() {
+		return "Failed to initialize the secure HTTP Interface";
+	}
 	//*** TAG Parse ***//
 	
 	public static String parseStreamToJson() {
@@ -140,11 +147,23 @@ public class C8oExceptionMessage {
 	public static String parseStringToJson() {
 		return "Unable to parse the string to a JSON document";
 	}
+
+	public static String parseRsainternalKey() {
+		return "Unable to parse the RSA internal key";
+	}
+
+	public static String parseStringToObject(String type) {
+		return "Unable to parse the string (JSON):string to an object of type " + type;
+	}
 	
 	//*** TAG HTTP ***//
 	
 	public static String retrieveRsaPublicKey() {
 		return "Error during http request to get the RSA public key";
+	}
+
+	public static String retrieveRsainternalKey() {
+		return "Error during http request to get the RSA internal key";
 	}
 	
 	public static String httpLogs() {
@@ -167,6 +186,10 @@ public class C8oExceptionMessage {
 	
 	public static String couchRequestDeleteDocument() {
 		return "Unable to run the delete document query";
+	}
+
+	public static String couchDeleteFailed() {
+		return "Delete the Couch document failed";
 	}
 	
 	public static String couchRequestInvalidRevision() {
@@ -200,9 +223,21 @@ public class C8oExceptionMessage {
 	public static String fullSyncHandleRequest(String requestable, String databaseName, Map<String, Object> parameters) {
 		return "Error while running the fullSync request, requestalbe='" + requestable + "', databaseName='" + databaseName + "', parameters=" + parameters;
 	}
+
+	public static String fullSyncDatabaseInitFailed(String dbname) {
+		return "Failed to initialize the FullSync database '" + dbname + "'";
+	}
+
+	public static String fullSyncReplicationFail(String databaseName, String way) {
+		return "Failed to '" + way + "' replicate the '" + databaseName + "' database";
+	}
 	
 	public static String fullSyncHandleResponse() {
 		return "Error while handling the fullSync response";
+	}
+
+	public static String unknownFullSyncPolicy(String policy) {
+		return "Unknown the FullSync policy '" + policy + "'";
 	}
 	
 	//*** TAG Certificate ***//
@@ -266,11 +301,7 @@ public class C8oExceptionMessage {
 	public static String stringToJson(String str) {
 		return "Unable to deserialize the JSON object from the following String : '" + str + "'";
 	}
-	
-	public static String getNameValuePairObjectValue(NameValuePair nameValuePair) {
-		return "Unable to get the value from the NameValuePair with name '" + nameValuePair.getName() + "'";
-	}
-	
+
 	public static String postDocument() {
 		return "Unable to post document";
 	}
@@ -301,6 +332,20 @@ public class C8oExceptionMessage {
 	
 	public static String initC8oSslSocketFactory() {
 		return "Failed to initialize C8oSslSocketFactory";
+	}
+
+	public static String missingValue(String value) {
+		return "The " + value + " is missing";
+	}
+
+	public static String unknownValue(String valueName, String value) {
+		return "The " + valueName + " value " + value + " is unknown";
+	}
+
+	public static String unknownType(String valueName, String value) {
+		C8oUtils c8oUtils = new C8oUtils();
+
+		return "The " + valueName + " type " + c8oUtils.getObjectClassName(value) + "is unknown";
 	}
 	
 	public static String createSslContext() {
@@ -350,6 +395,10 @@ public class C8oExceptionMessage {
 	public static String generateRsaPublicKey() {
 		return "Failed to generate RSA public key";
 	}
+
+	public static String generateRsainternalKey() {
+		return "Failed to generate RSA internal key";
+	}
 	
 	public static String keyFactoryInstance() {
 		return "Failed to get KeyFactory instance";
@@ -390,6 +439,14 @@ public class C8oExceptionMessage {
 	public static String getLocalCacheParameters() {
 		return "Failed to get local cache parameters";
 	}
+
+	public static String getLocalCachePolicy(String policy) {
+		return "Failed to get local cache policy: " + policy;
+	}
+
+	public static String missingLocalCacheResponseDocument() {
+		return "Missing local cache response document";
+	}
 	
 	public static String fullSyncJsonToXML() {
 		return "Failed to translate full sync JSON to XML";
@@ -410,6 +467,10 @@ public class C8oExceptionMessage {
 	public static String inputStreamToJSON() {
 		return "Failed to translate the input stream to a JSON document";
 	}
+
+	public static String stringToJsonValue(String str) {
+		return "Unable to translate the string '" + str + "' to a JSON value";
+	}
 	
 	public static String httpInterfaceInstance() {
 		return "Failed to instanciate the HTTP interface";
@@ -417,6 +478,10 @@ public class C8oExceptionMessage {
 	
 	public static String fullSyncInterfaceInstance() {
 		return "Failed to instanciate the FullSync interface";
+	}
+
+	public static String notImplementedFullSyncInterface() {
+		return "You are using the default FullSyncInterface which is not implemented";
 	}
 	
 	public static String getDocumentFromDatabase(String documentId) {
@@ -470,7 +535,11 @@ public class C8oExceptionMessage {
 	public static String saveResponseToLocalCache() {
 		return "Failed to save the response to the local cache";
 	}
-	
+
+	public static String deserializeJsonObjectFromString(String str) {
+		return "Unable to deserialize the JSON object from the following string: '" + str + "'";
+	}
+
 //	public static String illegalArgumentCallParametersNull() {
 //		return "Call parameters must be not null";
 //	}
