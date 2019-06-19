@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -1669,6 +1670,37 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 c8o.callJson(".LogoutTesting").sync();
             }
         }
+    }
+
+    @Test
+    public void C8oFsReplicateCancelOnDoublon() throws Throwable{
+            C8o c8o = get(Stuff.C8O_FS_PULL);
+            synchronized (c8o) {
+                try {
+                    final String[] state = new String[1];
+                    JSONObject json = c8o.callJson("fs://.reset").sync();
+                    assertTrue(json.getBoolean("ok"));
+                    json = c8o.callJson("fs://.replicate_pull").progress(new C8oOnProgress() {
+                        @Override
+                        public void run(C8oProgress progress) {
+                            Log.d("progress", progress.getRaw().toString());
+                            Log.d("progress", progress.getStatus());
+                            state[0] = String.format("%s %s", progress.getRaw(), progress.getStatus());
+                        }
+                    }).sync();
+                    json = c8o.callJson("fs://.replicate_pull").sync();
+                    synchronized (json) {
+                        json.wait(3000);
+                    }
+                    // assertEquals("true", state[0]);
+                    Log.d("state", state[0]);
+
+                } finally {
+                    c8o.callJson(".LogoutTesting").sync();
+                }
+            }
+
+
     }
 
     @SuppressWarnings("SynchronizationOnLocalVariableOrMethodParameter")
