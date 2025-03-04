@@ -98,7 +98,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             @Override
             Object get() throws Throwable {
                 C8o c8o = new C8o(context, "http://" + HOST + ":" + PORT  + PROJECT_PATH, new C8oSettings()
-                    .setDefaultDatabaseName("clientsdktesting")
+                        .setDefaultDatabaseName("clientsdktesting")
                 );
                 c8o.setLogRemote(false);
                 c8o.setLogLevelLocal(Log.ERROR);
@@ -257,17 +257,17 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
         Throwable exception = null;
         final Throwable[] exceptionLog = {null};
         C8o c8o = new C8o(context, "http://" + HOST + "ee:" + PORT   + PROJECT_PATH, new C8oSettings()
-            .setLogOnFail(new C8oOnFail() {
-                @Override
-                public void run(Throwable throwable, Map<String, Object> parameters) {
-                    exceptionLog[0] = throwable;
-                }
-            })
+                .setLogOnFail(new C8oOnFail() {
+                    @Override
+                    public void run(Throwable throwable, Map<String, Object> parameters) {
+                        exceptionLog[0] = throwable;
+                    }
+                })
         );
         c8o.log.warn("must fail log");
         Thread.sleep(250);
         try {
-           c8o.callXml(".Ping").sync();
+            c8o.callXml(".Ping").sync();
         } catch (Exception ex) {
             exception = ex;
         }
@@ -1220,10 +1220,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             String id = json.getString("id");
             String rev = json.getString("rev");
             json = c8o.callJson("fs://.post",
-                "_id", id,
-                "_rev", rev,
-                "ts", ts,
-                "ts2", ts2
+                    "_id", id,
+                    "_rev", rev,
+                    "ts", ts,
+                    "ts2", ts2
             ).sync();
             assertTrue(json.getBoolean("ok"));
             json = c8o.callJson("fs://.get", "docid", id).sync();
@@ -1294,8 +1294,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             String id = json.getString("id");
             try {
                 c8o.callJson("fs://.post",
-                    C8o.FS_POLICY, C8o.FS_POLICY_NONE,
-                     "_id", id
+                        C8o.FS_POLICY, C8o.FS_POLICY_NONE,
+                        "_id", id
                 ).sync();
                 assertTrue("not possible", false);
             } catch (Exception e) {
@@ -1317,8 +1317,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             String id = json.getString("id");
             assertEquals(myId, id);
             json = c8o.callJson("fs://.post",
-                C8o.FS_POLICY, C8o.FS_POLICY_CREATE,
-                "_id", id
+                    C8o.FS_POLICY, C8o.FS_POLICY_CREATE,
+                    "_id", id
             ).sync();
             assertTrue(json.getBoolean("ok"));
             id = json.getString("id");
@@ -1335,19 +1335,19 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             assertTrue(json.getBoolean("ok"));
             String myId = "C8oFsPostExistingPolicyOverride-" + System.currentTimeMillis();
             json = c8o.callJson("fs://.post",
-                C8o.FS_POLICY, C8o.FS_POLICY_OVERRIDE,
-                "_id", myId,
-                "a", 1,
-                "b", 2
+                    C8o.FS_POLICY, C8o.FS_POLICY_OVERRIDE,
+                    "_id", myId,
+                    "a", 1,
+                    "b", 2
             ).sync();
             assertTrue(json.getBoolean("ok"));
             String id = json.getString("id");
             assertEquals(myId, id);
             json = c8o.callJson("fs://.post",
-                C8o.FS_POLICY, C8o.FS_POLICY_OVERRIDE,
-                "_id", myId,
-                "a", 3,
-                "c", 4
+                    C8o.FS_POLICY, C8o.FS_POLICY_OVERRIDE,
+                    "_id", myId,
+                    "a", 3,
+                    "c", 4
             ).sync();
             assertTrue(json.getBoolean("ok"));
             id = json.getString("id");
@@ -1368,19 +1368,19 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             assertTrue(json.getBoolean("ok"));
             String myId = "C8oFsPostExistingPolicyMerge-" + System.currentTimeMillis();
             json = c8o.callJson("fs://.post",
-                C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
-                "_id", myId,
-                "a", 1,
-                "b", 2
+                    C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                    "_id", myId,
+                    "a", 1,
+                    "b", 2
             ).sync();
             assertTrue(json.getBoolean("ok"));
             String id = json.getString("id");
             assertEquals(myId, id);
             json = c8o.callJson("fs://.post",
-                C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
-                "_id", myId,
-                "a", 3,
-                "c", 4
+                    C8o.FS_POLICY, C8o.FS_POLICY_MERGE,
+                    "_id", myId,
+                    "a", 3,
+                    "c", 4
             ).sync();
             assertTrue(json.getBoolean("ok"));
             id = json.getString("id");
@@ -1433,7 +1433,7 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             json.remove("_rev");
             assertEquals(myId, json.remove("_id"));
             JSONObject expectedJson = new JSONObject(
-                "{\"a\":1,\"i\":[\"5\",6,7.1,null],\"b\":-2,\"c\":{\"d\":3,\"i-j\":\"great\",\"f\":{\"j\":\"good\",\"g\":true,\"h\":[true,false,\"three\",\"four\"]},\"e\":\"four\"}}"
+                    "{\"a\":1,\"i\":[\"5\",6,7.1,null],\"b\":-2,\"c\":{\"d\":3,\"i-j\":\"great\",\"f\":{\"j\":\"good\",\"g\":true,\"h\":[true,false,\"three\",\"four\"]},\"e\":\"four\"}}"
             );
             assertEquals(expectedJson, json);
         }
@@ -1674,31 +1674,31 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
     @Test
     public void C8oFsReplicateCancelOnDoublon() throws Throwable{
-            C8o c8o = get(Stuff.C8O_FS_PULL);
-            synchronized (c8o) {
-                try {
-                    final String[] state = new String[1];
-                    JSONObject json = c8o.callJson("fs://.reset").sync();
-                    assertTrue(json.getBoolean("ok"));
-                    json = c8o.callJson("fs://.replicate_pull").progress(new C8oOnProgress() {
-                        @Override
-                        public void run(C8oProgress progress) {
-                            Log.d("progress", progress.getRaw().toString());
-                            Log.d("progress", progress.getStatus());
-                            state[0] = String.format("%s %s", progress.getRaw(), progress.getStatus());
-                        }
-                    }).sync();
-                    json = c8o.callJson("fs://.replicate_pull").sync();
-                    synchronized (json) {
-                        json.wait(3000);
+        C8o c8o = get(Stuff.C8O_FS_PULL);
+        synchronized (c8o) {
+            try {
+                final String[] state = new String[1];
+                JSONObject json = c8o.callJson("fs://.reset").sync();
+                assertTrue(json.getBoolean("ok"));
+                json = c8o.callJson("fs://.replicate_pull").progress(new C8oOnProgress() {
+                    @Override
+                    public void run(C8oProgress progress) {
+                        Log.d("progress", progress.getRaw().toString());
+                        Log.d("progress", progress.getStatus());
+                        state[0] = String.format("%s %s", progress.getRaw(), progress.getStatus());
                     }
-                    // assertEquals("true", state[0]);
-                    Log.d("state", state[0]);
-
-                } finally {
-                    c8o.callJson(".LogoutTesting").sync();
+                }).sync();
+                json = c8o.callJson("fs://.replicate_pull").sync();
+                synchronized (json) {
+                    json.wait(3000);
                 }
+                // assertEquals("true", state[0]);
+                Log.d("state", state[0]);
+
+            } finally {
+                c8o.callJson(".LogoutTesting").sync();
             }
+        }
 
 
     }
@@ -1742,25 +1742,25 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 json = c8o.callJson("fs://.replicate_pull").sync();
                 assertTrue(json.getBoolean("ok"));
                 json = c8o.callJson("fs://.view",
-                    "ddoc", "design",
-                    "view", "reverse"
+                        "ddoc", "design",
+                        "view", "reverse"
                 ).sync();
                 Object value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
                 assertEquals(774.0, value);
                 json = c8o.callJson("fs://.view",
-                    "ddoc", "design",
-                    "view", "reverse",
-                    "reduce", false
+                        "ddoc", "design",
+                        "view", "reverse",
+                        "reduce", false
                 ).sync();
                 value = json.getInt("count");
                 assertEquals(3, value);
                 value = json.getJSONArray("rows").getJSONObject(1).getString("key");
                 assertEquals("852", value);
                 json = c8o.callJson("fs://.view",
-                    "ddoc", "design",
-                    "view", "reverse",
-                    "startkey", "0",
-                    "endkey", "9"
+                        "ddoc", "design",
+                        "view", "reverse",
+                        "startkey", "0",
+                        "endkey", "9"
                 ).sync();
                 value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
                 assertEquals(405.0, value);
@@ -1772,15 +1772,15 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 json = c8o.callJson("fs://.replicate_pull").sync();
                 assertTrue(json.getBoolean("ok"));
                 json = c8o.callJson("fs://.view",
-                    "ddoc", "design",
-                    "view", "reverse"
+                        "ddoc", "design",
+                        "view", "reverse"
                 ).sync();
                 value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
                 assertEquals(2142.0, value);
                 json = c8o.callJson("fs://.view",
-                    "ddoc", "design",
-                    "view", "reverse",
-                    "reduce", false
+                        "ddoc", "design",
+                        "view", "reverse",
+                        "reduce", false
                 ).sync();
                 value = json.getInt("count");
                 assertEquals(6, value);
@@ -1789,10 +1789,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 json = c8o.callJson("fs://.post", "_id", "111", "data", "16").sync();
                 assertTrue(json.getBoolean("ok"));
                 json = c8o.callJson("fs://.view",
-                    "ddoc", "design",
-                    "view", "reverse",
-                    "startkey", "0",
-                    "endkey", "9"
+                        "ddoc", "design",
+                        "view", "reverse",
+                        "startkey", "0",
+                        "endkey", "9"
                 ).sync();
                 value = json.getJSONArray("rows").getJSONObject(0).getDouble("value");
                 assertEquals(1000.0, value);
@@ -1845,23 +1845,23 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertEquals("789", json.getJSONArray("rows").getJSONObject(5).getString("key"));
                 assertTrue(json.getJSONArray("rows").getJSONObject(5).isNull("doc"));
                 json = c8o.callJson("fs://.all",
-                    "include_docs", true
+                        "include_docs", true
                 ).sync();
                 assertEquals(8, json.getInt("count"));
                 assertEquals(8, json.getJSONArray("rows").length());
                 assertEquals("789", json.getJSONArray("rows").getJSONObject(5).getString("key"));
                 assertEquals("testing_user", json.getJSONArray("rows").getJSONObject(5).getJSONObject("doc").getString("~c8oAcl"));
                 json = c8o.callJson("fs://.all",
-                    "limit", 2
+                        "limit", 2
                 ).sync();
                 assertEquals(2, json.getInt("count"));
                 assertEquals(2, json.getJSONArray("rows").length());
                 assertEquals("147", json.getJSONArray("rows").getJSONObject(1).getString("key"));
                 assertTrue(json.getJSONArray("rows").getJSONObject(1).isNull("doc"));
                 json = c8o.callJson("fs://.all",
-                    "include_docs", true,
-                    "limit", 3,
-                    "skip", 2
+                        "include_docs", true,
+                        "limit", 3,
+                        "skip", 2
                 ).sync();
                 assertEquals(3, json.getInt("count"));
                 assertEquals(3, json.getJSONArray("rows").length());
@@ -1890,89 +1890,89 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
                 // Sync continuous
                 c8o.callJson("fs://.sync",
-                        "continuous", true
-                ).then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du sync", response.toString());
-                        return null;
-                    }
-                })
-                .progress(new C8oOnProgress() {
-                    @Override
-                    public void run(C8oProgress c8oProgress) {
-                        Log.d("Logs perso: progress du sync", c8oProgress.toString());
-                    }
-                })
-                .fail(new C8oOnFail() {
-                    @Override
-                    public void run(Throwable throwable, Map<String, Object> parameters) {
-                        Log.d("Logs perso: erreur du sync", throwable.toString());
-                        assertNotNull(null);
-                    }
-                }).sync();
+                                "continuous", true
+                        ).then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du sync", response.toString());
+                                return null;
+                            }
+                        })
+                        .progress(new C8oOnProgress() {
+                            @Override
+                            public void run(C8oProgress c8oProgress) {
+                                Log.d("Logs perso: progress du sync", c8oProgress.toString());
+                            }
+                        })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du sync", throwable.toString());
+                                assertNotNull(null);
+                            }
+                        }).sync();
 
                 // Post de l'objet
                 String id = "monidpasunique";
                 c8o.callJson("fs://.post",
-                        "_id", id,
-                        "data", "777",
-                        "bool", true,
-                        "int", 777
-                )
-                .then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du post", response.toString());
-                        return null;
-                    }
-                })
-                .fail(new C8oOnFail() {
-                    @Override
-                    public void run(Throwable throwable, Map<String, Object> parameters) {
-                        Log.d("Logs perso: erreur du post", throwable.toString());
-                    }
-                }).sync();
+                                "_id", id,
+                                "data", "777",
+                                "bool", true,
+                                "int", 777
+                        )
+                        .then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du post", response.toString());
+                                return null;
+                            }
+                        })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du post", throwable.toString());
+                            }
+                        }).sync();
 
                 // Put attachment du txt
                 c8o.callJson("fs://.put_attachment",
-                        "docid", id,
-                        "name", "text2.txt",
-                        "content_type", "text/plain",
-                        "content", "U2FsdXQgIQo="
-                )
-                .then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du put attachment du txt", response.toString());
-                        return null;
-                    }
-                })
-                .fail(new C8oOnFail() {
-                    @Override
-                    public void run(Throwable throwable, Map<String, Object> parameters) {
-                        Log.d("Logs perso: erreur du put attachment du txt", throwable.toString());
-                    }
-                }).sync();
+                                "docid", id,
+                                "name", "text2.txt",
+                                "content_type", "text/plain",
+                                "content", "U2FsdXQgIQo="
+                        )
+                        .then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du put attachment du txt", response.toString());
+                                return null;
+                            }
+                        })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du put attachment du txt", throwable.toString());
+                            }
+                        }).sync();
 
                 c8o.callJson("fs://.put_attachment",
-                        "docid", id,
-                        "name", "img.jpeg",
-                        "content_type", "image/jpeg",
-                        "content", "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"
-                ).then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du put attachment de l'image", response.toString());
-                        return null;
-                    }
-                })
-                .fail(new C8oOnFail() {
-                    @Override
-                    public void run(Throwable throwable, Map<String, Object> parameters) {
-                        Log.d("Logs perso: erreur du put aattachment de l'image", throwable.toString());
-                    }
-                }).sync();
+                                "docid", id,
+                                "name", "img.jpeg",
+                                "content_type", "image/jpeg",
+                                "content", "R0lGODlhPQBEAPeoAJosM//AwO/AwHVYZ/z595kzAP/s7P+goOXMv8+fhw/v739/f+8PD98fH/8mJl+fn/9ZWb8/PzWlwv///6wWGbImAPgTEMImIN9gUFCEm/gDALULDN8PAD6atYdCTX9gUNKlj8wZAKUsAOzZz+UMAOsJAP/Z2ccMDA8PD/95eX5NWvsJCOVNQPtfX/8zM8+QePLl38MGBr8JCP+zs9myn/8GBqwpAP/GxgwJCPny78lzYLgjAJ8vAP9fX/+MjMUcAN8zM/9wcM8ZGcATEL+QePdZWf/29uc/P9cmJu9MTDImIN+/r7+/vz8/P8VNQGNugV8AAF9fX8swMNgTAFlDOICAgPNSUnNWSMQ5MBAQEJE3QPIGAM9AQMqGcG9vb6MhJsEdGM8vLx8fH98AANIWAMuQeL8fABkTEPPQ0OM5OSYdGFl5jo+Pj/+pqcsTE78wMFNGQLYmID4dGPvd3UBAQJmTkP+8vH9QUK+vr8ZWSHpzcJMmILdwcLOGcHRQUHxwcK9PT9DQ0O/v70w5MLypoG8wKOuwsP/g4P/Q0IcwKEswKMl8aJ9fX2xjdOtGRs/Pz+Dg4GImIP8gIH0sKEAwKKmTiKZ8aB/f39Wsl+LFt8dgUE9PT5x5aHBwcP+AgP+WltdgYMyZfyywz78AAAAAAAD///8AAP9mZv///wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAEAAKgALAAAAAA9AEQAAAj/AFEJHEiwoMGDCBMqXMiwocAbBww4nEhxoYkUpzJGrMixogkfGUNqlNixJEIDB0SqHGmyJSojM1bKZOmyop0gM3Oe2liTISKMOoPy7GnwY9CjIYcSRYm0aVKSLmE6nfq05QycVLPuhDrxBlCtYJUqNAq2bNWEBj6ZXRuyxZyDRtqwnXvkhACDV+euTeJm1Ki7A73qNWtFiF+/gA95Gly2CJLDhwEHMOUAAuOpLYDEgBxZ4GRTlC1fDnpkM+fOqD6DDj1aZpITp0dtGCDhr+fVuCu3zlg49ijaokTZTo27uG7Gjn2P+hI8+PDPERoUB318bWbfAJ5sUNFcuGRTYUqV/3ogfXp1rWlMc6awJjiAAd2fm4ogXjz56aypOoIde4OE5u/F9x199dlXnnGiHZWEYbGpsAEA3QXYnHwEFliKAgswgJ8LPeiUXGwedCAKABACCN+EA1pYIIYaFlcDhytd51sGAJbo3onOpajiihlO92KHGaUXGwWjUBChjSPiWJuOO/LYIm4v1tXfE6J4gCSJEZ7YgRYUNrkji9P55sF/ogxw5ZkSqIDaZBV6aSGYq/lGZplndkckZ98xoICbTcIJGQAZcNmdmUc210hs35nCyJ58fgmIKX5RQGOZowxaZwYA+JaoKQwswGijBV4C6SiTUmpphMspJx9unX4KaimjDv9aaXOEBteBqmuuxgEHoLX6Kqx+yXqqBANsgCtit4FWQAEkrNbpq7HSOmtwag5w57GrmlJBASEU18ADjUYb3ADTinIttsgSB1oJFfA63bduimuqKB1keqwUhoCSK374wbujvOSu4QG6UvxBRydcpKsav++Ca6G8A6Pr1x2kVMyHwsVxUALDq/krnrhPSOzXG1lUTIoffqGR7Goi2MAxbv6O2kEG56I7CSlRsEFKFVyovDJoIRTg7sugNRDGqCJzJgcKE0ywc0ELm6KBCCJo8DIPFeCWNGcyqNFE06ToAfV0HBRgxsvLThHn1oddQMrXj5DyAQgjEHSAJMWZwS3HPxT/QMbabI/iBCliMLEJKX2EEkomBAUCxRi42VDADxyTYDVogV+wSChqmKxEKCDAYFDFj4OmwbY7bDGdBhtrnTQYOigeChUmc1K3QTnAUfEgGFgAWt88hKA6aCRIXhxnQ1yg3BCayK44EWdkUQcBByEQChFXfCB776aQsG0BIlQgQgE8qO26X1h8cEUep8ngRBnOy74E9QgRgEAC8SvOfQkh7FDBDmS43PmGoIiKUUEGkMEC/PJHgxw0xH74yx/3XnaYRJgMB8obxQW6kL9QYEJ0FIFgByfIL7/IQAlvQwEpnAC7DtLNJCKUoO/w45c44GwCXiAFB/OXAATQryUxdN4LfFiwgjCNYg+kYMIEFkCKDs6PKAIJouyGWMS1FSKJOMRB/BoIxYJIUXFUxNwoIkEKPAgCBZSQHQ1A2EWDfDEUVLyADj5AChSIQW6gu10bE/JG2VnCZGfo4R4d0sdQoBAHhPjhIB94v/wRoRKQWGRHgrhGSQJxCS+0pCZbEhAAOw=="
+                        ).then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du put attachment de l'image", response.toString());
+                                return null;
+                            }
+                        })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du put aattachment de l'image", throwable.toString());
+                            }
+                        }).sync();
 
             } catch(Exception e){
                 c8o.log.debug("error");
@@ -2001,14 +2001,14 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
 
                 // Sync continuous
                 c8o.callJson("fs://.sync",
-                        "continuous", true
-                ).then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du sync", response.toString());
-                        return null;
-                    }
-                })
+                                "continuous", true
+                        ).then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du sync", response.toString());
+                                return null;
+                            }
+                        })
                         .progress(new C8oOnProgress() {
                             @Override
                             public void run(C8oProgress c8oProgress) {
@@ -2026,81 +2026,81 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 // Post de l'objet
                 String id = "monidpasunique";
                 c8o.callJson("fs://.post",
-                        "_id", id,
-                        "data", "777",
-                        "bool", true,
-                        "int", 777
-                )
-                .then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du post", response.toString());
-                        return null;
-                    }
-                })
-                .fail(new C8oOnFail() {
-                    @Override
-                    public void run(Throwable throwable, Map<String, Object> parameters) {
-                        Log.d("Logs perso: erreur du post", throwable.toString());
-                    }
-                }).sync();
+                                "_id", id,
+                                "data", "777",
+                                "bool", true,
+                                "int", 777
+                        )
+                        .then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du post", response.toString());
+                                return null;
+                            }
+                        })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du post", throwable.toString());
+                            }
+                        }).sync();
 
                 // Put attachment du txt
                 c8o.callJson("fs://.put_attachment",
-                        "docid", id,
-                        "name", "text2.txt",
-                        "content_type", "text/plain",
-                        "content", "U2FsdXQgIQo="
-                )
-                .then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du put attachment du txt", response.toString());
-                        return null;
-                    }
-                })
-                .fail(new C8oOnFail() {
-                    @Override
-                    public void run(Throwable throwable, Map<String, Object> parameters) {
-                        Log.d("Logs perso: erreur du put attachment du txt", throwable.toString());
-                    }
-                }).sync();
+                                "docid", id,
+                                "name", "text2.txt",
+                                "content_type", "text/plain",
+                                "content", "U2FsdXQgIQo="
+                        )
+                        .then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du put attachment du txt", response.toString());
+                                return null;
+                            }
+                        })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du put attachment du txt", throwable.toString());
+                            }
+                        }).sync();
 
                 // get Attachment du texte
                 c8o.callJson("fs://.get",
-                        "docid", id
+                                "docid", id
                         ).then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du get attachment de l'image", response.toString());
-                        String Uri = response.getJSONObject("_attachments").getJSONObject("text2.txt").get("content_url").toString();
-                        if(Uri.startsWith("file:/")){
-                            Uri = Uri.substring(6);
-                        }
-                        File file = new File(Uri);
-                        FileInputStream fileInputStream = new FileInputStream(file);
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du get attachment de l'image", response.toString());
+                                String Uri = response.getJSONObject("_attachments").getJSONObject("text2.txt").get("content_url").toString();
+                                if(Uri.startsWith("file:/")){
+                                    Uri = Uri.substring(6);
+                                }
+                                File file = new File(Uri);
+                                FileInputStream fileInputStream = new FileInputStream(file);
 
-                        return null;
-                    }
-                })
-                .fail(new C8oOnFail() {
-                    @Override
-                    public void run(Throwable throwable, Map<String, Object> parameters) {
-                        Log.d("Logs perso: erreur du get aattachment de l'image", throwable.toString());
-                    }
-                }).sync();
+                                return null;
+                            }
+                        })
+                        .fail(new C8oOnFail() {
+                            @Override
+                            public void run(Throwable throwable, Map<String, Object> parameters) {
+                                Log.d("Logs perso: erreur du get aattachment de l'image", throwable.toString());
+                            }
+                        }).sync();
 
                 // Delete attachment
                 c8o.callJson("fs://.delete_attachment",
-                        "docid", id,
-                        "name", "text2.txt"
-                ).then(new C8oOnResponse<JSONObject>() {
-                    @Override
-                    public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
-                        Log.d("Logs perso: response du delete attachment de l'image", response.toString());
-                        return null;
-                    }
-                })
+                                "docid", id,
+                                "name", "text2.txt"
+                        ).then(new C8oOnResponse<JSONObject>() {
+                            @Override
+                            public C8oPromise<JSONObject> run(JSONObject response, Map<String, Object> parameters) throws Throwable {
+                                Log.d("Logs perso: response du delete attachment de l'image", response.toString());
+                                return null;
+                            }
+                        })
                         .fail(new C8oOnFail() {
                             @Override
                             public void run(Throwable throwable, Map<String, Object> parameters) {
@@ -2128,10 +2128,10 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertTrue(json.getBoolean("ok"));
                 String id = "C8oFsReplicatePushAnoAndAuth-" + System.currentTimeMillis();
                 json = c8o.callJson("fs://.post",
-                    "_id", id,
-                    "data", "777",
-                    "bool", true,
-                    "int", 777
+                        "_id", id,
+                        "data", "777",
+                        "bool", true,
+                        "int", 777
                 ).sync();
                 assertTrue(json.getBoolean("ok"));
                 json = c8o.callJson(".LoginTesting").sync();
@@ -2163,8 +2163,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 String id = "C8oFsReplicatePushAuthProgress-" + System.currentTimeMillis();
                 for (int i = 0; i < 10; i++) {
                     json = c8o.callJson("fs://.post",
-                        "_id", id + "-" + i,
-                        "index", i
+                            "_id", id + "-" + i,
+                            "index", i
                     ).sync();
                     assertTrue(json.getBoolean("ok"));
                 }
@@ -2192,9 +2192,9 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                         "endkey", id + "z"
                 ).sync();
                 JSONArray array = json
-                    .getJSONObject("document")
-                    .getJSONObject("couchdb_output")
-                    .getJSONArray("rows");
+                        .getJSONObject("document")
+                        .getJSONObject("couchdb_output")
+                        .getJSONArray("rows");
                 assertEquals(10, array.length());
                 for (int i = 0; i < 10; i++) {
                     value = array.getJSONObject(i).getJSONObject("doc").getString("_id");
@@ -2226,8 +2226,8 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 String id = "C8oFsReplicateSyncContinuousProgress-" + System.currentTimeMillis();
                 for (int i = 0; i < 3; i++) {
                     json = c8o.callJson("fs://.post",
-                        "_id", id + "-" + i,
-                        "index", i
+                            "_id", id + "-" + i,
+                            "index", i
                     ).sync();
                     assertTrue(json.getBoolean("ok"));
                 }
@@ -2273,13 +2273,13 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
                 assertEquals("pull: 0/0 (running)", firstPull[0]);
                 assertTrue("pull: \\d+/\\d+ \\(done\\) for " + lastPull[0], Pattern.matches("pull: \\d+/\\d+ \\(done\\)", lastPull[0]));
                 json = c8o.callJson(".qa_fs_push.AllDocs",
-                    "startkey", id,
-                    "endkey", id + "z"
+                        "startkey", id,
+                        "endkey", id + "z"
                 ).sync();
                 JSONArray array = json
-                    .getJSONObject("document")
-                    .getJSONObject("couchdb_output")
-                    .getJSONArray("rows");
+                        .getJSONObject("document")
+                        .getJSONObject("couchdb_output")
+                        .getJSONArray("rows");
                 assertEquals(3, array.length());
                 for (int i = 0; i < 3; i++) {
                     value = array.getJSONObject(i).getJSONObject("doc").getString("_id");
@@ -2510,11 +2510,11 @@ public class ApplicationTest extends ActivityInstrumentationTestCase2<MainActivi
             @Override
             public void onChange(JSONObject changes) {
                 Log.i("SdkDebug", "C8oFullSyncChangeListener before");
-        //        synchronized (lastChanges) {
-        //            Log.i("SdkDebug", "C8oFullSyncChangeListener after");
-                    lastChanges[0] = changes;
-        //            lastChanges.notify();
-        //        }
+                //        synchronized (lastChanges) {
+                //            Log.i("SdkDebug", "C8oFullSyncChangeListener after");
+                lastChanges[0] = changes;
+                //            lastChanges.notify();
+                //        }
                 signal[0].countDown();
             }
         };

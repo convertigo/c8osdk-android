@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
 
 ext {
     bintrayRepo = 'maven'
@@ -8,12 +9,12 @@ ext {
     libraryName = 'c8oSDKAndroid'
     artifact = 'c8oSDKAndroid'
 
-    libraryDescription = 'Allows Android apps to access Convertigo mBaaS services such as FullSync data replication for offline, push notifications and back-end connectors'
+    libraryDescription = 'Allows Android apps to access Convertigo services such as FullSync data replication for offline, push notifications and back-end connectors'
 
-    siteUrl = 'http://www.convertigo.com/document/convertigo-client-sdk'
+    siteUrl = 'https://www.convertigo.com'
     gitUrl =  'https://github.com/convertigo/c8osdk-android'
 
-    libraryVersion = '2.1.9'
+    libraryVersion = '2.1.11'
 
     developerId = 'Convertigo'
     developerName = 'Convertigo SA'
@@ -26,16 +27,19 @@ ext {
 
 
 android {
-    compileSdkVersion 15
-    buildToolsVersion '28.0.3'
+    namespace "com.convertigo.clientsdk"
     packagingOptions {
         exclude 'META-INF/LICENSE'
         exclude 'META-INF/NOTICE'
     }
-    defaultConfig {
-        minSdkVersion 9
-        targetSdkVersion 10
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
+    defaultConfig {
+        minSdkVersion 24
+    }
+    compileSdk = 33
     buildTypes {
         release {
             minifyEnabled false
@@ -48,33 +52,32 @@ android {
         timeOutInMs 20 * 60 * 1000  // 20 minutes
         installOptions "-d","-t"
     }
+    useLibrary 'org.apache.http.legacy'
 }
 
 dependencies {
     api 'com.couchbase.lite:couchbase-lite-android:1.4.1'
     api 'com.couchbase.lite:couchbase-lite-java-javascript:1.4.1'
 }
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
 
-android.libraryVariants.all { variant ->
-    task("generate${variant.name.capitalize()}Javadoc", type: Javadoc) {
-        description "Generates Javadoc for $variant.name."
-        source = variant.javaCompile.source
-        doFirst { classpath = files(variant.javaCompile.classpath.files, project.android.getBootClasspath()) }
-        options {
-            links "http://docs.oracle.com/javase/8/docs/api/"
-            linksOffline "http://d.android.com/reference", "${android.sdkDirectory}/docs/reference"
-            encoding "UTF-8"
-            failOnError false
-            showFromPublic()
+                groupId = publishedGroupId
+                artifactId = libraryName
+                version = libraryVersion
+            }
         }
-        exclude '**/BuildConfig.java'
-        exclude '**/R.java'
+        repositories {
+            maven {
+                url project.properties['c8o.m2.url']
+                credentials(AwsCredentials) {
+                    accessKey project.properties['c8o.m2.ak']
+                    secretKey project.properties['c8o.m2.sk']
+                }
+            }
+        }
     }
 }
-
-
-task generateZipJavadoc(type: Zip, dependsOn: {generateReleaseJavadoc}) {
-    classifier = 'javadoc'
-    from {generateReleaseJavadoc}.destinationDir
-}
-
